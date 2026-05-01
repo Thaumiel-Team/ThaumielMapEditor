@@ -13,6 +13,7 @@ using MEC;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Components;
+using ThaumielMapEditor.API.Components.Tools;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
 
@@ -122,6 +123,9 @@ namespace ThaumielMapEditor.Events
                     clientobj.SpawnedPlayers.Remove(player);
                 }
             }
+
+            InteractableTrigger.PlayerEffectCache.Remove(player);
+            ColliderTrigger.PlayerEffectCache.Remove(player);
         }
 
         private static void OnPlayerJoined(PlayerJoinedEventArgs ev)
