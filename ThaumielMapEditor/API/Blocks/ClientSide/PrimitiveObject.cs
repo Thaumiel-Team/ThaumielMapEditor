@@ -32,7 +32,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.Color);
             }
         }
 
@@ -45,7 +45,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.PrimitiveType);
             }
         }
 
@@ -58,7 +58,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.PrimitiveFlags);
             }
         }
 

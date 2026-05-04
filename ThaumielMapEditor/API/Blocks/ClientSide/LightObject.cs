@@ -31,7 +31,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.LightIntensity);
             }
         } = 1f;
 
@@ -47,7 +47,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.LightRange);
             }
         } = 10f;
 
@@ -63,7 +63,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.LightColor);
             }
         } = Color.white;
 
@@ -79,7 +79,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.Shadows);
             }
         } = LightShadows.None;
 
@@ -95,7 +95,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.ShadowStrength);
             }
         } = 1f;
 
@@ -111,7 +111,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.LightType);
             }
         } = LightType.Point;
 
@@ -128,7 +128,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.LightShape);
             }
         } = LightShape.Cone;
 #pragma warning restore CS0618
@@ -145,7 +145,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.SpotAngle);
             }
         } = 30f;
 
@@ -161,7 +161,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.InnerSpotAngle);
             }
         } = 20f;
 

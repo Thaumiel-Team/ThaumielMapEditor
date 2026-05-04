@@ -9,7 +9,6 @@ using System;
 using AdminToys;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Data;
-using ThaumielMapEditor.API.Helpers;
 
 namespace ThaumielMapEditor.Events
 {
@@ -74,7 +73,6 @@ namespace ThaumielMapEditor.Events
                 if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.ServerCollider == null || schematic.Primitive == null)
                     continue;
 
-                LogManager.Debug($"Updated Position");
                 primitive.ServerCollider.transform.position = schematic.Primitive.Transform.TransformPoint(primitive.Position);
             }
         }
@@ -86,7 +84,6 @@ namespace ThaumielMapEditor.Events
                 if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.ServerCollider == null)
                     continue;
 
-                LogManager.Debug($"Updated Rotation");
                 primitive.ServerCollider.transform.rotation = schematic.Rotation * primitive.Rotation;
             }
         }

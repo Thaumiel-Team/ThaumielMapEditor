@@ -21,8 +21,23 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
     public class ClientObject
     {
-        internal ulong _pendingDirtyBits = 0;
-        internal readonly SortedDictionary<ulong, Action<NetworkWriter>> _pendingWrites = [];
+        internal SyncFlags SyncFlags { get; private set; } = SyncFlags.None;
+        
+        /// <summary>
+        /// True if this object has pending changes that need syncing.
+        /// </summary>
+        public bool IsDirty => SyncFlags != SyncFlags.None;
+        
+        /// <summary>
+        /// Marks specific properties as needing to be synced and registers for batch sync.
+        /// </summary>
+        protected void MarkSyncNeeded(SyncFlags flags)
+        {
+            SyncFlags |= flags;
+            SyncManager.RegisterForSync(this);
+        }
+
+        internal void ClearDirtyFlags() => SyncFlags = SyncFlags.None;
 
         public static event Action<Vector3, ClientObject>? PositionUpdated;
         public static event Action<Vector3, ClientObject>? ScaleUpdated;
@@ -70,7 +85,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             set
             {
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.Position);
                 PositionUpdated?.Invoke(value, this);
             }
         }
@@ -87,7 +102,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             set
             {
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.Scale);
                 ScaleUpdated?.Invoke(value, this);
             }
         }
@@ -104,7 +119,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             set
             {
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.Rotation);
                 RotationUpdated?.Invoke(value, this);
             }
         }
@@ -121,7 +136,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.IsStatic);
             }
         }
 
@@ -134,7 +149,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             set
             {
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.MovementSmoothing);
             }
         }
 
@@ -337,6 +352,8 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
                 SpawnForPlayer(player);
             }
+
+            ClearDirtyFlags();
         }
 
         /// <summary>
@@ -353,6 +370,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
 
             LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
             SpawnForPlayer(player);
+            ClearDirtyFlags();
         }
 
         /// <summary>
@@ -375,6 +393,25 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
                 SpawnForPlayer(player);
             }
+
+            ClearDirtyFlags();
+        }
+
+        internal void PerformBatchedSync()
+        {
+            if (!Spawned || SyncFlags == SyncFlags.None)
+                return;
+
+            foreach (Player player in SpawnedPlayers)
+            {
+                if (player.IsHost)
+                    continue;
+
+                SpawnForPlayer(player);
+            }
+            
+            ClearDirtyFlags();
+            LogManager.Debug($"Batched sync completed for object {NetId} ({SyncFlags})");
         }
 
         /// <summary>
