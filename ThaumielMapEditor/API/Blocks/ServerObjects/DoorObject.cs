@@ -202,6 +202,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             Object = doorPrefab.gameObject;
             NetId = Base.netId;
             SetWorldTransform(schematic);            
+            doorPrefab.transform.SetPositionAndRotation(Position, Rotation);
             ApplyProperties(doorPrefab);
             NetworkServer.Spawn(Object);
 
@@ -228,6 +229,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             Object = doorPrefab.gameObject;
             NetId = Base.netId;
             SetWorldTransform(schematic);
+            doorPrefab.transform.SetPositionAndRotation(Position, Rotation);
             ApplyProperties(doorPrefab);
             NetworkServer.Spawn(Object);
 
