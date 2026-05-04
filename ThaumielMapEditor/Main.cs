@@ -29,7 +29,7 @@ namespace ThaumielMapEditor
         public override string Name => "Thaumiel Map Editor";
         public override string Description => ":3";
         public override string Author => "Mr. Baguetter";
-        public override Version Version => new(0, 6, 4);
+        public override Version Version => new(0, 7, 0);
         public override Version RequiredApiVersion => LabApiProperties.CurrentVersion;
         public override LoadPriority Priority => LoadPriority.Medium;
         public string HarmonyId { get; private set; } = string.Empty;
