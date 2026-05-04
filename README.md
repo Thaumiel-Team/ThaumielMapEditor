@@ -98,7 +98,7 @@ To view the full list of in-game console and admin commands, permissions, and al
 
 ### Getting Started
 
-1. Download the repository from here: https://www.github.com/Mr-Baguetter/ThaumielMapEditorUnityProject
+1. Download the repository from here: https://www.github.com/Thaumiel-Team/ThaumielMapEditorUnityProject
 
 2. Extract the downloaded file.
 
