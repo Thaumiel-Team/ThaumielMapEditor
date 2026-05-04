@@ -12,6 +12,7 @@ namespace ThaumielMapEditor.API.Enums
     [Flags]
     public enum DisableFlags
     {
+        None = 0,
         Used = 1 << 0,
         Decontamination = 1 << 1,
         WarheadDetonated = 1 << 2,

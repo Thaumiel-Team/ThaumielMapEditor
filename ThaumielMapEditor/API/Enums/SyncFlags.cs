@@ -38,7 +38,5 @@ namespace ThaumielMapEditor.API.Enums
 
         // Capybaras
         Collisions = 1 << 18,
-
-        All = 0xFFFF
     }
 }
