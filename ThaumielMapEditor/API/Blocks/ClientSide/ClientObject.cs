@@ -244,21 +244,55 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Sets the parent of the <see cref="ClientObject"/>.
         /// </summary>
+        /// <param name="network">The <see cref="NetworkBehaviour"/> of the parent</param>
+        /// <param name="player">The <see cref="Player"/> that will recive the parent message=</param>
+        public void SetParent(Player player, NetworkBehaviour network)
+        {
+            player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
+
+            GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
+            if (go != null)
+            {
+                Parent = go;
+            }
+            else
+                LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
+        }
+
+        /// <summary>
+        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// </summary>
+        /// <param name="gameObject">The <see cref="GameObject"/> of the parent</param>
+        /// <param name="player">The <see cref="Player"/> that will recive the parent message=</param>
+        /// <returns><see langword="true"/> if the <see cref="ClientObject"/> was parented</returns>
+        public bool SetParent(Player player, GameObject gameObject)
+        {
+            if (!gameObject.TryGetComponent<NetworkBehaviour>(out var network))
+                return false;
+
+            player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
+            Parent = gameObject;
+            return true;
+        }
+
+        /// <summary>
+        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// </summary>
         /// <param name="parentId">The <see cref="NetworkBehaviour.netId"/> of the parent</param>
         public void SetParent(int parentId)
         {
             foreach (Player player in SpawnedPlayers)
             {
                 player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, parentId);
-
-                GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
-                if (go != null)
-                {
-                    Parent = go;
-                }
-                else
-                    LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
             }
+
+            GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
+            if (go != null)
+            {
+                Parent = go;
+            }
+            else
+                LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
         }
 
         /// <summary>
@@ -270,15 +304,15 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             foreach (Player player in SpawnedPlayers)
             {
                 player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
-
-                GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
-                if (go != null)
-                {
-                    Parent = go;
-                }
-                else
-                    LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
             }
+
+            GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
+            if (go != null)
+            {
+                Parent = go;
+            }
+            else
+                LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
         }
 
         /// <summary>
@@ -294,16 +328,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             foreach (Player player in SpawnedPlayers)
             {
                 player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
-
-                GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
-                if (go != null)
-                {
-                    Parent = go;
-                }
-                else
-                    LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
             }
 
+            Parent = gameObject;
             return true;
         }
 
