@@ -83,9 +83,6 @@ namespace ThaumielMapEditor.API.Helpers
         /// </summary>
         public static Dictionary<string, SerializableMap> LoadedMaps = new(StringComparer.OrdinalIgnoreCase);
 
-        [Obsolete($"Unused, Use {nameof(SchematicData)}::ServerSideTransforms now")]
-        public static Dictionary<int, Transform> ServerSideTransforms = []; 
-
         /// <summary>
         /// dodad2
         /// </summary>
