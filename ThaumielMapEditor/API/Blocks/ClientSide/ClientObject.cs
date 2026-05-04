@@ -232,6 +232,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         {
             player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, parentId);
 
+            ParentNetId = (uint)parentId;
             GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
             if (go != null)
             {
@@ -250,6 +251,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         {
             player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
 
+            ParentNetId = network.netId;
             GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
             if (go != null)
             {
@@ -271,6 +273,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 return false;
 
             player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
+            ParentNetId = network.netId;
             Parent = gameObject;
             return true;
         }
@@ -286,6 +289,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, parentId);
             }
 
+            ParentNetId = (uint)parentId;
             GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
             if (go != null)
             {
@@ -306,6 +310,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
             }
 
+            ParentNetId = network.netId;
             GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
             if (go != null)
             {
@@ -330,6 +335,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
             }
 
+            ParentNetId = network.netId;
             Parent = gameObject;
             return true;
         }
