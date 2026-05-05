@@ -113,6 +113,9 @@ namespace ThaumielMapEditor.Events
                 return;
             }
 
+            if (player.IsHost)
+                return;
+
             foreach (SchematicData data in Loader.SpawnedSchematics)
             {
                 foreach (ClientObject clientobj in data.SpawnedClientObjects)
