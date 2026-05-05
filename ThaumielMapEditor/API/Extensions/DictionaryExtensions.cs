@@ -10,6 +10,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
 
@@ -17,6 +18,8 @@ namespace ThaumielMapEditor.API.Extensions
 {
     public static class DictionaryExtensions
     {
+        public static readonly ConditionalWeakTable<Type, PropertyInfo[]> PropertyCache = new();
+
         public static object? GetValueOrDefault(this Dictionary<string, object> dict, string key)
             => dict.TryGetValue(key, out var value) ? value : null;
 
@@ -282,7 +285,7 @@ namespace ThaumielMapEditor.API.Extensions
         private static object? ConvertToListByType(object item, Type targetType)
         {
             Type elementType = targetType.GetGenericArguments()[0];
-            
+
             if (item is not IEnumerable enumerable)
                 return null;
 
@@ -299,7 +302,7 @@ namespace ThaumielMapEditor.API.Extensions
         private static object ConvertDictionaryToObject(Dictionary<string, object> dict, Type targetType)
         {
             object obj = Activator.CreateInstance(targetType)!;
-            PropertyInfo[] properties = targetType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            PropertyInfo[] properties = GetCachedProperties(targetType);
 
             foreach (PropertyInfo prop in properties)
             {
@@ -320,6 +323,17 @@ namespace ThaumielMapEditor.API.Extensions
             }
 
             return obj;
+        }
+
+        private static PropertyInfo[] GetCachedProperties(Type type)
+        {
+            if (!PropertyCache.TryGetValue(type, out var props))
+            {
+                props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                PropertyCache.Add(type, props);
+            }
+
+            return props;
         }
     }
 }
