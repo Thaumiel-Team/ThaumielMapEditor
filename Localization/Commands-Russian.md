@@ -35,5 +35,5 @@
 | Команда | Псевдоним | Описание |
 | :--- | :--- | :--- |
 | `tmelogs` | `tmelogsupload, tmeupload` | Загружает ваши логи в TME API. |
-| `tmeupdate` | None | Обновляет текущий плагин Thaumiel Map Editor до последней версии. |
-| `tmeupdatecheck` | None | Проверка на обновления плагина Thaumiel Map Editor. |
+| `tmeupdate` | Нету | Обновляет текущий плагин Thaumiel Map Editor до последней версии. |
+| `tmeupdatecheck` | Нету | Проверка на обновления плагина Thaumiel Map Editor. |
