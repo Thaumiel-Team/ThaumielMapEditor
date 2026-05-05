@@ -31,7 +31,7 @@ namespace ThaumielMapEditor.API.Components.Tools
 {
     public class ColliderTrigger : ToolBase
     {
-        private static Dictionary<Player, HashSet<StatusEffectBase>> PlayerEffectCache = [];
+        internal static Dictionary<Player, HashSet<StatusEffectBase>> PlayerEffectCache = [];
         
         public Vector3 Bounds;
 

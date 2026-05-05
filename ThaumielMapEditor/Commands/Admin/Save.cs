@@ -21,19 +21,19 @@ namespace ThaumielMapEditor.Commands.Admin
     [DoNotParse]
     public class Save : ISubCommand
     {
-        public string Name => "save";
+        public override string Name => "save";
 
-        public string VisibleArgs => "<Map Name>";
+        public override string VisibleArgs => "<Map Name>";
 
-        public int RequiredArgsCount => 1;
+        public override int RequiredArgsCount => 1;
 
-        public string Description => "Saves the current spawned schematics into a map file";
+        public override string Description => "Saves the current spawned schematics into a map file";
 
-        public string[] Aliases => [""];
+        public override string[] Aliases => [""];
 
-        public string RequiredPermission => "tme.save";
+        public override string RequiredPermission => "tme.save";
 
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             StringBuilder sb = new();
             MapData map = new();

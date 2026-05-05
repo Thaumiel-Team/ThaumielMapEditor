@@ -21,8 +21,23 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
     public class ClientObject
     {
-        internal ulong _pendingDirtyBits = 0;
-        internal readonly SortedDictionary<ulong, Action<NetworkWriter>> _pendingWrites = [];
+        internal SyncFlags SyncFlags { get; private set; } = SyncFlags.None;
+        
+        /// <summary>
+        /// True if this object has pending changes that need syncing.
+        /// </summary>
+        public bool IsDirty => SyncFlags != SyncFlags.None;
+        
+        /// <summary>
+        /// Marks specific properties as needing to be synced and registers for batch sync.
+        /// </summary>
+        protected void MarkSyncNeeded(SyncFlags flags)
+        {
+            SyncFlags |= flags;
+            SyncManager.RegisterForSync(this);
+        }
+
+        internal void ClearDirtyFlags() => SyncFlags = SyncFlags.None;
 
         public static event Action<Vector3, ClientObject>? PositionUpdated;
         public static event Action<Vector3, ClientObject>? ScaleUpdated;
@@ -70,7 +85,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             set
             {
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.Position);
                 PositionUpdated?.Invoke(value, this);
             }
         }
@@ -87,7 +102,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             set
             {
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.Scale);
                 ScaleUpdated?.Invoke(value, this);
             }
         }
@@ -104,7 +119,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             set
             {
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.Rotation);
                 RotationUpdated?.Invoke(value, this);
             }
         }
@@ -121,7 +136,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.IsStatic);
             }
         }
 
@@ -134,7 +149,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             set
             {
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.MovementSmoothing);
             }
         }
 
@@ -209,7 +224,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Sets the parent of the 
+        /// Sets the parent of the <see cref="ClientObject"/>.
         /// </summary>
         /// <param name="player">The <see cref="Player"/> that will recive the parent message=</param>
         /// <param name="parentId">The <see cref="NetworkBehaviour.netId"/> of the parent</param>
@@ -217,6 +232,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         {
             player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, parentId);
 
+            ParentNetId = (uint)parentId;
             GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
             if (go != null)
             {
@@ -227,7 +243,43 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Sets the parent of the <see cref="ClientObject"/>
+        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// </summary>
+        /// <param name="network">The <see cref="NetworkBehaviour"/> of the parent</param>
+        /// <param name="player">The <see cref="Player"/> that will recive the parent message=</param>
+        public void SetParent(Player player, NetworkBehaviour network)
+        {
+            player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
+
+            ParentNetId = network.netId;
+            GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
+            if (go != null)
+            {
+                Parent = go;
+            }
+            else
+                LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
+        }
+
+        /// <summary>
+        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// </summary>
+        /// <param name="gameObject">The <see cref="GameObject"/> of the parent</param>
+        /// <param name="player">The <see cref="Player"/> that will recive the parent message=</param>
+        /// <returns><see langword="true"/> if the <see cref="ClientObject"/> was parented</returns>
+        public bool SetParent(Player player, GameObject gameObject)
+        {
+            if (!gameObject.TryGetComponent<NetworkBehaviour>(out var network))
+                return false;
+
+            player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
+            ParentNetId = network.netId;
+            Parent = gameObject;
+            return true;
+        }
+
+        /// <summary>
+        /// Sets the parent of the <see cref="ClientObject"/>.
         /// </summary>
         /// <param name="parentId">The <see cref="NetworkBehaviour.netId"/> of the parent</param>
         public void SetParent(int parentId)
@@ -235,15 +287,57 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             foreach (Player player in SpawnedPlayers)
             {
                 player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, parentId);
-
-                GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
-                if (go != null)
-                {
-                    Parent = go;
-                }
-                else
-                    LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
             }
+
+            ParentNetId = (uint)parentId;
+            GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
+            if (go != null)
+            {
+                Parent = go;
+            }
+            else
+                LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
+        }
+
+        /// <summary>
+        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// </summary>
+        /// <param name="network">The <see cref="NetworkBehaviour"/> of the parent</param>
+        public void SetParent(NetworkBehaviour network)
+        {
+            foreach (Player player in SpawnedPlayers)
+            {
+                player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
+            }
+
+            ParentNetId = network.netId;
+            GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
+            if (go != null)
+            {
+                Parent = go;
+            }
+            else
+                LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
+        }
+
+        /// <summary>
+        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// </summary>
+        /// <param name="gameObject">The <see cref="GameObject"/> of the parent</param>
+        /// <returns><see langword="true"/> if the <see cref="ClientObject"/> was parented</returns>
+        public bool SetParent(GameObject gameObject)
+        {
+            if (!gameObject.TryGetComponent<NetworkBehaviour>(out var network))
+                return false;
+
+            foreach (Player player in SpawnedPlayers)
+            {
+                player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
+            }
+
+            ParentNetId = network.netId;
+            Parent = gameObject;
+            return true;
         }
 
         /// <summary>
@@ -337,6 +431,8 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
                 SpawnForPlayer(player);
             }
+
+            ClearDirtyFlags();
         }
 
         /// <summary>
@@ -353,6 +449,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
 
             LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
             SpawnForPlayer(player);
+            ClearDirtyFlags();
         }
 
         /// <summary>
@@ -375,6 +472,25 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
                 SpawnForPlayer(player);
             }
+
+            ClearDirtyFlags();
+        }
+
+        internal void PerformBatchedSync()
+        {
+            if (!Spawned || SyncFlags == SyncFlags.None)
+                return;
+
+            foreach (Player player in SpawnedPlayers)
+            {
+                if (player.IsHost)
+                    continue;
+
+                SpawnForPlayer(player);
+            }
+            
+            ClearDirtyFlags();
+            LogManager.Debug($"Batched sync completed for object {NetId} ({SyncFlags})");
         }
 
         /// <summary>

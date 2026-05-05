@@ -89,7 +89,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
                 cumulativeSearch += spawn.Chance;
                 if (roll <= cumulativeSearch)
                 {
-                    Timing.CallDelayed(Timing.WaitForOneFrame, () => ev.Player.Position = Quaternion.Inverse(spawn.Schematic.Rotation) * (spawn.Position - spawn.Schematic.Position));
+                    Timing.CallDelayed(Timing.WaitForOneFrame, () => ev.Player.Position = spawn.Position);
                     LogManager.Debug($"Spawned {ev.Player.Nickname} at a weighted point. Roll: {roll}/{totalWeight}");
                     if (spawn.HasFlagFast(DisableFlags.Used))
                         spawn.Disabled = true;

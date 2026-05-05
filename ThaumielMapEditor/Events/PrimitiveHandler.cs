@@ -9,7 +9,6 @@ using System;
 using AdminToys;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Data;
-using ThaumielMapEditor.API.Helpers;
 
 namespace ThaumielMapEditor.Events
 {
@@ -53,7 +52,12 @@ namespace ThaumielMapEditor.Events
             if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
                 return;
 
-            primitive.ServerCollider.transform.position = primitive.Schematic.Primitive.Transform.TransformPoint(position);
+            if (primitive.Schematic.ServerSideTransforms.TryGetValue(primitive.ParentId, out var transform))
+            {
+                primitive.ServerCollider.transform.position = transform.TransformPoint(primitive.Position);
+            }
+            else
+                primitive.ServerCollider.transform.position = primitive.Schematic.Primitive.Transform.TransformPoint(position);
         }
 
         private static void OnRotationUpdated(Quaternion rotation, ClientObject client)
@@ -64,7 +68,12 @@ namespace ThaumielMapEditor.Events
             if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
                 return;
 
-            primitive.ServerCollider.transform.rotation = rotation;
+            if (primitive.Schematic.ServerSideTransforms.TryGetValue(primitive.ParentId, out var transform))
+            {
+                primitive.ServerCollider.transform.rotation = transform.rotation * primitive.Rotation;
+            }
+            else
+                primitive.ServerCollider.transform.rotation = rotation;
         }
 
         private static void OnSchematicPositionUpdated(SchematicData schematic)
@@ -74,8 +83,12 @@ namespace ThaumielMapEditor.Events
                 if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.ServerCollider == null || schematic.Primitive == null)
                     continue;
 
-                LogManager.Debug($"Updated Position");
-                primitive.ServerCollider.transform.position = schematic.Primitive.Transform.TransformPoint(primitive.Position);
+                if (schematic.ServerSideTransforms.TryGetValue(primitive.ParentId, out var transform))
+                {
+                    primitive.ServerCollider.transform.position = transform.TransformPoint(primitive.Position);
+                }
+                else
+                    primitive.ServerCollider.transform.position = schematic.Primitive.Transform.TransformPoint(primitive.Position);
             }
         }
 
@@ -86,8 +99,12 @@ namespace ThaumielMapEditor.Events
                 if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.ServerCollider == null)
                     continue;
 
-                LogManager.Debug($"Updated Rotation");
-                primitive.ServerCollider.transform.rotation = schematic.Rotation * primitive.Rotation;
+                if (schematic.ServerSideTransforms.TryGetValue(primitive.ParentId, out var transform))
+                {
+                    primitive.ServerCollider.transform.rotation = transform.rotation * primitive.Rotation;
+                }
+                else
+                    primitive.ServerCollider.transform.rotation = schematic.Rotation * primitive.Rotation;
             }
         }
     }

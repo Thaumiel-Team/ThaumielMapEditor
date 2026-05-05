@@ -17,19 +17,15 @@ namespace ThaumielMapEditor.Commands.Admin
     [DoNotParse]
     public class Reload : ISubCommand
     {
-        public string Name => "reload";
+        public override string Name => "reload";
 
-        public string VisibleArgs => "";
+        public override string Description => "Reloads all schematics";
 
-        public int RequiredArgsCount => 0;
+        public override string[] Aliases => ["re"];
 
-        public string Description => "Reloads all schematics";
+        public override string RequiredPermission => "tme.reload";
 
-        public string[] Aliases => ["re"];
-
-        public string RequiredPermission => "tme.reload";
-
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             Loader.ReloadSchematics();
             response = "Reloaded.";

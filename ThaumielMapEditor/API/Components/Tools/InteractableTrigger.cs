@@ -32,7 +32,7 @@ namespace ThaumielMapEditor.API.Components.Tools
 {
     public class InteractableTrigger : ToolBase
     {
-        private static readonly Dictionary<Player, HashSet<StatusEffectBase>> PlayerEffectCache = [];
+        internal static readonly Dictionary<Player, HashSet<StatusEffectBase>> PlayerEffectCache = [];
 
         public Vector3 Bounds;
 

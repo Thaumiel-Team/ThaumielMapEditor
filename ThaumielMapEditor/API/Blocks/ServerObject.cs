@@ -23,6 +23,24 @@ namespace ThaumielMapEditor.API.Blocks
 {
     public class ServerObject
     {
+        internal SyncFlags SyncFlags { get; private set; } = SyncFlags.None;
+        
+        /// <summary>
+        /// True if this object has pending changes that need syncing.
+        /// </summary>
+        public bool IsDirty => SyncFlags != SyncFlags.None;
+        
+        /// <summary>
+        /// Marks specific properties as needing to be synced and registers for batch sync.
+        /// </summary>
+        protected void MarkSyncNeeded(SyncFlags flags)
+        {
+            SyncFlags |= flags;
+            SyncManager.RegisterForSync(this);
+        }
+
+        internal void ClearDirtyFlags() => SyncFlags = SyncFlags.None;
+
         /// <summary>
         /// 
         /// </summary>
@@ -79,9 +97,8 @@ namespace ThaumielMapEditor.API.Blocks
                 field = value;
                 if (Object != null)
                 {
-                    NetworkServer.UnSpawn(Object);
                     Object.transform.position = value;
-                    NetworkServer.Spawn(Object);
+                    MarkSyncNeeded(SyncFlags.Position);
                 }
 
                 PositionSync?.Network_position = Position;
@@ -102,9 +119,8 @@ namespace ThaumielMapEditor.API.Blocks
                 field = value;
                 if (Object != null)
                 {
-                    NetworkServer.UnSpawn(Object);
                     Object.transform.localScale = value;
-                    NetworkServer.Spawn(Object);
+                    MarkSyncNeeded(SyncFlags.Scale);
                 }
             }
         }
@@ -123,9 +139,8 @@ namespace ThaumielMapEditor.API.Blocks
                 field = value;
                 if (Object != null)
                 {
-                    NetworkServer.UnSpawn(Object);
                     Object.transform.rotation = value;
-                    NetworkServer.Spawn(Object);
+                    MarkSyncNeeded(SyncFlags.Rotation);
                 }
 
                 PositionSync?.Network_rotationY = (sbyte)Mathf.RoundToInt(Rotation.eulerAngles.y / 5.625f);
@@ -156,7 +171,10 @@ namespace ThaumielMapEditor.API.Blocks
                     return;
 
                 if (AdminToy == null && Object != null && Object.TryGetComponent<AdminToy>(out AdminToy))
+                {
                     AdminToy.MovementSmoothing = value;
+                    MarkSyncNeeded(SyncFlags.MovementSmoothing);
+                }
 
                 field = value;
             }
@@ -185,8 +203,10 @@ namespace ThaumielMapEditor.API.Blocks
         /// <param name="schematic">The schematic data containing the position, rotation, and scale to apply to the current object.</param>
         public void SetWorldTransform(SchematicData schematic)
         {
-            Position = schematic.Position + (schematic.Rotation * Vector3.Scale(Position, schematic.Scale));
-            Rotation = schematic.Rotation * Rotation;
+            Position = schematic.Primitive?.Transform.TransformPoint(Position) ?? schematic.Position + (schematic.Rotation * Vector3.Scale(Position, schematic.Scale));
+            if (schematic.Rotation.eulerAngles != default)
+                Rotation = schematic.Rotation * Rotation;
+            
             Scale = Vector3.Scale(Scale, schematic.Scale);
         }
 

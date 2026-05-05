@@ -33,14 +33,13 @@ namespace ThaumielMapEditor.Commands
         public override void LoadGeneratedCommands()
         {
             Subcommands.Add(new Save());
-            Subcommands.Add(new Position());
+            Subcommands.Add(new Modify());
             Subcommands.Add(new Spawned());
             Subcommands.Add(new Destroy());
             Subcommands.Add(new Spawn());
             Subcommands.Add(new List());
             Subcommands.Add(new Reload());
             Subcommands.Add(new Grab());
-            Subcommands.Add(new Rotation());
             Subcommands.Add(new Admin.Convert());
             Subcommands.Add(new Coroutines());
         }
@@ -63,7 +62,7 @@ namespace ThaumielMapEditor.Commands
                 ISubCommand cmd = Subcommands.FirstOrDefault(cmd => cmd.Name == arguments.At(0));
                 cmd ??= Subcommands.FirstOrDefault(cmd => cmd.Aliases.Contains(arguments.At(0)));
 
-                if (cmd is null)
+                if (cmd == null)
                 {
                     response = "Command not found!";
                     return false;
@@ -71,7 +70,7 @@ namespace ThaumielMapEditor.Commands
 
                 if (!sender.HasPermissions(cmd.RequiredPermission))
                 {
-                    response = "You don't have permission to access that command!";
+                    response = $"You don't have permission to access that command! Requited permission: {cmd.RequiredPermission}";
                     return false;
                 }
 

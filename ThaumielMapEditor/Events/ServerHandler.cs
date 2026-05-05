@@ -21,6 +21,8 @@ namespace ThaumielMapEditor.Events
 {
     internal class ServerHandler
     {
+        public static bool RanUpdateCheck { get; private set; }
+
         public static void Register()
         {
             ServerEvents.WaitingForPlayers += OnWaitingForPlayers;
@@ -113,7 +115,12 @@ namespace ThaumielMapEditor.Events
         {
             PrefabHelper.RegisterPrefabs();
             Loader.Cleanup();
-            MECHelper.TryRunCoroutine(Updater.CheckForUpdatesCoroutine(false), "WaitingForPlayers - Update Check");
+
+            if (!RanUpdateCheck)
+            {
+                RanUpdateCheck = true;
+                MECHelper.TryRunCoroutine(Updater.CheckForUpdatesCoroutine(false), "WaitingForPlayers - Update Check");
+            }
 
             foreach (string name in Main.Instance.Config!.WaitingForPlayers)
             {

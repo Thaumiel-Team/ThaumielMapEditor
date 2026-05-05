@@ -20,19 +20,19 @@ namespace ThaumielMapEditor.Commands.Admin
     [DoNotParse]
     public class Destroy : ISubCommand
     {
-        public string Name => "destroy";
+        public override string Name => "destroy";
 
-        public string VisibleArgs => "<Schematic Id>";
+        public override string VisibleArgs => "<Schematic Id>";
 
-        public int RequiredArgsCount => 1;
+        public override int RequiredArgsCount => 1;
 
-        public string Description => "Destroys the specified schematic";
+        public override string Description => "Destroys the specified schematic";
 
-        public string[] Aliases => ["de", "delete", "remove", "del"];
+        public override string[] Aliases => ["de", "delete", "remove", "del"];
 
-        public string RequiredPermission => "tme.destroy";
+        public override string RequiredPermission => "tme.destroy";
 
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             uint count = 0;
             if (!uint.TryParse(arguments.At(0), out var id))

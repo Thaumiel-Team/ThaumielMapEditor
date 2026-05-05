@@ -65,7 +65,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         {
             if (serializable.ObjectType != ObjectType)
             {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Speaker");
+                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Ragdoll Spawner");
                 return;
             }
 

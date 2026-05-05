@@ -13,6 +13,7 @@ using MEC;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Components;
+using ThaumielMapEditor.API.Components.Tools;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
 
@@ -112,6 +113,9 @@ namespace ThaumielMapEditor.Events
                 return;
             }
 
+            if (player.IsHost)
+                return;
+
             foreach (SchematicData data in Loader.SpawnedSchematics)
             {
                 foreach (ClientObject clientobj in data.SpawnedClientObjects)
@@ -122,6 +126,9 @@ namespace ThaumielMapEditor.Events
                     clientobj.SpawnedPlayers.Remove(player);
                 }
             }
+
+            InteractableTrigger.PlayerEffectCache.Remove(player);
+            ColliderTrigger.PlayerEffectCache.Remove(player);
         }
 
         private static void OnPlayerJoined(PlayerJoinedEventArgs ev)

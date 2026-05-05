@@ -6,24 +6,53 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
 using CommandSystem;
+using ThaumielMapEditor.API.Data;
 
 namespace ThaumielMapEditor.API.Interfaces
 {
-    internal interface ISubCommand
+    public abstract class ISubCommand
     {
-        public string Name { get; }
+        public abstract string Name { get; }
 
-        public string VisibleArgs { get; }
+        public abstract string RequiredPermission { get; }
 
-        public int RequiredArgsCount { get; }
+        public abstract string Description { get; }
 
-        public string Description { get; }
+        public virtual string VisibleArgs => string.Empty;
 
-        public string[] Aliases { get; }
+        public virtual int RequiredArgsCount => 0;
 
-        public string RequiredPermission { get; }
+        public virtual string[] Aliases => [];
 
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response);
+        public virtual List<ISubCommand> SubCommands { get; set; } = [];
+
+        public virtual void PopulateSubCommands() { }
+
+        public virtual bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            response = string.Empty;
+            return false;
+        }
+
+        public virtual bool SubCommandExecute(ArraySegment<string> arguments, ICommandSender sender, SchematicData schematic, StringBuilder sb, out string response)
+        {
+            response = string.Empty;
+            return false;
+        }
+
+        public void RunInBackground(Action run, Action onComplete)
+        {
+            Task.Run(() =>
+            {
+                run.Invoke();
+                MainThreadDispatcher.Dispatch(onComplete);
+            });
+        }
+
+        public override string ToString() => Name;
     }
 }

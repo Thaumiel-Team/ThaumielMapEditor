@@ -22,14 +22,13 @@ namespace ThaumielMapEditor.Commands.Admin
     [DoNotParse]
     public class Grab : ISubCommand
     {
-        public string Name => "grab";
-        public string VisibleArgs => "<Schematic ID>";
-        public int RequiredArgsCount => 0;
-        public string Description => "Grabs the specified schematic";
-        public string[] Aliases => ["gr"];
-        public string RequiredPermission => "tme.grab";
+        public override string Name => "grab";
+        public override string VisibleArgs => "<Schematic ID>";
+        public override string Description => "Grabs the specified schematic";
+        public override string[] Aliases => ["gr"];
+        public override string RequiredPermission => "tme.grab";
 
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             if (!Player.TryGet(sender, out var player))
             {

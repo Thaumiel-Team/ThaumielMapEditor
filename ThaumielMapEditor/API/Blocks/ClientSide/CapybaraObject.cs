@@ -29,7 +29,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     return;
 
                 field = value;
-                SyncToPlayers();
+                MarkSyncNeeded(SyncFlags.Collisions);
                 ColliderHelper.SetColliders(this, value);
             }
         } = true;

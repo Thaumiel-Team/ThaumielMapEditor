@@ -17,19 +17,15 @@ namespace ThaumielMapEditor.Commands.Admin
 {
     public class Coroutines : ISubCommand
     {
-        public string Name => "coroutines";
+        public override string Name => "coroutines";
 
-        public string VisibleArgs => string.Empty;
+        public override string Description => "Lists all the coroutines running or ran";
 
-        public int RequiredArgsCount => 0;
+        public override string[] Aliases => ["coro", "cor"];
 
-        public string Description => "Lists all the coroutines running or ran";
+        public override string RequiredPermission => "tme.coroutines";
 
-        public string[] Aliases => ["coro", "cor"];
-
-        public string RequiredPermission => "tme.coroutines";
-
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             StringBuilder sb = new();
             sb.AppendLine();
