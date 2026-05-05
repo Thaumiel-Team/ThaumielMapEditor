@@ -22,14 +22,14 @@ namespace ThaumielMapEditor.Commands.Admin
     [DoNotParse]
     public class Convert : ISubCommand
     {
-        public string Name => "convert";
-        public string VisibleArgs => "<Schematic Name>";
-        public int RequiredArgsCount => 1;
-        public string Description => "Converts the PMER schematic with the specified name";
-        public string[] Aliases => ["cv"];
-        public string RequiredPermission => "tme.convert";
+        public override string Name => "convert";
+        public override string VisibleArgs => "<Schematic Name>";
+        public override int RequiredArgsCount => 1;
+        public override string Description => "Converts the PMER schematic with the specified name";
+        public override string[] Aliases => ["cv"];
+        public override string RequiredPermission => "tme.convert";
 
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             if (arguments == null || arguments.Count == 0)
             {

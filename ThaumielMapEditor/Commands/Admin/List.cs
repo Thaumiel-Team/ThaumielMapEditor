@@ -20,19 +20,15 @@ namespace ThaumielMapEditor.Commands.Admin
     [DoNotParse]
     public class List : ISubCommand
     {
-        public string Name => "list";
+        public override string Name => "list";
 
-        public string VisibleArgs => "";
+        public override string Description => "Lists all schematics";
 
-        public int RequiredArgsCount => 0;
+        public override string[] Aliases => ["li"];
 
-        public string Description => "Lists all schematics";
+        public override string RequiredPermission => "tme.list";
 
-        public string[] Aliases => ["li"];
-
-        public string RequiredPermission => "tme.list";
-
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             StringBuilder sb = new();
             sb.AppendLine();

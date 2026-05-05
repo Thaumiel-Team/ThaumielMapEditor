@@ -24,19 +24,19 @@ namespace ThaumielMapEditor.Commands.Admin
     {
         public static readonly CachedLayerMask RayMask = new("Default", "Door", "CCTV");
 
-        public string Name => "spawn";
+        public override string Name => "spawn";
 
-        public string VisibleArgs => "<Schematic name>, <X>, <Y>, <Z>";
+        public override string VisibleArgs => "<Schematic name>, <X>, <Y>, <Z>";
 
-        public int RequiredArgsCount => 1;
+        public override int RequiredArgsCount => 1;
 
-        public string Description => "Spawns the named Schematic";
+        public override string Description => "Spawns the named Schematic";
 
-        public string[] Aliases => ["sp", "create", "cr"];
+        public override string[] Aliases => ["sp", "create", "cr"];
 
-        public string RequiredPermission => "tme.spawn";
+        public override string RequiredPermission => "tme.spawn";
 
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             if (!Loader.LoadedSchematics.TryGetValue(arguments.At(0), out SerializableSchematic schematic))
             {

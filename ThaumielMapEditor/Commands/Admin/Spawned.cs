@@ -20,19 +20,15 @@ namespace ThaumielMapEditor.Commands.Admin
     [DoNotParse]
     public class Spawned : ISubCommand
     {
-        public string Name => "spawned";
+        public override string Name => "spawned";
 
-        public string VisibleArgs => "";
+        public override string Description => "Gets all spawned Schematics";
 
-        public int RequiredArgsCount => 0;
+        public override string[] Aliases => ["spd"];
 
-        public string Description => "Gets all spawned Schematics";
+        public override string RequiredPermission => "tme.spawned";
 
-        public string[] Aliases => ["spd"];
-
-        public string RequiredPermission => "tme.spawned";
-
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             StringBuilder sb = new();
             sb.AppendLine();

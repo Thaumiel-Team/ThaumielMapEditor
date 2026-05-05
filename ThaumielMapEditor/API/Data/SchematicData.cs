@@ -65,6 +65,7 @@ namespace ThaumielMapEditor.API.Data
             set
             {
                 field = value;
+                Primitive?.Position = value; 
                 SchematicPositionUpdated?.Invoke(this);
             }
         }
@@ -78,6 +79,7 @@ namespace ThaumielMapEditor.API.Data
             set
             {
                 field = value;
+                Primitive?.Rotation = value;
                 SchematicRotationUpdated?.Invoke(this);
             }
         }
@@ -96,10 +98,10 @@ namespace ThaumielMapEditor.API.Data
         /// </summary>
         public Vector3 Scale
         {
-            get => GameObject?.transform.localScale ?? Vector3.one;
+            get => Primitive?.Scale ?? Vector3.one;
             set
             {
-                GameObject?.transform.localScale = value;
+                Primitive?.Scale = value;
             }
         }
 
