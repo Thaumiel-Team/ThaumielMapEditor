@@ -6,7 +6,7 @@ Esse documento fala sobre todos os comandos, sub-comandos, e as permissões nece
 
 | Comando | Apelido | Argumentos | Permissões | Descrição |
 | :--- | :--- | :--- | :--- | :--- |
-| `thaumielmapeditor` | `tme` | Nenhum | Nenhum | Compando pai para os subcomados do Thaumiel Map Editor |
+| `thaumielmapeditor` | `tme` | Nenhum | Nenhum | Comando pai para os sub-comados do Thaumiel Map Editor |
 
 ### Sub-comandos
 
