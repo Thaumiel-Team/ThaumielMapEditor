@@ -1,6 +1,6 @@
 # Thaumiel Map Editor - Команды
 
-Этот документ являеться списком всех доступных команд, сабкоманд и нужных для использования админ прав для Thaumiel Map Editor.
+Этот документ являеться списком всех доступных команд, сабкоманд и нужных для их использования админ прав в плагине Thaumiel Map Editor.
 
 ## Команды Remote Admin
 
@@ -17,7 +17,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `thaumielmapeditor` | `tme` | Нету | Нету | Управление особенностями Thaumiel Map Editor |
 | `convert` | `cv` | <code>&lt;Название схематики&gt;</code> | `tme.convert` | Конвертирование указанной схематики ProjectMER в формат Thaumiel Map Editor |
-| `coroutines` | `coro, cor` | Нету | `tme.coroutines` | Предоставление списка всех активных или запущенных корутинов |
+| `coroutines` | `coro, cor` | Нету | `tme.coroutines` | Предоставление списка всех активных или уже запущенных корутинов |
 | `destroy` | `de, delete, remove, del` | <code>&lt;ID схематики&gt;</code> | `tme.destroy` | Удаляет указанную схематику |
 | `grab` | `gr` | <code>&lt;ID схематики&gt;</code> | `tme.grab` | Перетаскивание указанной схематики |
 | `list` | `li` | Нету | `tme.list` | Предоставление списка схематик |
