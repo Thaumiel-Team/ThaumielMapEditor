@@ -51,6 +51,18 @@ Our docs are available at: https://thaumiel.gitbook.io/tme-docs/
 
 ---
 
+**This project is supported by GitBook**
+
+<a href="https://gitbook.com/docs/account-management/plans/community">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://gitbook.gitbook.io/brand-assets/~gitbook/image?url=https%3A%2F%2F1172530391-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252FsdSkN433H8T8xAiH8slE%252Fuploads%252Fn1gUNvnuFiwfifmZt2Zh%252FGitBook-dark.png%3Falt%3Dmedia%26token%3D8dce21ed-4d59-48de-8320-d04f973c950d&width=376&dpr=2&quality=100&sign=5d10dcde&sv=2">
+    <source media="(prefers-color-scheme: light)" srcset="https://gitbook.gitbook.io/brand-assets/~gitbook/image?url=https%3A%2F%2F1172530391-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252FsdSkN433H8T8xAiH8slE%252Fuploads%252FRpQJNGn3nbpFsn3pmrHT%252FGitBook-light.png%3Falt%3Dmedia%26token%3D31e3f942-da18-4d49-aac5-b87f3ac2ba4a&width=376&dpr=2&quality=100&sign=e4a2cb46&sv=2">
+    <img alt="GitBook Logo" src="https://gitbook.gitbook.io/brand-assets/~gitbook/image?url=https%3A%2F%2F1172530391-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252FsdSkN433H8T8xAiH8slE%252Fuploads%252FRpQJNGn3nbpFsn3pmrHT%252FGitBook-light.png%3Falt%3Dmedia%26token%3D31e3f942-da18-4d49-aac5-b87f3ac2ba4a&width=376&dpr=2&quality=100&sign=e4a2cb46&sv=2">
+  </picture>
+</a>
+
+---
+
 ## Features
 
 > Features are actively being developed. The list below reflects what is currently implemented.
