@@ -6,7 +6,7 @@ Esse documento fala sobre todos os comandos, sub-comandos, e as permissões nece
 
 | Comando | Apelido | Argumentos | Permissões | Descrição |
 | :--- | :--- | :--- | :--- | :--- |
-| `thaumielmapeditor` | `tme` | Nenhum | Nenhum | Manage the features of Thaumiel Map Editor |
+| `thaumielmapeditor` | `tme` | Nenhum | Nenhum | Comando pai para os sub-comados do Thaumiel Map Editor |
 
 ### Sub-comandos
 
@@ -21,11 +21,11 @@ Esse documento fala sobre todos os comandos, sub-comandos, e as permissões nece
 | `grab` | `gr` | <code>&lt;Id da Esquemática&gt;</code> | `tme.grab` | "Segura" uma Esquemática específica |
 | `list` | `li` | Nenhum | `tme.list` | Lista todas as Esquemática disponíveis |
 | `position` | `pos` | <code>[Id da Esquemática], &lt;Get&#124;Set&gt;, [X], [Y], [Z]</code> | `tme.position` | Muda a posição de uma Esquemática |
-| `reload` | `re` | Nenhum | `tme.reload` | Recarrega (Destroí e Carrega) todas as Esquemática spawNenhums |
+| `reload` | `re` | Nenhum | `tme.reload` | Recarrega (``Destroí e Carrega``) todas as Esquemática |
 | `rotate` | `rot` | <code>&lt;Id da Esquemática&gt;, &lt;X&gt;, &lt;Y&gt;, &lt;Z&gt;</code> | `tme.rotate` | Muda a rotação de uma Esquemática |
 | `save` | Nenhum | <code>&lt;Nome do Mapa&gt;</code> | `tme.save` | Salvas as Esquemática spawNenhums no mapa e converte elas em único arquivo |
 | `spawn` | `sp, create, cr` | <code>&lt;Nome da Esquemática/Nome do Mapa&gt;, &lt;X&gt;, &lt;Y&gt;, &lt;Z&gt;</code> | `tme.spawn` | Cria a Esquemática específica no servidor |
-| `spawned` | `spd` | Nenhum | `tme.spawned` | Lista todas as Esquemática spawNenhums |
+| `spawned` | `spd` | Nenhum | `tme.spawned` | Lista todas as Esquemática |
 
 ---
 
