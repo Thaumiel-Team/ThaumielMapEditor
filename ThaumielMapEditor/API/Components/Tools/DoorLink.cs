@@ -60,39 +60,12 @@ namespace ThaumielMapEditor.API.Components.Tools
             group.Add(this);
             ActiveLinks.Add(this);
             LogManager.Debug($"DoorLink registered door '{obj.Name}' to group '{GroupId}' in '{schem.FileName}'.");
-            MECHelper.TryRunCoroutine(GlobalPollRoutine());
-
-            if (Main.Instance.Config!.DoorPollingDelay == 0)
-            {
-                waitTime = Timing.WaitForOneFrame;
-            }
-            else
-                waitTime = Main.Instance.Config!.DoorPollingDelay;
+            doorObj.Base?.OnStateChanged += PropagateToGroup;
         }
 
-        private static IEnumerator<float> GlobalPollRoutine()
+        private void OnDestroy()
         {
-            while (ActiveLinks.Count > 0)
-            {
-                yield return Timing.WaitForSeconds(waitTime);
-
-                for (int i = ActiveLinks.Count - 1; i >= 0; i--)
-                {
-                    DoorLink link = ActiveLinks[i];
-                    if (link.door == null)
-                    {
-                        link.Unregister();
-                        continue;
-                    }
-
-                    if (link.isSyncing || link.door.IsOpen == link.lastKnownState)
-                        continue;
-
-                    link.lastKnownState = link.door.IsOpen;
-                    LogManager.Debug($"door '{link.door.Name}' in group '{link.GroupId}' changed. Notifying group.");
-                    link.PropagateToGroup();
-                }
-            }
+            door?.Base?.OnStateChanged -= PropagateToGroup;
         }
 
         private void PropagateToGroup()
@@ -117,7 +90,7 @@ namespace ThaumielMapEditor.API.Components.Tools
                 try
                 {
                     link.door.IsOpen = !lastKnownState;
-                    link.lastKnownState = link.door.IsOpen; 
+                    link.lastKnownState = link.door.IsOpen;
                 }
                 catch (Exception ex)
                 {
