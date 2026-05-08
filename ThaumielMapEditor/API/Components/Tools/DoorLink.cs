@@ -21,11 +21,9 @@ namespace ThaumielMapEditor.API.Components.Tools
         private static readonly Dictionary<string, List<DoorLink>> Groups = [];
         
         private static readonly List<DoorLink> ActiveLinks = [];
-        private static float waitTime = 0.1f;
 
         private DoorObject? door;
         private bool lastKnownState;
-        private bool isSyncing;
 
         public string GroupId { get; private set; } = string.Empty;
 
@@ -86,7 +84,6 @@ namespace ThaumielMapEditor.API.Components.Tools
                     continue;
                 }
 
-                link.isSyncing = true;
                 try
                 {
                     link.door.IsOpen = !lastKnownState;
@@ -95,10 +92,6 @@ namespace ThaumielMapEditor.API.Components.Tools
                 catch (Exception ex)
                 {
                     LogManager.Warn($"DoorLink error while syncing door '{link.door.Name}': {ex.Message}");
-                }
-                finally
-                {
-                    link.isSyncing = false; 
                 }
             }
         }
