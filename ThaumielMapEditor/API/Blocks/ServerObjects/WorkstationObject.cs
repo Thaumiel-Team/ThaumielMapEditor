@@ -5,11 +5,12 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System.Collections.Generic;
 using InventorySystem.Items.Firearms.Attachments;
+using LabApi.Features.Wrappers;
 using MapGeneration.Distributors;
 using Mirror;
 using PlayerRoles;
+using System.Collections.Generic;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Extensions;
@@ -61,6 +62,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             NetId = Base.netId;
 
             workstationPrefab.NetworkStatus = (byte)(AllowInteractions ? 0 : 4);
+            SetWorldTransform(schematic);
 
             if (workstationPrefab.TryGetComponent(out StructurePositionSync structurePositionSync))
             {
@@ -68,7 +70,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
                 structurePositionSync.Network_rotationY = (sbyte)Mathf.RoundToInt(workstationPrefab.transform.rotation.eulerAngles.y / 5.625f);
             }
 
-            SetWorldTransform(schematic);
             NetworkServer.Spawn(workstationPrefab.gameObject);
             WorkstationCache.Add(workstationPrefab, this);
             base.SpawnObject(schematic, serializable);
