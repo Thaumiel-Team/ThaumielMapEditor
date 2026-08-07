@@ -12,6 +12,7 @@ using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.Events.EventArgs.Handlers;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
@@ -19,6 +20,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
     {
         public string Name { get; set; } = string.Empty;
 
+        [YamlMember(Alias = "Collisions")]
         public bool CollisionsEnabled
         {
             get;

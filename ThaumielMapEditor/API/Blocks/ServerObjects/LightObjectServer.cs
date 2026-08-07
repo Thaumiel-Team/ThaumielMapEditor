@@ -9,19 +9,21 @@ using AdminToys;
 using Mirror;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using UnityEngine;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
     public class LightObjectServer : ServerObject
     {
+        [YamlIgnore]
 #pragma warning disable CS8618
         public LightSourceToy Base { get; private set; }
 #pragma warning restore CS8618
 
+        [YamlMember(Alias = "LightIntensity")]
         public float Intensity
         {
             get;
@@ -35,6 +37,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
         } = 1f;
 
+        [YamlMember(Alias = "LightRange")]
         public float Range
         {
             get;
@@ -48,6 +51,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
         } = 10f;
 
+        [YamlMember(Alias = "LightColor")]
         public Color Color
         {
             get;
@@ -61,6 +65,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
         } = Color.white;
 
+        [YamlMember(Alias = "ShadowType")]
         public LightShadows Shadows
         {
             get;
@@ -74,6 +79,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
         } = LightShadows.None;
 
+        [YamlMember(Alias = "ShadowStrength")]
         public float ShadowStrength
         {
             get;
@@ -87,6 +93,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
         } = 1f;
 
+        [YamlMember(Alias = "LightType")]
         public LightType Type
         {
             get;
@@ -100,6 +107,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
         } = LightType.Point;
 
+        [YamlMember(Alias = "SpotAngle")]
         public float SpotAngle
         {
             get;
@@ -113,13 +121,10 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
         } = 30f;
 
-        /// <inheritdoc/>
         public override ObjectType ObjectType { get; set; } = ObjectType.Light;
 
-        /// <inheritdoc/>
         public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
         {
-            ParseValues(serializable);
             LightSourceToy? light = UnityEngine.Object.Instantiate(PrefabHelper.LightSource);
             if (light == null)
                 return;
@@ -127,7 +132,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             NetworkServer.UnSpawn(light.gameObject);
             Base = light;
             Object = light.gameObject;
-            NetId = light.netId;
             Base.LightIntensity = Intensity;
             Base.LightRange = Range;
             Base.LightColor = Color;
@@ -139,54 +143,8 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             light.gameObject.transform.rotation = Rotation;
             light.gameObject.transform.localScale = Scale;
             NetworkServer.Spawn(light.gameObject);
+            NetId = light.netId;
             base.SpawnObject(schematic, serializable);
-        }
-
-        /// <summary>
-        /// Reads serialized schematic data into this object.
-        /// </summary>
-        public void ParseValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.Light)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Light");
-                return;
-            }
-
-            if (serializable.Values.TryConvertValue<float>("LightIntensity", out var intensity))
-            {
-                Intensity = intensity;
-            }
-
-            if (serializable.Values.TryConvertValue<float>("LightRange", out var range))
-            {
-                Range = range;
-            }
-
-            if (serializable.Values.TryConvertValue<Color>("LightColor", out var color))
-            {
-                Color = color;
-            }
-
-            if (serializable.Values.TryConvertValue<LightShadows>("ShadowType", out var shadows))
-            {
-                Shadows = shadows;
-            }
-
-            if (serializable.Values.TryConvertValue<float>("ShadowStrength", out var shadowStrength))
-            {
-                ShadowStrength = shadowStrength;
-            }
-
-            if (serializable.Values.TryConvertValue<LightType>("LightType", out var type))
-            {
-                Type = type;
-            }
-
-            if (serializable.Values.TryConvertValue<float>("SpotAngle", out var spot))
-            {
-                SpotAngle = spot;
-            }
         }
     }
 }

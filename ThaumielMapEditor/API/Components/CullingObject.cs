@@ -40,6 +40,9 @@ namespace ThaumielMapEditor.API.Components
 
         public void Setup()
         {
+            if (Collider == null)
+                return;
+
             Collider.size = Bounds;
             AllInstances.Add(this);
 
@@ -79,7 +82,12 @@ namespace ThaumielMapEditor.API.Components
         }
 
         public bool IsInsideCollider(Vector3 pos)
-            => Collider.bounds.Contains(pos);
+        {
+            if (Collider == null)
+                return false;
+
+            return Collider.bounds.Contains(pos);
+        }
 
         public void ToggleVisibility(Player player, bool show)
         {

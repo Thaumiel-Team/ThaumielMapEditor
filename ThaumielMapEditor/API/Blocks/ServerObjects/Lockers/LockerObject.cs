@@ -23,6 +23,8 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
 {
     public class LockerObject : ServerObject
     {
+        private static readonly ItemType[] AllItemTypes = (ItemType[])Enum.GetValues(typeof(ItemType));
+
         /// <summary>
         /// The instantiated <see cref="Locker"/> component in the scene.
         /// </summary>
@@ -42,6 +44,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
         /// <summary>
         /// The <see cref="LockerType"/> variant for this locker (e.g., Medkit, RifleRack, Misc).
         /// </summary>
+        [YamlMember(Alias = "LockerType")]
         public LockerType Type { get; private set; }
 
         /// <summary>
@@ -54,6 +57,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
         {
             return type switch
             {
+                LockerType.None => null,
                 LockerType.Adrenaline => PrefabHelper.LockerAdrenalineMedkit,
                 LockerType.ExperimentalWeapon => PrefabHelper.LockerExperimentalWeapon,
                 LockerType.LargeGun => PrefabHelper.LockerLargeGun,
@@ -68,7 +72,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
         /// <inheritdoc/>
         public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
         {
-            ParseValues(serializable);
             Locker? prefab = GetPrefabFromType(Type);
             if (prefab is null)
             {
@@ -101,37 +104,11 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
                 LabLocker labLocker = LabLocker.Get(locker);
                 labLocker.ClearAllChambers();
                 labLocker.ClearLockerLoot();
+                locker._serverChambersFilled = true;
                 PopulateChambers();
             });
 
             base.SpawnObject(schematic, serializable);
-        }
-
-        /// <summary>
-        /// Parses values from a <see cref="SerializableObject"/> to populate this object's <see cref="Type"/> and <see cref="Chambers"/>.
-        /// Validates that the supplied <paramref name="serializable"/> is of <see cref="ObjectType.Locker"/> and logs warnings on failure.
-        /// </summary>
-        /// <param name="serializable">The serializable data read from a schematic or saved map.</param>
-        public void ParseValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.Locker)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Locker.");                
-                return;
-            }
-
-            if (!serializable.Values.TryConvertValue<LockerType>("LockerType", out var lockerType))
-            {
-                LogManager.Warn("Failed to parse LockerType");
-            }
-
-            if (!serializable.Values.TryConvertValue<List<LockerChamber>>("Chambers", out var chambers))
-            {
-                LogManager.Warn("Failed to parse LockerChambers");
-            }
-
-            Type = lockerType;
-            Chambers = chambers;
         }
 
         /// <summary>
@@ -144,29 +121,27 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
         /// </summary>
         public void PopulateChambers()
         {
-            List<LockerChamber> Spawned = [];
+            if (Base == null || Base.Chambers == null)
+                return;
 
-            foreach (MapGeneration.Distributors.LockerChamber chamber in Base.Chambers)
+            for (int i = 0; i < Base.Chambers.Length; i++)
             {
-                chamber.AcceptableItems = (ItemType[])Enum.GetValues(typeof(ItemType));
+                MapGeneration.Distributors.LockerChamber chamber = Base.Chambers[i];
+                chamber.AcceptableItems = AllItemTypes;
 
                 foreach (LockerChamber lockerChamber in Chambers)
                 {
-                    if (lockerChamber.Index != Base.Chambers.IndexOf(chamber))
+                    if (lockerChamber.Index != i)
                         continue;
 
                     chamber.RequiredPermissions = lockerChamber.Permissions;
                     foreach (ChamberData chamberData in lockerChamber.Data)
                     {
-                        if (UnityEngine.Random.Range(0, 101) > chamberData.SpawnPercent)
-                            continue;
-
-                        if (Spawned.Contains(lockerChamber))
+                        if (UnityEngine.Random.Range(0f, 100f) > chamberData.SpawnPercent)
                             continue;
 
                         chamber.SpawnItem(chamberData.ItemType, chamberData.AmountToSpawn);
-                        LogManager.Debug($"Spawned item in Chamber {Base.Chambers.IndexOf(chamber)}");
-                        Spawned.Add(lockerChamber);
+                        LogManager.Debug($"Spawned item in Chamber {i}");
                     }
                 }
             }

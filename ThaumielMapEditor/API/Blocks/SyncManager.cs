@@ -23,6 +23,8 @@ namespace ThaumielMapEditor.API.Blocks
         private static bool IsClientSyncScheduled = false;
         private static bool IsServerSyncScheduled = false;
 
+        private const int MaxFlushIterations = 16;
+
         /// <summary>
         /// Registers a <see cref="ClientObject"/> to be synced at the end of the current frame.
         /// </summary>
@@ -32,12 +34,7 @@ namespace ThaumielMapEditor.API.Blocks
                 return;
 
             PendingClientSyncs.Add(obj);
-
-            if (!IsClientSyncScheduled)
-            {
-                IsClientSyncScheduled = true;
-                Timing.RunCoroutine(EndOfFrameSyncCoroutine(), "TME_BatchSync_Client");
-            }
+            ScheduleClientSync();
         }
 
         /// <summary>
@@ -49,12 +46,25 @@ namespace ThaumielMapEditor.API.Blocks
                 return;
 
             PendingServerSyncs.Add(obj);
+            ScheduleServerSync();
+        }
 
-            if (!IsServerSyncScheduled)
-            {
-                IsServerSyncScheduled = true;
-                Timing.RunCoroutine(EndOfFrameSyncCoroutine(), "TME_BatchSync_Server");
-            }
+        private static void ScheduleClientSync()
+        {
+            if (IsClientSyncScheduled)
+                return;
+
+            IsClientSyncScheduled = true;
+            Timing.RunCoroutine(EndOfFrameSyncCoroutine(), "TME_BatchSync_Client");
+        }
+
+        private static void ScheduleServerSync()
+        {
+            if (IsServerSyncScheduled)
+                return;
+
+            IsServerSyncScheduled = true;
+            Timing.RunCoroutine(EndOfFrameSyncCoroutine(), "TME_BatchSync_Server");
         }
 
         /// <summary>
@@ -62,10 +72,10 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         public static void FlushClient()
         {
-            if (PendingClientSyncs.IsEmpty())
-                return;
-
             ProcessPendingClientSyncs();
+
+            if (!PendingClientSyncs.IsEmpty())
+                ScheduleClientSync();
         }
 
         /// <summary>
@@ -73,10 +83,10 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         public static void FlushServer()
         {
-            if (PendingServerSyncs.IsEmpty())
-                return;
-
             ProcessPendingServerSyncs();
+
+            if (!PendingServerSyncs.IsEmpty())
+                ScheduleServerSync();
         }
 
         /// <summary>
@@ -104,11 +114,28 @@ namespace ThaumielMapEditor.API.Blocks
         {
             yield return Timing.WaitForOneFrame;
 
-            ProcessPendingClientSyncs();
-            ProcessPendingServerSyncs();
+            try
+            {
+                int iteration = 0;
+                do
+                {
+                    ProcessPendingClientSyncs();
+                    ProcessPendingServerSyncs();
+                    iteration++;
+                }
+                while (iteration < MaxFlushIterations && (!PendingClientSyncs.IsEmpty() || !PendingServerSyncs.IsEmpty()));
+            }
+            finally
+            {
+                IsClientSyncScheduled = false;
+                IsServerSyncScheduled = false;
+            }
 
-            IsClientSyncScheduled = false;
-            IsServerSyncScheduled = false;
+            if (!PendingClientSyncs.IsEmpty())
+                ScheduleClientSync();
+
+            if (!PendingServerSyncs.IsEmpty())
+                ScheduleServerSync();
         }
 
         private static void ProcessPendingClientSyncs()
@@ -116,9 +143,12 @@ namespace ThaumielMapEditor.API.Blocks
             if (PendingClientSyncs.IsEmpty())
                 return;
 
+            List<ClientObject> snapshot = [.. PendingClientSyncs];
+            PendingClientSyncs.Clear();
+
             Dictionary<Player, List<ClientObject>> playerBatches = [];
 
-            foreach (ClientObject obj in PendingClientSyncs)
+            foreach (ClientObject obj in snapshot)
             {
                 if (!obj.Spawned)
                     continue;
@@ -155,9 +185,7 @@ namespace ThaumielMapEditor.API.Blocks
                 }
             }
 
-            int objectCount = PendingClientSyncs.Count;
-            PendingClientSyncs.Clear();
-
+            int objectCount = snapshot.Count;
             LogManager.Debug($"Batch sync completed: {objectCount} ClientObjects synced for {playerBatches.Count} players.");
         }
 
@@ -166,7 +194,10 @@ namespace ThaumielMapEditor.API.Blocks
             if (PendingServerSyncs.IsEmpty())
                 return;
 
-            foreach (ServerObject obj in PendingServerSyncs)
+            List<ServerObject> snapshot = [.. PendingServerSyncs];
+            PendingServerSyncs.Clear();
+
+            foreach (ServerObject obj in snapshot)
             {
                 try
                 {
@@ -177,12 +208,11 @@ namespace ThaumielMapEditor.API.Blocks
                 catch (Exception ex)
                 {
                     LogManager.Error($"Failed to sync object {obj.Name} - {obj.NetId}: {ex.Message}");
+                    PendingServerSyncs.Add(obj);
                 }
             }
 
-            int objectCount = PendingServerSyncs.Count;
-            PendingServerSyncs.Clear();
-
+            int objectCount = snapshot.Count;
             LogManager.Debug($"Batch sync completed: {objectCount} ServerObjects synced.");
         }
     }

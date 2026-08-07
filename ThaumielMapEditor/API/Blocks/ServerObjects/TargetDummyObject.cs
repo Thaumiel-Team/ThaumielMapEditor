@@ -10,7 +10,6 @@ using AdminToys;
 using Mirror;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using YamlDotNet.Serialization;
@@ -32,7 +31,8 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// The configured <see cref="TargetType"/> for this target.
         /// Determined by parsing serialized data before spawning.
         /// </summary>
-        public TargetType Type { get; private set; }
+        [YamlMember(Alias = "TargetType")]
+        public TargetType Type { get; set; }
 
         /// <inheritdoc/>
         public override ObjectType ObjectType { get; set; } = ObjectType.Target;
@@ -59,7 +59,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// <inheritdoc/>
         public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
         {
-            ParseValues(serializable);
             ShootingTarget? prefab = GetPrefab(Type);
             if (prefab == null) 
                 return;
@@ -67,34 +66,12 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             ShootingTarget? target = UnityEngine.Object.Instantiate(prefab);
             NetworkServer.UnSpawn(target.gameObject);
             Object = target.gameObject;
-            NetId = target.netId;
             Base = target;
             SetWorldTransform(schematic);
             NetworkServer.Spawn(target.gameObject);
+            NetId = target.netId;
 
             base.SpawnObject(schematic, serializable);
-        }
-
-        /// <summary>
-        /// Parses and applies values from a <see cref="SerializableObject"/> to this instance.
-        /// Validates that the serializable represents a target and extracts the <see cref="TargetType"/>.
-        /// Logs warnings when parsing fails or the object type does not match.
-        /// </summary>
-        /// <param name="serializable">The serialized object data to parse.</param>
-        public void ParseValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.Target)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Target Dummy");
-                return;
-            }
-
-            if (!serializable.Values.TryConvertValue<TargetType>("TargetType", out var type))
-            {
-                LogManager.Warn("Failed to parse TargetType");
-            }
-
-            Type = type;
         }
     }
 }

@@ -9,6 +9,7 @@ using LabApi.Events.Arguments.ServerEvents;
 using LabApi.Events.Arguments.WarheadEvents;
 using LabApi.Events.Handlers;
 using PlayerRoles;
+using System.Collections.Generic;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
@@ -80,10 +81,13 @@ namespace ThaumielMapEditor.Events
         {
             foreach (SchematicData schematic in Loader.SpawnedSchematics.Where(s => s.Room != null && s.Room == ev.Room))
             {
-                if (schematic.GetClientObject<LightObject>().IsEmpty() && schematic.GetServerObject<LightObjectServer>().IsEmpty())
+                List<LightObjectServer> serverLights = schematic.GetServerObject<LightObjectServer>().ToList();
+                List<LightObject> clientLights = schematic.GetClientObject<LightObject>().ToList();
+
+                if (serverLights.Count == 0 && clientLights.Count == 0)
                     continue;
 
-                foreach (LightObjectServer serverLight in schematic.GetServerObject<LightObjectServer>())
+                foreach (LightObjectServer serverLight in serverLights)
                 {
                     float Intensity = 0;
                     Intensity = serverLight.Intensity;
@@ -96,7 +100,7 @@ namespace ThaumielMapEditor.Events
                         serverLight.Intensity = Intensity;
                 }
 
-                foreach (LightObject light in schematic.GetClientObject<LightObject>())
+                foreach (LightObject light in clientLights)
                 {
                     float Intensity = 0;
                     Intensity = light.Intensity;

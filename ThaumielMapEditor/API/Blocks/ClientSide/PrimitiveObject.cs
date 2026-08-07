@@ -115,36 +115,5 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             ObjectHandler.OnClientObjectSpawned(new(this, player));
             SpawnedPlayers.Add(player);
         }
-
-        public void DeserializeValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.Primitive)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Primitive");
-                return;
-            }
-
-            if (!serializable.Values.TryConvertValue<Color>("Color", out var color))
-            {
-                LogManager.Warn($"Failed to parse Color");
-            }
-
-            if (!serializable.Values.TryConvertValue<PrimitiveType>("PrimitiveType", out var primitiveType))
-            {
-                LogManager.Warn($"Failed to parse PrimitiveType");
-            }
-
-            if (!serializable.Values.TryConvertValue<PrimitiveFlags>("PrimitiveFlags", out var flags))
-            {
-                LogManager.Warn($"Failed to parse PrimitiveFlags");
-            }
-
-            Color = color;
-            PrimitiveType = primitiveType;
-            PrimitiveFlags = flags;
-
-            ObjectId = serializable.ObjectId;
-            ParentId = serializable.ParentId;
-        }
     }
 }

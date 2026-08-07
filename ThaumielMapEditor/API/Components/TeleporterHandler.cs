@@ -5,10 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using InventorySystem.Items.Pickups;
 using LabApi.Features.Wrappers;
 using LabApiExtensions.Extensions;
-using Mirror;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks;
@@ -19,118 +18,219 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Components
 {
-    public class TeleporterHandler : MonoBehaviour
+    public class TeleporterHandler : TriggerHandler
     {
         /// <summary>
         /// Gets the <see cref="TeleporterObject"/> this handler is managing.
         /// </summary>
-#pragma warning disable CS8618
-        public TeleporterObject Teleporter { get; private set; }
-#pragma warning restore CS8618
+        public TeleporterObject? Teleporter { get; private set; }
 
         /// <summary>
         /// Tracks per-player cooldown expiry times.
-        /// Each entry maps a <see cref="Player"/> to the <see cref="Time.time"/> value at which their cooldown expires.
         /// </summary>
-        /// <remarks>
-        /// Expired entries are automatically removed each frame.
-        /// </remarks>
         public Dictionary<Player, float> PlayerCooldowns = [];
+
+        /// <summary>
+        /// Tracks per-pickup cooldown expiry times.
+        /// </summary>
+        public Dictionary<Pickup, float> PickupCooldowns = [];
 
         private float _globalCooldownEnd;
 
         private readonly HashSet<Player> _playersInside = [];
+        private readonly HashSet<Pickup> _pickupsInside = [];
 
         /// <summary>
-        /// Initializes this <see cref="TeleporterHandler"/> instance with the given teleporter.
+        /// Minimum forced cooldown duration to prevent teleport loops, in seconds.
         /// </summary>
-        /// <param name="teleporter">The <see cref="TeleporterObject"/> that defines this teleporter's configuration.</param>
+        private const float MinForcedCooldown = 1.5f;
+
         public void Init(TeleporterObject teleporter)
         {
+            if (Teleporter != null)
+                return;
+
             Teleporter = teleporter;
+            OnPlayerEntered += OnPlayerEnter;
+            OnPickupEntered += OnPickupEnter;
+            OnProjectileEntered += OnProjectileEnter;
+            OnPlayerExited += OnPlayerExit;
+            OnPickupExited += OnPickupExit;
+            OnProjectileExited += OnProjectileExit;
         }
 
-        private void OnTriggerEnter(Collider other)
+        private void OnDestroy()
         {
-            GameObject? root = other.GetComponentInParent<NetworkIdentity>()?.gameObject;
-            if (root == null)
+            OnPlayerEntered -= OnPlayerEnter;
+            OnPickupEntered -= OnPickupEnter;
+            OnProjectileEntered -= OnProjectileEnter;
+            OnPlayerExited -= OnPlayerExit;
+            OnPickupExited -= OnPickupExit;
+            OnProjectileExited -= OnProjectileExit;
+        }
+
+        private void OnPlayerEnter(Player player, Collider collider)
+        {
+            if (Teleporter == null)
+                return;
+
+            if (IsOnCooldown(player))
+                return;
+
+            if (!HasFlagFast(TeleporterFlags.AllowPlayers))
+                return;
+
+            if (!_playersInside.Add(player))
+                return;
+
+            if (!IsRoleAllowed(player))
+            {
+                _playersInside.Remove(player);
+                return;
+            }
+
+            TeleporterObject? target = FindTargetTeleporter();
+            if (target == null)
+            {
+                LogManager.Warn($"Teleporter {Teleporter.Id} could not find target teleporter.");
+                _playersInside.Remove(player);
+                return;
+            }
+
+            ApplyCooldown(player);
+            target.TeleporterHandler.ForceCooldown(player, GetForcedCooldownDuration());
+
+            player.Position = target.Position;
+            LogManager.Debug($"Player {player.Nickname} teleported from {Teleporter.Id} to {target.Id}");
+        }
+
+        private void OnPickupEnter(Pickup pickup, Collider collider)
+        {
+            if (Teleporter == null)
+                return;
+
+            if (!HasFlagFast(TeleporterFlags.AllowPickups))
+                return;
+
+            if (IsOnCooldown(pickup))
+                return;
+
+            if (!_pickupsInside.Add(pickup))
                 return;
 
             TeleporterObject? target = FindTargetTeleporter();
             if (target == null)
             {
                 LogManager.Warn($"Teleporter {Teleporter.Id} could not find target teleporter.");
+                _pickupsInside.Remove(pickup);
                 return;
             }
 
-            if (Player.TryGet(root, out var player))
-            {
-                if (!HasFlagFast(TeleporterFlags.AllowPlayers))
-                    return;
+            ApplyPickupCooldown(pickup);
+            target.TeleporterHandler.ForceCooldown(pickup, GetForcedCooldownDuration());
 
-                if (!_playersInside.Add(player))
-                    return;
-
-                if (!IsRoleAllowed(player))
-                    return;
-
-                if (IsOnCooldown(player))
-                    return;
-
-                target.TeleporterHandler.ForcePlayerCooldown(player);
-                player.Position = target.Position;
-                LogManager.Debug($"Player {player.Nickname} teleported from {Teleporter.Id} to {target.Id}");
-                ApplyCooldown(player);
-                return;
-            }
-
-            if (other.TryGetComponent(out ItemPickupBase pickupbase) && Pickup.TryGet(pickupbase.Info.Serial, out var pickup))
-            {
-                if (HasFlagFast(TeleporterFlags.AllowPickups))
-                {
-                    pickup.Position = target.Position;
-                    LogManager.Debug($"Pickup {pickup.Type} teleported from {Teleporter.Id} to {target.Id}");
-                }
-
-                if (pickup is Projectile projectile && HasFlagFast(TeleporterFlags.AllowProjectiles))
-                {
-                    projectile.Position = target.Position;
-                    LogManager.Debug($"Projectile {projectile.Type} teleported from {Teleporter.Id} to {target.Id}");
-                }
-            }
+            pickup.Position = target.Position;
+            LogManager.Debug($"Pickup {pickup.Type} teleported from {Teleporter.Id} to {target.Id}");
         }
 
-        private void OnTriggerExit(Collider other)
+        private void OnProjectileEnter(Projectile projectile, Collider collider)
         {
-            GameObject? root = other.GetComponentInParent<NetworkIdentity>()?.gameObject;
-            if (root == null)
+            if (Teleporter == null)
                 return;
 
-            if (!Player.TryGet(root, out var player))
+            if (!HasFlagFast(TeleporterFlags.AllowProjectiles))
                 return;
 
+            if (IsOnCooldown(projectile))
+                return;
+
+            if (!_pickupsInside.Add(projectile))
+                return;
+
+            TeleporterObject? target = FindTargetTeleporter();
+            if (target == null)
+            {
+                LogManager.Warn($"Teleporter {Teleporter.Id} could not find target teleporter.");
+                _pickupsInside.Remove(projectile);
+                return;
+            }
+
+            ApplyPickupCooldown(projectile);
+            target.TeleporterHandler.ForceCooldown(projectile, GetForcedCooldownDuration());
+
+            projectile.Position = target.Position;
+            LogManager.Debug($"Projectile {projectile.Type} teleported from {Teleporter.Id} to {target.Id}");
+        }
+
+        private void OnPlayerExit(Player player, Collider collider)
+        {
             _playersInside.Remove(player);
         }
 
-        /// <summary>
-        /// Forces a minimum cooldown on a player regardless of teleporter settings, used to prevent immediate return teleportation.
-        /// </summary>
+        private void OnPickupExit(Pickup pickup, Collider collider)
+        {
+            _pickupsInside.Remove(pickup);
+        }
+
+        private void OnProjectileExit(Projectile projectile, Collider collider)
+        {
+            _pickupsInside.Remove(projectile);
+        }
+
+        [Obsolete("Use ForceCooldown instead. This will be removed in release.")]
         public void ForcePlayerCooldown(Player player, float duration = 1f)
+        {
+            ForceCooldown(player, duration);
+        }
+
+        /// <summary>
+        /// Forces a cooldown on a player to prevent immediate return teleportation.
+        /// </summary>
+        public void ForceCooldown(Player player, float duration = MinForcedCooldown)
         {
             float expiry = Time.time + duration;
             if (!PlayerCooldowns.TryGetValue(player, out float existing) || existing < expiry)
                 PlayerCooldowns[player] = expiry;
         }
 
-        private bool IsRoleAllowed(Player player) =>
-            Teleporter.AllowedRoles.Count == 0 || Teleporter.AllowedRoles.Contains(player.Role);
+        /// <summary>
+        /// Forces a cooldown on a pickup to prevent immediate return teleportation.
+        /// </summary>
+        public void ForceCooldown(Pickup pickup, float duration = MinForcedCooldown)
+        {
+            float expiry = Time.time + duration;
+            if (!PickupCooldowns.TryGetValue(pickup, out float existing) || existing < expiry)
+                PickupCooldowns[pickup] = expiry;
+        }
+
+        /// <summary>
+        /// Calculates the forced cooldown duration, ensuring it's at least the minimum and at least as long as the source teleporter's cooldown.
+        /// </summary>
+        private float GetForcedCooldownDuration()
+        {
+            if (Teleporter == null)
+                return MinForcedCooldown;
+
+            return Math.Max(MinForcedCooldown, Teleporter.CoolDown);
+        }
+
+        private bool IsRoleAllowed(Player player)
+        {
+            if (Teleporter == null)
+                return false;
+
+            return Teleporter.AllowedRoles.Count == 0 || Teleporter.AllowedRoles.Contains(player.Role);
+        }
 
         private bool IsOnCooldown(Player player)
         {
-            if (Teleporter.CoolDown <= 0f)
+            if (Teleporter == null)
                 return false;
 
-            if (Teleporter.PerPlayerCooldown)
+            if (Teleporter.CoolDown <= 0f && !PlayerCooldowns.ContainsKey(player))
+                return false;
+
+            if (Teleporter.PerPlayerCooldown || PlayerCooldowns.ContainsKey(player))
             {
                 if (PlayerCooldowns.TryGetValue(player, out float expiry))
                 {
@@ -149,25 +249,81 @@ namespace ThaumielMapEditor.API.Components
             return Time.time < _globalCooldownEnd;
         }
 
+        private bool IsOnCooldown(Pickup pickup)
+        {
+            if (Teleporter == null)
+                return false;
+
+            if (Teleporter.CoolDown <= 0f && !PickupCooldowns.ContainsKey(pickup))
+                return false;
+
+            if (Teleporter.PerPlayerCooldown || PickupCooldowns.ContainsKey(pickup))
+            {
+                if (PickupCooldowns.TryGetValue(pickup, out float expiry))
+                {
+                    if (Time.time >= expiry)
+                    {
+                        PickupCooldowns.Remove(pickup);
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                return false;
+            }
+
+            return Time.time < _globalCooldownEnd;
+        }
+
         private void ApplyCooldown(Player player)
         {
-            if (Teleporter.CoolDown <= 0f)
+            if (Teleporter == null)
                 return;
+
+            float duration = Math.Max(Teleporter.CoolDown, MinForcedCooldown);
 
             if (Teleporter.PerPlayerCooldown)
             {
-                PlayerCooldowns[player] = Time.time + Teleporter.CoolDown;
+                PlayerCooldowns[player] = Time.time + duration;
             }
             else
-                _globalCooldownEnd = Time.time + Teleporter.CoolDown;
+                _globalCooldownEnd = Time.time + duration;
         }
 
-        public bool HasFlagFast(TeleporterFlags flag) => (Teleporter.Flags & flag) != 0;
+        private void ApplyPickupCooldown(Pickup pickup)
+        {
+            if (Teleporter == null)
+                return;
+
+            float duration = Math.Max(Teleporter.CoolDown, MinForcedCooldown);
+
+            if (Teleporter.PerPlayerCooldown)
+            {
+                PickupCooldowns[pickup] = Time.time + duration;
+            }
+            else
+                _globalCooldownEnd = Time.time + duration;
+        }
+
+        public bool HasFlagFast(TeleporterFlags flag)
+        {
+            if (Teleporter == null)
+                return false;
+
+            return (Teleporter.Flags & flag) != 0;
+        }
 
         private TeleporterObject? FindTargetTeleporter()
         {
-            TeleporterObject target = ServerObject.SpawnedObjects.OfType<TeleporterObject>().FirstOrDefault(t => t.Id == Teleporter.Targets.GetRandom());
-            if (target == null)
+            if (Teleporter == null)
+                return null;
+
+            if (Teleporter.Targets.Count == 0)
+                return null;
+
+            Guid targetId = Teleporter.Targets.GetRandom();
+            if (!TeleporterObject.Teleporters.TryGetValue(targetId, out TeleporterObject? target))
                 return null;
 
             return target;

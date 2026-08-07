@@ -74,7 +74,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             InteractToyValidatePatch.OnDenied += Denied;
         }
 
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
             InteractionObject.OnInteracted -= Interacted;
             InteractionObject.OnSearched -= Interacted;
@@ -94,6 +94,8 @@ namespace ThaumielMapEditor.API.Components.Tools
                     Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
                 }
             }
+
+            base.OnDestroy();
         }
 
         private void Denied(InteractionObject obj, Player player)
@@ -233,28 +235,28 @@ namespace ThaumielMapEditor.API.Components.Tools
         {
             foreach (RunCommand command in classes.RunCommand)
             {
-                command.Command
-                .Replace("%id%", player.PlayerId.ToString())
-                .Replace("%name%", player.DisplayName)
-                .Replace("%userid%", player.UserId)
-                .Replace("%role%", player.Role.ToString())
-                .Replace("%health%", player.Health.ToString())
-                .Replace("%maxhealth%", player.MaxHealth.ToString())
-                .Replace("%room%", player.Room?.Name.ToString())
-                .Replace("%position%", player.Position.ToString().Trim('(', ')'));
+                string commandText = command.Command
+                    .Replace("%id%", player.PlayerId.ToString())
+                    .Replace("%name%", player.DisplayName)
+                    .Replace("%userid%", player.UserId)
+                    .Replace("%role%", player.Role.ToString())
+                    .Replace("%health%", player.Health.ToString())
+                    .Replace("%maxhealth%", player.MaxHealth.ToString())
+                    .Replace("%room%", player.Room?.Name.ToString())
+                    .Replace("%position%", player.Position.ToString().Trim('(', ')'));
 
                 switch (command.Type)
                 {
                     case CommandType.Client:
-                        Server.RunCommand($".{command.Command}", new SilentCommandSender());
+                        Server.RunCommand($".{commandText}", new SilentCommandSender());
                         break;
                     
                     case CommandType.Console:
-                        Server.RunCommand($"{command.Command}", new SilentCommandSender());
+                        Server.RunCommand($"{commandText}", new SilentCommandSender());
                         break;
                     
                     case CommandType.RemoteAdmin:
-                        Server.RunCommand($"/{command.Command}", new SilentCommandSender());
+                        Server.RunCommand($"/{commandText}", new SilentCommandSender());
                         break;
                 }
             }

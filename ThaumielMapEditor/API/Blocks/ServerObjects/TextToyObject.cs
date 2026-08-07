@@ -5,13 +5,10 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
 using AdminToys;
 using Mirror;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using UnityEngine;
@@ -39,6 +36,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Setting this property updates the underlying <see cref="Base"/> instance's <c>TextFormat</c> if the
         /// runtime object has already been created.
         /// </remarks>
+        [YamlMember(Alias = "Text")]
         public string Text
         {
             get;
@@ -59,6 +57,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Setting this property updates the underlying <see cref="Base"/> instance's <c>DisplaySize</c> if the
         /// runtime object has already been created.
         /// </remarks>
+        [YamlMember(Alias = "DisplaySize")]
         public Vector2 DisplaySize
         {
             get;
@@ -87,14 +86,13 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             TextToy textToy = UnityEngine.Object.Instantiate(PrefabHelper.TextToy);
             Base = textToy;
             Object = textToy.gameObject;
-            NetId = textToy.netId;
             NetworkServer.UnSpawn(Base.gameObject);
-            ParseValues(serializable);
             SetWorldTransform(schematic);
 
             Base.TextFormat = Text;
             Base.DisplaySize = DisplaySize;
             NetworkServer.Spawn(Base.gameObject);
+            NetId = textToy.netId;
             base.SpawnObject(schematic, serializable);
         }
 
@@ -109,41 +107,13 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             TextToy textToy = UnityEngine.Object.Instantiate(PrefabHelper.TextToy);
             Base = textToy;
             Object = textToy.gameObject;
-            NetId = textToy.netId;
             NetworkServer.UnSpawn(Base.gameObject);
             SetWorldTransform(schematic);
 
             Base.TextFormat = Text;
             Base.DisplaySize = DisplaySize;
             NetworkServer.Spawn(Base.gameObject);
-        }
-
-        /// <summary>
-        /// Parses values from the provided <see cref="SerializableObject"/> and applies them to this instance.
-        /// </summary>
-        /// <param name="serializable">The serialized object containing keys such as "TextFormat" and "DisplaySize".</param>
-        public void ParseValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.TextToy)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as TextToy");
-                return;
-            }
-
-            if (!serializable.Values.TryConvertValue<string>("Text", out var text))
-            {
-                LogManager.Warn("Failed to parse Text");
-            }
-
-            if (serializable.Values.TryGetValue("DisplaySize", out var raw) && raw is IDictionary<object, object> dict)
-            {
-                float x = Convert.ToSingle(dict["x"]);
-                float y = Convert.ToSingle(dict["y"]);
-
-                DisplaySize = new(x, y);
-            }
-
-            Text = text;
+            NetId = textToy.netId;
         }
     }
 }

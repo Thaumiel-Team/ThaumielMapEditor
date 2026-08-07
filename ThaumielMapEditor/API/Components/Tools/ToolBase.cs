@@ -47,7 +47,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             Schematic = schem;
         }
 
-        private void OnDestroy()
+        protected virtual void OnDestroy()
         {
             if (Object == null)
                 return;

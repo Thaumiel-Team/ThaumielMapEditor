@@ -11,6 +11,7 @@ using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
@@ -20,6 +21,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         public CapybaraToy Base { get; private set; }
 #pragma warning restore CS8618
 
+        [YamlMember(Alias = "Collisions")]
         public bool CollisionsEnabled
         {
             get;
@@ -46,12 +48,12 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             NetworkServer.UnSpawn(capybara.gameObject);
             Base = capybara;
             Object = capybara.gameObject;
-            NetId = capybara.netId;
             capybara.CollisionsEnabled = CollisionsEnabled;
             capybara.gameObject.transform.position = Position;
             capybara.gameObject.transform.rotation = Rotation;
             capybara.gameObject.transform.localScale = Scale;
             NetworkServer.Spawn(capybara.gameObject);
+            NetId = capybara.netId;
             base.SpawnObject(schematic, serializable);
         }
     }

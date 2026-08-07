@@ -52,7 +52,12 @@ namespace ThaumielMapEditor.Commands.Admin
                 if (!content.TrimStart().StartsWith("{"))
                     continue;
 
-                string schematicName = arguments.At(0);
+                string schematicName = Path.GetFileName(arguments.At(0));
+                if (string.IsNullOrEmpty(schematicName))
+                {
+                    response = "Invalid schematic name provided.";
+                    return false;
+                }
 
                 Task.Run(async () =>
                 {

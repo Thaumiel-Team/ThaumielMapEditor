@@ -9,19 +9,21 @@ using AdminToys;
 using Mirror;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using UnityEngine;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
     public class PrimitiveObjectServer : ServerObject
     {
+        [YamlIgnore]
 #pragma warning disable CS8618
         public PrimitiveObjectToy Base { get; private set; }
 #pragma warning restore CS8618
 
+        [YamlMember(Alias = "Color")]
         public Color Color
         {
             get;
@@ -35,6 +37,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
         } = Color.white;
 
+        [YamlMember(Alias = "PrimitiveType")]
         public PrimitiveType PrimitiveType
         {
             get;
@@ -48,6 +51,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
         } = PrimitiveType.Cube;
 
+        [YamlMember(Alias = "PrimitiveFlags")]
         public PrimitiveFlags PrimitiveFlags
         {
             get;
@@ -62,10 +66,8 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         } = PrimitiveFlags.None;
 
 
-        /// <inheritdoc/>
         public override ObjectType ObjectType { get; set; } = ObjectType.Primitive;
 
-        /// <inheritdoc/>
         public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
         {
             PrimitiveObjectToy? primitive = UnityEngine.Object.Instantiate(PrefabHelper.PrimitiveObject);
@@ -75,7 +77,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             NetworkServer.UnSpawn(primitive.gameObject);
             Base = primitive;
             Object = primitive.gameObject;
-            NetId = primitive.netId;
             primitive.PrimitiveFlags = PrimitiveFlags;
             primitive.PrimitiveType = PrimitiveType;
             primitive.MaterialColor = Color;
@@ -83,6 +84,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             primitive.gameObject.transform.rotation = Rotation;
             primitive.gameObject.transform.localScale = Scale;
             NetworkServer.Spawn(primitive.gameObject);
+            NetId = primitive.netId;
             base.SpawnObject(schematic, serializable);
         }
 
@@ -95,7 +97,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             NetworkServer.UnSpawn(primitive.gameObject);
             Base = primitive;
             Object = primitive.gameObject;
-            NetId = primitive.netId;
             primitive.PrimitiveFlags = PrimitiveFlags;
             primitive.PrimitiveType = PrimitiveType;
             primitive.MaterialColor = Color;
@@ -103,34 +104,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             primitive.gameObject.transform.rotation = Rotation;
             primitive.gameObject.transform.localScale = Scale;
             NetworkServer.Spawn(primitive.gameObject);
-        }
-
-        public void ParseValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.Primitive)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Primitive");
-                return;
-            }
-
-            if (!serializable.Values.TryConvertValue<Color>("Color", out var color))
-            {
-                LogManager.Warn($"Failed to parse Color");
-            }
-
-            if (!serializable.Values.TryConvertValue<PrimitiveType>("PrimitiveType", out var primitiveType))
-            {
-                LogManager.Warn($"Failed to parse PrimitiveType");
-            }
-
-            if (!serializable.Values.TryConvertValue<PrimitiveFlags>("PrimitiveFlags", out var flags))
-            {
-                LogManager.Warn($"Failed to parse PrimitiveFlags");
-            }
-
-            Color = color;
-            PrimitiveType = primitiveType;
-            PrimitiveFlags = flags;
+            NetId = primitive.netId;
         }
     }
 }

@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using MEC;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
@@ -45,7 +44,7 @@ namespace ThaumielMapEditor.API.Components.Tools
                 return;
             }
 
-            this.door = doorObj;
+            door = doorObj;
             GroupId = groupId;
             lastKnownState = doorObj.IsOpen;
 
@@ -61,13 +60,26 @@ namespace ThaumielMapEditor.API.Components.Tools
             doorObj.Base?.OnStateChanged += PropagateToGroup;
         }
 
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
-            door?.Base?.OnStateChanged -= PropagateToGroup;
+            Unregister();
+            base.OnDestroy();
         }
 
         private void PropagateToGroup()
         {
+            if (door == null)
+            {
+                Unregister();
+                return;
+            }
+
+            bool state = door.Base != null ? door.Base.NetworkTargetState : door.IsOpen;
+            if (state == lastKnownState)
+                return;
+
+            lastKnownState = state;
+
             if (!Groups.TryGetValue(GroupId, out List<DoorLink>? group))
                 return;
 
@@ -86,8 +98,8 @@ namespace ThaumielMapEditor.API.Components.Tools
 
                 try
                 {
-                    link.door.IsOpen = !lastKnownState;
-                    link.lastKnownState = link.door.IsOpen;
+                    link.door.IsOpen = state;
+                    link.lastKnownState = state;
                 }
                 catch (Exception ex)
                 {
@@ -98,6 +110,9 @@ namespace ThaumielMapEditor.API.Components.Tools
 
         public void Unregister()
         {
+            if (door?.Base != null)
+                door.Base.OnStateChanged -= PropagateToGroup;
+
             ActiveLinks.Remove(this);
             if (Groups.TryGetValue(GroupId, out List<DoorLink>? group))
             {

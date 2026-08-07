@@ -84,6 +84,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             get;
             set
             {
+                if (field == value)
+                    return;
+
                 field = value;
                 MarkSyncNeeded(SyncFlags.Position);
                 PositionUpdated?.Invoke(value, this);
@@ -101,6 +104,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             get;
             set
             {
+                if (field == value)
+                    return;
+
                 field = value;
                 MarkSyncNeeded(SyncFlags.Scale);
                 ScaleUpdated?.Invoke(value, this);
@@ -118,6 +124,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             get;
             set
             {
+                if (field == value)
+                    return;
+
                 field = value;
                 MarkSyncNeeded(SyncFlags.Rotation);
                 RotationUpdated?.Invoke(value, this);

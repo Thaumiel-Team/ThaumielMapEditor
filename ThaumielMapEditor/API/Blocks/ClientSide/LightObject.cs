@@ -14,6 +14,7 @@ using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using ThaumielMapEditor.Events.EventArgs.Handlers;
 using UnityEngine;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
@@ -22,6 +23,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Gets or sets the intensity of the light.
         /// </summary>
+        [YamlMember(Alias = "LightIntensity")]
         public float Intensity
         {
             get;
@@ -38,6 +40,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Gets or sets the range of the light.
         /// </summary>
+        [YamlMember(Alias = "LightRange")]
         public float Range
         {
             get;
@@ -54,6 +57,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Gets or sets the color of the light.
         /// </summary>
+        [YamlMember(Alias = "LightColor")]
         public Color Color
         {
             get;
@@ -70,6 +74,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Gets or sets the shadow type used by the light.
         /// </summary>
+        [YamlMember(Alias = "ShadowType")]
         public LightShadows Shadows
         {
             get;
@@ -102,6 +107,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Gets or sets the type of the light.
         /// </summary>
+        [YamlMember(Alias = "LightType")]
         public LightType Type
         {
             get;
@@ -119,6 +125,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets or sets the shape of the light.
         /// </summary>
 #pragma warning disable CS0618
+        [YamlMember(Alias = "LightShape")]
         public LightShape Shape
         {
             get;
@@ -223,79 +230,6 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
 
             ObjectHandler.OnClientObjectSpawned(new(this, player));
             SpawnedPlayers.Add(player);
-        }
-
-        /// <summary>
-        /// Deserializes and applies light specific values from a <see cref="SerializableObject"/>.
-        /// </summary>
-        /// <param name="serializable">The serialized object containing light data.</param>
-        public void DeserializeValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.Light)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Light");
-                return;
-            }
-
-            if (!serializable.Values.TryConvertValue<float>("LightIntensity", out var intensity))
-            {
-                LogManager.Warn("Failed to parse LightIntensity");
-            }
-
-            if (!serializable.Values.TryConvertValue<float>("LightRange", out var range))
-            {
-                LogManager.Warn("Failed to parse LightRange");
-            }
-
-            if (!serializable.Values.TryConvertValue<Color>("LightColor", out var color))
-            {
-                LogManager.Warn("Failed to parse LightColor");
-            }
-
-            if (!serializable.Values.TryConvertValue<LightShadows>("ShadowType", out var shadowType))
-            {
-                LogManager.Warn("Failed to parse ShadowType");
-            }
-
-            if (!serializable.Values.TryConvertValue<float>("ShadowStrength", out var shadowStrength))
-            {
-                LogManager.Warn("Failed to parse ShadowStrength");
-            }
-
-            if (!serializable.Values.TryConvertValue<LightType>("LightType", out var lightType))
-            {
-                LogManager.Warn("Failed to parse LightType");
-            }
-#pragma warning disable CS0618 // Type or member is obsolete
-
-            if (!serializable.Values.TryConvertValue<LightShape>("LightShape", out var lightShape))
-            {
-                LogManager.Warn("Failed to parse LightShape");
-            }
-#pragma warning restore CS0618 // Type or member is obsolete
-
-            if (!serializable.Values.TryConvertValue<float>("SpotAngle", out var spotAngle))
-            {
-                LogManager.Warn("Failed to parse SpotAngle");
-            }
-
-            if (!serializable.Values.TryConvertValue<float>("InnerSpotAngle", out var innerSpotAngle))
-            {
-                LogManager.Warn("Failed to parse InnerSpotAngle");
-            }
-
-            Intensity = intensity;
-            Range = range;
-            Color = color;
-            Shadows = shadowType;
-            ShadowStrength = shadowStrength;
-            Type = lightType;
-            Shape = lightShape;
-            SpotAngle = spotAngle;
-            InnerSpotAngle = innerSpotAngle;
-
-            ObjectId = serializable.ObjectId;
-            ParentId = serializable.ParentId;
         }
     }
 }

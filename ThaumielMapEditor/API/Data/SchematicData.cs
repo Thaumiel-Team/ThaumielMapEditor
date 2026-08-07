@@ -195,17 +195,25 @@ namespace ThaumielMapEditor.API.Data
 
             foreach (ServerObject serverobj in SpawnedServerObjects.ToArray())
             {
-                if (serverobj.Object == null)
-                    continue;
-
-                if (serverobj is DoorObject && serverobj.Object.TryGetComponent<DoorLink>(out var link))
+                if (serverobj is DoorObject && serverobj.Object != null && serverobj.Object.TryGetComponent<DoorLink>(out var link))
                     link.Unregister();
 
-                if (serverobj.Object.TryGetComponent<BlockyRuntime>(out var blocky))
+                if (serverobj.Object != null && serverobj.Object.TryGetComponent<BlockyRuntime>(out var blocky))
                     Executor?.Execute(ArgumentsParser.Load(blocky.Blocky!), null!, EventType.OnDestroyed);
 
                 serverobj.DestroyObject(this);
             }
+
+            foreach (Transform transform in ServerSideTransforms.Values)
+            {
+                if (transform != null)
+                    UnityEngine.Object.Destroy(transform.gameObject);
+            }
+
+            ServerSideTransforms.Clear();
+
+            if (Primitive != null && !Primitive.IsDestroyed && Primitive.Base != null)
+                NetworkServer.Destroy(Primitive.Base.gameObject);
 
             Executor = null;
             AnimationController.Remove(this);

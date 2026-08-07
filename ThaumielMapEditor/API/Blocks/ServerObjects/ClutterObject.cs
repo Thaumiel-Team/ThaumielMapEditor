@@ -24,6 +24,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// <summary>
         /// Gets the <see cref="ClutterType"/> of this clutter object.
         /// </summary>
+        [YamlMember(Alias = "ClutterType")]
         public ClutterType Type { get; internal set; }
         
         /// <summary>
@@ -78,12 +79,13 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
             SetWorldTransform(schematic);
 
+            NetworkServer.Spawn(clutterPrefab);
+
             if (clutterPrefab.TryGetComponent<NetworkBehaviour>(out var network))
             {
                 NetId = network.netId;
             }
 
-            NetworkServer.Spawn(clutterPrefab);
             base.SpawnObject(schematic, serializable);
         }
     }

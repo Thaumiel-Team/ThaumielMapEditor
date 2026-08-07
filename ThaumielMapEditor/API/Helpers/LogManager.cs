@@ -16,6 +16,9 @@ namespace ThaumielMapEditor.API.Helpers
 {
     internal class LogManager
     {
+        private const int MaxLogs = 10000;
+        private static readonly object LogLock = new();
+
         public class Log
         {
             public LogLevel LogLevel { get; set; }
@@ -25,6 +28,29 @@ namespace ThaumielMapEditor.API.Helpers
 
         public static List<Log> Logs = [];
         public static event Action<Log>? LogCreated;
+
+        private static void AddLog(Log log)
+        {
+            lock (LogLock)
+            {
+                Logs.Add(log);
+                if (Logs.Count > MaxLogs)
+                    Logs.RemoveRange(0, Logs.Count - MaxLogs);
+            }
+
+            LogCreated?.Invoke(log);
+        }
+
+        /// <summary>
+        /// Returns a thread-safe snapshot of all retained log entries.
+        /// </summary>
+        public static Log[] GetLogSnapshot()
+        {
+            lock (LogLock)
+            {
+                return Logs.ToArray();
+            }
+        }
 
         public static void Info(string message)
         {
@@ -37,8 +63,7 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
 
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
 
         public static void Debug(string message)
@@ -52,8 +77,7 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
 
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
 
         public static void Warn(string message)
@@ -67,8 +91,7 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
 
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
 
         public static void Error(string message)
@@ -83,8 +106,7 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
 
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
 
         public static void Updater(string message)
@@ -97,8 +119,7 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
             
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
         
         public static void LogShare(string message)
@@ -111,8 +132,7 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
             
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
 
         internal static string FormatLogMessage(string message)

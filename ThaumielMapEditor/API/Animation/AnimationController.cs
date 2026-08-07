@@ -101,7 +101,9 @@ namespace ThaumielMapEditor.API.Animation
         /// <param name="animatorName">The name of the animator GameObject to target.</param>
         public void Play(string stateName, string animatorName)
         {
-            Animator animator = Animators.FirstOrDefault(a => a.name == animatorName);
+            if (!TryGetAnimator(animatorName, out Animator animator))
+                return;
+
             animator.Play(stateName);
             animator.speed = 1f;
         }
@@ -114,9 +116,26 @@ namespace ThaumielMapEditor.API.Animation
         /// <param name="speed">The speed to play the animation at.</param>
         public void Play(string stateName, string animatorName, float speed)
         {
-            Animator animator = Animators.FirstOrDefault(a => a.name == animatorName);
+            if (!TryGetAnimator(animatorName, out Animator animator))
+                return;
+
             animator.Play(stateName);
             animator.speed = speed;
+        }
+
+        private bool TryGetAnimator(string animatorName, out Animator animator)
+        {
+            for (int i = 0; i < Animators.Count; i++)
+            {
+                if (Animators[i].name != animatorName)
+                    continue;
+
+                animator = Animators[i];
+                return true;
+            }
+
+            animator = null!;
+            return false;
         }
 
         /// <summary>

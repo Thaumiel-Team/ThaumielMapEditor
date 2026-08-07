@@ -129,6 +129,7 @@ namespace ThaumielMapEditor.Events
 
             InteractableTrigger.PlayerEffectCache.Remove(player);
             ColliderTrigger.PlayerEffectCache.Remove(player);
+            LODHelper.PlayersInLODZones.Remove(player);
         }
 
         private static void OnPlayerJoined(PlayerJoinedEventArgs ev)

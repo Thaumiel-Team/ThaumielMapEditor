@@ -202,11 +202,11 @@ namespace ThaumielMapEditor.API.Helpers
             },
 
             ["timing_wait_for_frames"] = d => new WaitForFrames { WaitTime = (uint)ParseFloat(d, "WaitTime") },
-            ["timing_wait_for_seconds"] = d => new WaitForSeconds { WaitTime = (uint)ParseFloat(d, "WaitTime") },
+            ["timing_wait_for_seconds"] = d => new WaitForSeconds { WaitTime = ParseFloat(d, "WaitTime") },
 
             ["timing_wait_until_true"] = d => new WaitUntilBlock
             {
-                Condition = ParseBlockBase(d),
+                Condition = ParseCondition(d),
                 Stack = ParseStack(d, "DO")
             },
 
@@ -283,7 +283,10 @@ namespace ThaumielMapEditor.API.Helpers
                 Name = d.TryGetValue("VAR", out object? gvn) ? gvn.ToString() : string.Empty
             },
 
-            ["get_player_property"] = d => new PlayerGetPropertyBlock { Property = GetString(d, "Property") },
+            ["get_player_property"] = d => new PlayerGetPropertyBlock
+            {
+                Property = GetString(d, "Property")
+            },
 
             ["set_player_gravity"] = d => new PlayerSetGravityBlock
             {
@@ -292,8 +295,14 @@ namespace ThaumielMapEditor.API.Helpers
                 Z = ParseFloat(d, "z")
             },
 
-            ["get_player_by_id"] = d => new PlayerGetByIdBlock { PlayerId = (int)ParseFloat(d, "Player Id") },
-            ["get_player_by_userid"] = d => new PlayerGetByUserIdBlock { UserId = GetString(d, "Player User Id") },
+            ["get_player_by_id"] = d => new PlayerGetByIdBlock
+            {
+                PlayerId = (int)ParseFloat(d, "Player Id")
+            },
+            ["get_player_by_userid"] = d => new PlayerGetByUserIdBlock
+            {
+                UserId = GetString(d, "Player User Id")
+            },
 
             ["set_player_role"] = d => new PlayerSetRoleBlock
             {
@@ -313,8 +322,16 @@ namespace ThaumielMapEditor.API.Helpers
                 Item = Enum.TryParse(GetString(d, "Removed Item"), out ItemType ri) ? ri : ItemType.None
             },
 
-            ["set_player_health"] = d => new PlayerSetHealthBlock { HealthType = "health", Value = ParseFloat(d, "Health") },
-            ["set_player_max_health"] = d => new PlayerSetHealthBlock { HealthType = "max_health", Value = ParseFloat(d, "Max Health") },
+            ["set_player_health"] = d => new PlayerSetHealthBlock 
+            { 
+                HealthType = "health", 
+                Value = ParseFloat(d, "Health") 
+            },
+            ["set_player_max_health"] = d => new PlayerSetHealthBlock
+            {
+                HealthType = "max_health",
+                Value = ParseFloat(d, "Max Health")
+            },
             ["set_player_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "artificial_health", Value = ParseFloat(d, "Artificial Health") },
             ["set_player_max_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "max_artificial_health", Value = ParseFloat(d, "Max Artificial Health") },
             ["set_player_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield", Value = ParseFloat(d, "Hume shield") },
@@ -675,6 +692,20 @@ namespace ThaumielMapEditor.API.Helpers
                 return null;
 
             return block;
+        }
+
+        private static BlockBase? ParseCondition(Dictionary<string, object> dict)
+        {
+            if (dict.GetValueOrDefault("BOOL") is Dictionary<string, object> boolDict)
+                return ParseBlockBase(boolDict);
+
+            if (dict.GetValueOrDefault("CONDITION") is Dictionary<string, object> condDict)
+                return ParseBlockBase(condDict);
+
+            if (dict.GetValueOrDefault("IF0") is Dictionary<string, object> ifDict)
+                return ParseBlockBase(ifDict);
+
+            return null;
         }
 
         private static Dictionary<string, object?> ParseCallArgs(Dictionary<string, object> dict)

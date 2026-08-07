@@ -5,6 +5,8 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System.Collections;
+using System.Reflection;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Data;
 
@@ -13,6 +15,35 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     public abstract class BlockBase
     {
         public BlockExecutor? Executor { get; internal set; }
+
+        /// <summary>
+        /// Assigns the executor to this block and recursively to any nested blocks exposed through its properties.
+        /// </summary>
+        internal void SetExecutorRecursive(BlockExecutor executor)
+        {
+            Executor = executor;
+
+            foreach (PropertyInfo property in GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (!property.CanRead)
+                    continue;
+
+                object? value = property.GetValue(this);
+
+                if (value is BlockBase block)
+                {
+                    block.SetExecutorRecursive(executor);
+                }
+                else if (value is IEnumerable enumerable && value is not string)
+                {
+                    foreach (object? item in enumerable)
+                    {
+                        if (item is BlockBase inner)
+                            inner.SetExecutorRecursive(executor);
+                    }
+                }
+            }
+        }
 
         public virtual void Execute()
         {

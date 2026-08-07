@@ -6,14 +6,12 @@
 // -----------------------------------------------------------------------
 
 using InventorySystem.Items.Firearms.Attachments;
-using LabApi.Features.Wrappers;
 using MapGeneration.Distributors;
 using Mirror;
 using PlayerRoles;
 using System.Collections.Generic;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using UnityEngine;
@@ -23,6 +21,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
     public class WorkstationObject : ServerObject
     {
+        [YamlIgnore]
         public static Dictionary<WorkstationController, WorkstationObject> WorkstationCache = [];
 
         /// <summary>
@@ -35,11 +34,13 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// <summary>
         /// Gets or sets the <see cref="RoleTypeId"/>s that are allowed to use this <see cref="WorkstationObject"/> instance.
         /// </summary>
+        [YamlMember(Alias = "AllowedRoles")]
         public List<RoleTypeId> AllowedRoles { get; set; } = [];
 
         /// <summary>
         /// Gets or sets whether players can use this <see cref="WorkstationObject"/> instance.
         /// </summary>
+        [YamlMember(Alias = "AllowInteractions")]
         public bool AllowInteractions { get; set; }
 
         /// <inheritdoc/>
@@ -54,12 +55,10 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
                 return;
             }
 
-            ParseValues(serializable);
             WorkstationController workstationPrefab = UnityEngine.Object.Instantiate(PrefabHelper.Workstation);
             NetworkServer.UnSpawn(workstationPrefab.gameObject);
             Base = workstationPrefab;
             Object = Base.gameObject;
-            NetId = Base.netId;
 
             workstationPrefab.NetworkStatus = (byte)(AllowInteractions ? 0 : 4);
             SetWorldTransform(schematic);
@@ -71,6 +70,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
 
             NetworkServer.Spawn(workstationPrefab.gameObject);
+            NetId = Base.netId;
             WorkstationCache.Add(workstationPrefab, this);
             base.SpawnObject(schematic, serializable);
         }
@@ -79,28 +79,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         {
             WorkstationCache.Remove(Base!);
             base.DestroyObject(schematic);
-        }
-
-        public void ParseValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.Workstation)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as TextToy");
-                return;
-            }
-
-            if (!serializable.Values.TryConvertValue<List<RoleTypeId>>("AllowedRoles", out var roles))
-            {
-                LogManager.Warn("Failed to parse AllowedRoles");
-            }
-
-            if (!serializable.Values.TryConvertValue<bool>("AllowInteractions", out var allow))
-            {
-                LogManager.Warn("Failed to parse AllowInteractions");
-            }
-
-            AllowedRoles = roles;
-            AllowInteractions = allow;
         }
     }
 }

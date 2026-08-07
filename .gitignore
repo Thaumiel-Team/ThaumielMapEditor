@@ -370,3 +370,4 @@ ThaumielMapEditor/Dependencies/
 !addcopyright.py
 *.dll
 *.xml
+*.json

@@ -57,12 +57,13 @@ namespace ThaumielMapEditor.API.Components
 
         private void OnTriggerEnter(Player player, Collider other)
         {
+            UpdateDictionary(player);
+
             foreach (PrimitiveObject prim in Schematic.GetClientObject<PrimitiveObject>())
             {
                 if (!PrimitivestoUnload.Contains(prim.PrimitiveType))
                     continue;
 
-                UpdateDictionary(player);
                 prim.SpawnForPlayer(player);
                 foreach (Player spectator in player.CurrentSpectators)
                 {
@@ -73,12 +74,13 @@ namespace ThaumielMapEditor.API.Components
 
         private void OnTriggerExit(Player player, Collider other)
         {
+            RemoveFromDictionary(player);
+
             foreach (PrimitiveObject prim in Schematic.GetClientObject<PrimitiveObject>())
             {
                 if (!PrimitivestoUnload.Contains(prim.PrimitiveType))
                     continue;
 
-                RemoveFromDictionary(player);
                 prim.DestroyForPlayer(player);
                 foreach (Player spectator in player.CurrentSpectators)
                 {

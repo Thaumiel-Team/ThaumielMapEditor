@@ -51,7 +51,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not PrimitiveObject client || obj is not PrimitiveObjectServer server)
+            PrimitiveObject? client = obj as PrimitiveObject;
+            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            if (client is null && server is null)
                 return;
 
             Vector3 vector = new(X, Y, Z);
@@ -85,7 +87,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not PrimitiveObject client || obj is not PrimitiveObjectServer server)
+            PrimitiveObject? client = obj as PrimitiveObject;
+            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            if (client is null && server is null)
                 return;
 
             Color color = new(R, G, B, A);
@@ -103,7 +107,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not PrimitiveObject client || obj is not PrimitiveObjectServer server)
+            PrimitiveObject? client = obj as PrimitiveObject;
+            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            if (client is null && server is null)
                 return;
 
             switch (SettingType)
@@ -133,6 +139,11 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 case "static":
                     server?.IsStatic = BoolValue;
                     client?.IsStatic = BoolValue;
+                    break;
+
+                case "smoothing":
+                    server?.MovementSmoothing = ByteValue;
+                    client?.MovementSmoothing = ByteValue;
                     break;
 
                 default:

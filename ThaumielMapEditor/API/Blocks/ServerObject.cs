@@ -242,12 +242,10 @@ namespace ThaumielMapEditor.API.Blocks
             }
 
             NetworkServer.UnSpawn(Object);
-            SetWorldTransform(schematic);
             if (PositionSync == null && Object.TryGetComponent<StructurePositionSync>(out var posSync))
                 PositionSync = posSync;
 
-            PositionSync?.Network_position = Position;
-            PositionSync?.Network_rotationY = (sbyte)Mathf.RoundToInt(Rotation.eulerAngles.y / 5.625f);
+            SetWorldTransform(schematic);
 
             OnObjectUpdated?.Invoke(this, respawn);
             
@@ -262,16 +260,14 @@ namespace ThaumielMapEditor.API.Blocks
         /// <param name="schematic">The schematic data instance from which the object will be removed.</param>
         public virtual void DestroyObject(SchematicData schematic)
         {
-            if (Object == null)
-            {
-                LogManager.Warn($"Failed to destroy Object. Object is null.");
-                return;
-            }
-
             OnObjectDestroying?.Invoke(this);
             ObjectHandler.OnServerObjectDestroyed(new(this));
             schematic.SpawnedServerObjects.Remove(this);
             SpawnedObjects.Remove(this);
+
+            if (Object == null)
+                return;
+
             NetworkServer.Destroy(Object);
         }
 

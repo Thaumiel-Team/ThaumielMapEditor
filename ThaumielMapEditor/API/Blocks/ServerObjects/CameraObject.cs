@@ -10,11 +10,9 @@ using LabApi.Features.Wrappers;
 using MapGeneration;
 using Mirror;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using UnityEngine;
@@ -36,12 +34,14 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// <summary>
         /// The camera prefab type (mapped to a specific prefab via <see cref="GetCameraPrefab"/>).
         /// </summary>
+        [YamlMember(Alias = "CameraType")]
         public CameraType Type { get; internal set; }
 
         /// <summary>
         /// Display label for the camera. Setting this property updates the networked label on
         /// the underlying <see cref="Base"/> when available.
         /// </summary>
+        [YamlMember(Alias = "Label")]
         public string Label
         {
             get;
@@ -59,6 +59,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// The <see cref="Room"/> that the camera belongs to.
         /// Setting this property updates <see cref="Scp079CameraToy.NetworkRoom"/> on <see cref="Base"/>.
         /// </summary>
+        [YamlIgnore]
         public Room Room
         {
             get;
@@ -73,9 +74,20 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         } = Room.Get(RoomName.Outside).First();
 
         /// <summary>
+        /// Proxy property for <see cref="Room"/> to allow serialization as <see cref="RoomName"/>.
+        /// </summary>
+        [YamlMember(Alias = "Room")]
+        public RoomName RoomName
+        {
+            get => Room?.Name ?? RoomName.Outside;
+            set => Room = Room.Get(value).First();
+        }
+
+        /// <summary>
         /// Vertical rotation constraint applied to the camera.
         /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkVerticalConstraint"/>.
         /// </summary>
+        [YamlMember(Alias = "VerticalConstraint")]
         public Vector2 VerticalConstraint
         {
             get;
@@ -93,6 +105,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Horizontal rotation constraint applied to the camera.
         /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkHorizontalConstraint"/>.
         /// </summary>
+        [YamlMember(Alias = "HorizontalConstraint")]
         public Vector2 HorizontalConstraint
         {
             get;
@@ -110,6 +123,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Zoom constraint for the camera (min/max).
         /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkZoomConstraint"/>.
         /// </summary>
+        [YamlMember(Alias = "ZoomConstraint")]
         public Vector2 ZoomConstraint
         {
             get;
@@ -154,59 +168,8 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             NetworkServer.UnSpawn(camera.gameObject);
             Base = camera;
             Object = camera.gameObject;
-            ParseValues(serializable);
             SetWorldTransform(schematic);
             NetworkServer.Spawn(camera.gameObject);
-        }
-
-        /// <summary>
-        /// Parses values from a <see cref="SerializableObject"/> and applies them to this instance.
-        /// </summary>
-        /// <param name="serializable">The serialized camera object to parse.</param>
-        public void ParseValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType is not ObjectType.Camera)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Camera");
-                return;                
-            }
-
-            if (!serializable.Values.TryConvertValue<string>("Label", out var label))
-            {
-                LogManager.Warn("Failed to parse Label");
-            }
-
-            if (!serializable.Values.TryConvertValue<RoomName>("Room", out var room))
-            {
-                LogManager.Warn("Failed to parse Room");
-            }
-
-            if (serializable.Values.TryGetValue("VerticalConstraint", out var raw) && raw is IDictionary<object, object> dict)
-            {
-                float x = Convert.ToSingle(dict["x"]);
-                float y = Convert.ToSingle(dict["y"]);
-
-                VerticalConstraint = new(x, y);
-            }
-
-            if (serializable.Values.TryGetValue("HorizontalConstraint", out var raw1) && raw1 is IDictionary<object, object> dict1)
-            {
-                float x = Convert.ToSingle(dict1["x"]);
-                float y = Convert.ToSingle(dict1["y"]);
-
-                HorizontalConstraint = new(x, y);
-            }
-
-            if (serializable.Values.TryGetValue("ZoomConstraint", out var raw2) && raw2 is IDictionary<object, object> dict2)
-            {
-                float x = Convert.ToSingle(dict2["x"]);
-                float y = Convert.ToSingle(dict2["y"]);
-
-                ZoomConstraint = new(x, y);
-            }
-
-            Label = label;
-            Room = Room.Get(room).First();
         }
     }
 }

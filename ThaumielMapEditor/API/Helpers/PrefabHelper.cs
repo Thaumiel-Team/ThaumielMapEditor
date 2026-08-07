@@ -38,7 +38,6 @@ namespace ThaumielMapEditor.API.Helpers
         public static DoorVariant? DoorGate { get; private set; }
         public static WorkstationController? Workstation { get; private set; }
         public static InvisibleInteractableToy? Interactable { get; private set; }
-        public static SpawnableCullingParent? CullingParent { get; private set; }
         public static CapybaraToy? Capybara { get; private set; }
         public static TextToy? TextToy { get; private set; }
         public static WaypointToy? WaypointToy { get; private set; }
@@ -65,8 +64,6 @@ namespace ThaumielMapEditor.API.Helpers
         public static GameObject? HugeOrangePipes { get; private set; }
         public static GameObject? PipesLong { get; private set; }
         public static GameObject? BrokenElectricalBox { get; private set; }
-        public static Scp079Generator? Generator { get; private set; }
-        public static SpeakerToy? Speaker { get; private set; }
 
         public static void RegisterPrefabs()
         {
@@ -132,12 +129,6 @@ namespace ThaumielMapEditor.API.Helpers
                     continue;
                 }
 
-                if (prefab.TryGetComponent<SpawnableCullingParent>(out var cullingParent))
-                {
-                    CullingParent = cullingParent;
-                    continue;
-                }
-
                 if (prefab.TryGetComponent<CapybaraToy>(out var capybara))
                 {
                     Capybara = capybara;
@@ -182,12 +173,6 @@ namespace ThaumielMapEditor.API.Helpers
                             PipesLong = prefab;
                             continue;
                     }
-                }
-
-                if (prefab.TryGetComponent<Scp079Generator>(out var generator))
-                {
-                    Generator = generator;
-                    continue;
                 }
 
                 if (prefabName == "Broken Electrical Box Open Connector")
@@ -278,12 +263,6 @@ namespace ThaumielMapEditor.API.Helpers
                             ShootingTargetBinary = shootingTarget;
                             continue;
                     }
-                }
-
-                if (prefab.TryGetComponent<SpeakerToy>(out var speaker))
-                {
-                    Speaker = speaker;
-                    continue;
                 }
             }
 

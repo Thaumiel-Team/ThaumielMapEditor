@@ -55,11 +55,11 @@ namespace ThaumielMapEditor.API.Components.Tools
             ParseValues(properties);
             ColliderObject = new($"{Object!.Object!.name} - ColliderObject");
             ColliderObject.transform.SetParent(Object.Object.transform);
-            Collider = ColliderObject.AddComponent<Collider>();
+            Collider = ColliderObject.AddComponent<BoxCollider>();
             Collider.isTrigger = true;
         }
 
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
             if (!OnExited.Blocky.IsEmpty())
             {
@@ -76,6 +76,8 @@ namespace ThaumielMapEditor.API.Components.Tools
                     Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
                 }
             }
+
+            base.OnDestroy();
         }
 
         public void ParseValues(Dictionary<string, object> properties)
@@ -244,28 +246,28 @@ namespace ThaumielMapEditor.API.Components.Tools
         {
             foreach (RunCommand command in classes.RunCommand)
             {
-                command.Command
-                .Replace("%id%", player.PlayerId.ToString())
-                .Replace("%name%", player.DisplayName)
-                .Replace("%userid%", player.UserId)
-                .Replace("%role%", player.Role.ToString())
-                .Replace("%health%", player.Health.ToString())
-                .Replace("%maxhealth%", player.MaxHealth.ToString())
-                .Replace("%room%", player.Room?.Name.ToString())
-                .Replace("%position%", player.Position.ToString().Trim('(', ')'));
+                string commandText = command.Command
+                    .Replace("%id%", player.PlayerId.ToString())
+                    .Replace("%name%", player.DisplayName)
+                    .Replace("%userid%", player.UserId)
+                    .Replace("%role%", player.Role.ToString())
+                    .Replace("%health%", player.Health.ToString())
+                    .Replace("%maxhealth%", player.MaxHealth.ToString())
+                    .Replace("%room%", player.Room?.Name.ToString())
+                    .Replace("%position%", player.Position.ToString().Trim('(', ')'));
 
                 switch (command.Type)
                 {
                     case CommandType.Client:
-                        Server.RunCommand($".{command.Command}", new SilentCommandSender());
+                        Server.RunCommand($".{commandText}", new SilentCommandSender());
                         break;
                     
                     case CommandType.Console:
-                        Server.RunCommand($"{command.Command}", new SilentCommandSender());
+                        Server.RunCommand($"{commandText}", new SilentCommandSender());
                         break;
                     
                     case CommandType.RemoteAdmin:
-                        Server.RunCommand($"/{command.Command}", new SilentCommandSender());
+                        Server.RunCommand($"/{commandText}", new SilentCommandSender());
                         break;
                 }
             }

@@ -29,9 +29,10 @@ namespace ThaumielMapEditor.API.Components.Tools
                 Blocky = payload;
         }
 
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
             Schematic?.Executor?.Execute(ArgumentsParser.Load(Blocky!), null!, EventType.OnDestroyed);
+            base.OnDestroy();
         }
     }
 }

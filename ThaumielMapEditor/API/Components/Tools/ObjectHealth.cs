@@ -46,6 +46,20 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// </summary>
         public float HealthMax { get; set; } = 100f;
 
+        private bool _destroyed;
+
+        private static readonly DamageType[] FirearmDamageTypes = [DamageType.Shot];
+        private static readonly DamageType[] ExplosionDamageTypes = [DamageType.Explosion];
+        private static readonly DamageType[] Scp939DamageTypes = [DamageType.Scp939Lunge, DamageType.Scp939Swipe];
+        private static readonly DamageType[] Scp096DamageTypes = [DamageType.Scp096Charge, DamageType.Scp096Swipe];
+        private static readonly DamageType[] JailbirdDamageTypes = [DamageType.JailbirdCharge, DamageType.JailbirdHit];
+        private static readonly DamageType[] DisruptorDamageTypes = [DamageType.DisruptorBurst, DamageType.DisruptorCharge];
+        private static readonly DamageType[] MicroHidDamageTypes = [DamageType.MicroHidQuick, DamageType.MicroHidFullCharge, DamageType.MicroHidBroken];
+        private static readonly DamageType[] Scp1509DamageTypes = [DamageType.Scp1509];
+        private static readonly DamageType[] MarshmallowDamageTypes = [DamageType.Marshmallow];
+        private static readonly DamageType[] Scp1507DamageTypes = [DamageType.Scp1507];
+        private static readonly DamageType[] NoDamageTypes = [];
+
         /// <summary>
         /// Gets or sets the current health that the <see cref="ObjectHealth"/> instance has.
         /// </summary>
@@ -55,7 +69,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             set
             {
                 field = Mathf.Max(0f, value);
-                if (field <= 0)
+                if (field <= 0 && !_destroyed)
                     Destroy();
             }
         } = 100f;
@@ -132,6 +146,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             HealthMax = max;
             AllowedDamage = allowed;
             DespawnTime = despawn;
+            Health = max;
         }
 
         /// <summary>
@@ -139,11 +154,16 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// </summary>
         public void Destroy()
         {
+            if (_destroyed)
+                return;
+
+            _destroyed = true;
+
             switch (State)
             {
                 case DestroyState.Animate:
                     Schematic?.AnimationController.Play(StateName, Object!.Name);
-                    Timing.CallDelayed(DespawnTime, () => Object!.DestroyObject(Schematic!));
+                    Timing.CallDelayed(DespawnTime, () => Object?.DestroyObject(Schematic!));
                     break;
 
                 case DestroyState.ApplyPhysics:
@@ -178,20 +198,30 @@ namespace ThaumielMapEditor.API.Components.Tools
         {
             DamageType[] types = handler switch
             {
-                FirearmDamageHandler => [DamageType.Shot],
-                ExplosionDamageHandler => [DamageType.Explosion],
-                Scp939DamageHandler => [DamageType.Scp939Lunge, DamageType.Scp939Swipe],
-                Scp096DamageHandler => [DamageType.Scp096Charge, DamageType.Scp096Swipe],
-                JailbirdDamageHandler => [DamageType.JailbirdCharge, DamageType.JailbirdHit],
-                DisruptorDamageHandler => [DamageType.DisruptorBurst, DamageType.DisruptorCharge],
-                MicroHidDamageHandler => [DamageType.MicroHidQuick, DamageType.MicroHidFullCharge, DamageType.MicroHidBroken],
-                Scp1509DamageHandler => [DamageType.Scp1509],
-                MarshmallowDamageHandler => [DamageType.Marshmallow],
-                Scp1507DamageHandler => [DamageType.Scp1507],
-                _ => []
+                FirearmDamageHandler => FirearmDamageTypes,
+                ExplosionDamageHandler => ExplosionDamageTypes,
+                Scp939DamageHandler => Scp939DamageTypes,
+                Scp096DamageHandler => Scp096DamageTypes,
+                JailbirdDamageHandler => JailbirdDamageTypes,
+                DisruptorDamageHandler => DisruptorDamageTypes,
+                MicroHidDamageHandler => MicroHidDamageTypes,
+                Scp1509DamageHandler => Scp1509DamageTypes,
+                MarshmallowDamageHandler => MarshmallowDamageTypes,
+                Scp1507DamageHandler => Scp1507DamageTypes,
+                _ => NoDamageTypes
             };
 
-            if (!types.Any(AllowedDamage.Contains))
+            bool allowed = false;
+            for (int i = 0; i < types.Length; i++)
+            {
+                if (AllowedDamage.Contains(types[i]))
+                {
+                    allowed = true;
+                    break;
+                }
+            }
+
+            if (!allowed)
                 return false;
 
             Health -= damage;

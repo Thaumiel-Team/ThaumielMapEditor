@@ -14,6 +14,7 @@ namespace ThaumielMapEditor.API.Enums
     /// </summary>
     public enum LockerType
     {
+        None = 0,
         Pedestal = 1,
         LargeGun = 2,
         RifleRack = 3,

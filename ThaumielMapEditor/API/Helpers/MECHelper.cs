@@ -79,11 +79,7 @@ namespace ThaumielMapEditor.API.Helpers
 
         private static IEnumerator<float> WaitCoroutine(uint frames, Action onComplete)
         {
-            for (int i = 0; i < frames; i++)
-            {
-                yield return Timing.WaitForOneFrame;
-            }
-
+            yield return Timing.WaitForSeconds(frames / 60f);
             onComplete?.Invoke();
         }
     }

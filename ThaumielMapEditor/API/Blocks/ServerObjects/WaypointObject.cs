@@ -5,13 +5,10 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
 using AdminToys;
 using Mirror;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using YamlDotNet.Serialization;
@@ -36,6 +33,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Setting this property updates the underlying <see cref="WaypointToy.VisualizeBounds"/>
         /// when the toy instance is available.
         /// </summary>
+        [YamlMember(Alias = "VisualizeBounds")]
         public bool VisualizeBounds
         {
             get;
@@ -56,6 +54,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Setting this property updates the underlying <see cref="WaypointToy.Priority"/>
         /// when the toy instance is available.
         /// </summary>
+        [YamlMember(Alias = "Priority")]
         public float Priority
         {
             get;
@@ -75,6 +74,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Setting this property updates the underlying <see cref="WaypointToy.BoundsSize"/>
         /// when the toy instance is available.
         /// </summary>
+        [YamlMember(Alias = "BoundsSize")]
         public Vector3 BoundsSize
         {
             get;
@@ -92,6 +92,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// <summary>
         /// Identifier assigned to this waypoint instance.
         /// </summary>
+        [YamlIgnore]
         public byte WaypointId { get; private set; }
 
         /// <inheritdoc/>
@@ -108,11 +109,10 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             toy.VisualizeBounds = VisualizeBounds;
             toy.Priority = Priority;
             toy.BoundsSize = BoundsSize;
-            ParseValues(serializable);
             Object = toy.gameObject;
-            NetId = toy.netId;
             SetWorldTransform(schematic);
             NetworkServer.Spawn(toy.gameObject);
+            NetId = toy.netId;
 
             base.SpawnObject(schematic, serializable);
         }
@@ -131,44 +131,9 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             toy.Priority = Priority;
             toy.BoundsSize = BoundsSize;
             Object = toy.gameObject;
-            NetId = toy.netId;
             SetWorldTransform(schematic);
             NetworkServer.Spawn(toy.gameObject);
-        }
-
-        /// <summary>
-        /// Parses values from a <see cref="SerializableObject"/> and applies them to this <see cref="WaypointObject"/> instance.
-        /// </summary>
-        /// <param name="serializable">The serialized object containing values to parse.</param>
-        public void ParseValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.Waypoint)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Waypoint");
-                return;                
-            }
-            
-            if (!serializable.Values.TryConvertValue<bool>("VisualizeBounds", out var visualizeBounds))
-            {
-                LogManager.Warn("Failed to parse VisualizeBounds");
-            }
-
-            if (!serializable.Values.TryConvertValue<float>("Priority", out var priority))
-            {
-                LogManager.Warn("Failed to parse Priority");
-            }
-
-            if (serializable.Values.TryGetValue("BoundsSize", out var raw) && raw is IDictionary<object, object> dict)
-            {
-                float x = Convert.ToSingle(dict["x"]);
-                float y = Convert.ToSingle(dict["y"]);
-                float z = Convert.ToSingle(dict["z"]);
-
-                BoundsSize = new(x, y, z);
-            }
-
-            VisualizeBounds = visualizeBounds;
-            Priority = priority;
+            NetId = toy.netId;
         }
     }
 }

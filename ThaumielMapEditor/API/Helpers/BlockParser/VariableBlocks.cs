@@ -5,6 +5,8 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System.Collections.Generic;
+
 namespace ThaumielMapEditor.API.Helpers.BlockParser
 {
     public class VariableBlock : BlockBase
@@ -20,11 +22,28 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object ReturnExecute()
         {
-            return Value!;
+            return Resolve();
         }
 
         public override object ReturnExecute(object obj)
         {
+            return Resolve();
+        }
+
+        private object Resolve()
+        {
+            if (Executor != null)
+            {
+                foreach (Dictionary<string, object?> scope in Executor.Scopes)
+                {
+                    if (scope.TryGetValue(Name, out object? variableValue))
+                    {
+                        Value = variableValue;
+                        return variableValue!;
+                    }
+                }
+            }
+
             return Value!;
         }
     }

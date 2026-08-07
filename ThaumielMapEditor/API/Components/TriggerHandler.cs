@@ -7,7 +7,6 @@
 
 using InventorySystem.Items.Pickups;
 using LabApi.Features.Wrappers;
-using Mirror;
 using System;
 using UnityEngine;
 
@@ -15,17 +14,10 @@ namespace ThaumielMapEditor.API.Components
 {
     public class TriggerHandler : MonoBehaviour
     {
-#pragma warning disable CS8618
         /// <summary>
-        /// Gets the 
+        /// Gets the box collider associated with the trigger.
         /// </summary>
-        public BoxCollider Collider { get; private set; }
-
-        /// <summary>
-        /// Gets the
-        /// </summary>
-        public Rigidbody Rigidbody { get; private set; }
-#pragma warning restore CS8618
+        public BoxCollider? Collider { get; private set; }
 
         /// <summary>
         /// Fired when a <see cref="Player"/> enters the bounds of the <see cref="TriggerHandler"/>
@@ -63,29 +55,18 @@ namespace ThaumielMapEditor.API.Components
                 collider = gameObject.AddComponent<BoxCollider>();
 
             collider.isTrigger = true;
-
-            if (!TryGetComponent<Rigidbody>(out var body))
-                body = gameObject.AddComponent<Rigidbody>();
-
-            body.isKinematic = true;
-
             Collider = collider;
-            Rigidbody = body;
         }
 
         private void OnTriggerEnter(Collider other)
         {
-            GameObject? root = other.GetComponentInParent<NetworkIdentity>()?.gameObject;
-            if (root == null)
-                return;
-
-            if (Player.TryGet(root, out var player))
+            if (Player.TryGet(other.gameObject, out var player))
             {
                 OnPlayerEntered?.Invoke(player, other);
                 return;
             }
 
-            if (root.TryGetComponent<ItemPickupBase>(out var pickupbase) && Pickup.TryGet(pickupbase.Info.Serial, out var pickup))
+            if (other.gameObject.TryGetComponent<ItemPickupBase>(out var pickupbase) && Pickup.TryGet(pickupbase.Info.Serial, out var pickup))
             {
                 if (pickup is Projectile projectile)
                 {
@@ -98,17 +79,13 @@ namespace ThaumielMapEditor.API.Components
 
         private void OnTriggerExit(Collider other)
         {
-            GameObject? root = other.GetComponentInParent<NetworkIdentity>()?.gameObject;
-            if (root == null)
-                return;
-
-            if (Player.TryGet(root, out var player))
+            if (Player.TryGet(other.gameObject, out var player))
             {
                 OnPlayerExited?.Invoke(player, other);
                 return;
             }
 
-            if (root.TryGetComponent<ItemPickupBase>(out var pickupbase) && Pickup.TryGet(pickupbase.Info.Serial, out var pickup))
+            if (other.gameObject.TryGetComponent<ItemPickupBase>(out var pickupbase) && Pickup.TryGet(pickupbase.Info.Serial, out var pickup))
             {
                 if (pickup is Projectile projectile)
                 {

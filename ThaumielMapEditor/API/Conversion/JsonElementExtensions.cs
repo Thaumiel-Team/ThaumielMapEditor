@@ -5,6 +5,8 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 namespace ThaumielMapEditor.API.Conversion
@@ -19,8 +21,11 @@ namespace ThaumielMapEditor.API.Conversion
                 JsonValueKind.Number => element.TryGetInt32(out int i) ? i : element.GetDouble(),
                 JsonValueKind.True => true,
                 JsonValueKind.False => false,
-                JsonValueKind.Object => element.ToString(),
-                JsonValueKind.Array => element.ToString(),
+                JsonValueKind.Object => element.EnumerateObject()
+                    .ToDictionary(property => property.Name, property => property.Value.ToObject()),
+                JsonValueKind.Array => element.EnumerateArray()
+                    .Select(item => item.ToObject())
+                    .ToList(),
                 _ => null
             };
         }

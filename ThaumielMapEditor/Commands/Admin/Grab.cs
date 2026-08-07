@@ -83,7 +83,6 @@ namespace ThaumielMapEditor.Commands.Admin
 				    continue;
 
                 prevPos = newPos;
-                schematic.Primitive.Position = prevPos;
 
                 foreach (ServerObject serverObject in schematic.SpawnedServerObjects)
                 {

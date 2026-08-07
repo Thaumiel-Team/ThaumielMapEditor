@@ -48,9 +48,6 @@ namespace ThaumielMapEditor.API.Helpers
                 collider.name = $"{schematic.FileName}-LOD{data.Index}-Collider";
                 collider.isTrigger = true;
 
-                Rigidbody body = colliderobj.AddComponent<Rigidbody>();
-                body.isKinematic = true;
-
                 LODZone lodZone = colliderobj.AddComponent<LODZone>();
                 lodZone.Init(schematic, data.Primitives, data.Index);
 
@@ -89,6 +86,9 @@ namespace ThaumielMapEditor.API.Helpers
                 if (lod == null)
                     return [];
 
+                if (lod.Collider == null)
+                    return [];
+
                 if (lod.Collider.bounds.Contains(player.Position))
                     players.Add(player);
             }
@@ -109,6 +109,9 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 if (player.IsHost)
                     continue;
+
+                if (zone.Collider == null)
+                    break;
 
                 if (zone.Collider.bounds.Contains(player.Position))
                     players.Add(player);
