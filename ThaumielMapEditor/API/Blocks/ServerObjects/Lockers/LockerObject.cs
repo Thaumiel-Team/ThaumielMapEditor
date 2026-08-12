@@ -95,7 +95,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
             {
                 posSync.Network_position = Position;
                 
-                Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up)
+                Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up);
                 posSync.Network_rotationY = (sbyte)Mathf.RoundToInt(Rotation.eulerAngles.y / 5.625f);
             }
 
