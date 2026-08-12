@@ -169,6 +169,9 @@ namespace ThaumielMapEditor.API.Data
         /// <param name="player">The <see cref="Player"/> to sync with.</param>
         public void SyncWithPlayer(Player player)
         {
+            if (player.IsDummy || player.IsHost)
+                return;
+
             foreach (ClientObject objects in SpawnedClientObjects)
             {
                 objects.SpawnForPlayer(player);

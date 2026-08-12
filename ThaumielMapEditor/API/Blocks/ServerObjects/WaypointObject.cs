@@ -105,14 +105,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
 
             WaypointToy toy = UnityEngine.Object.Instantiate(PrefabHelper.WaypointToy);
-            NetworkServer.UnSpawn(toy.gameObject);
-            toy.VisualizeBounds = VisualizeBounds;
-            toy.Priority = Priority;
-            toy.BoundsSize = BoundsSize;
-            Object = toy.gameObject;
+            Base = toy;
+            NetworkServer.UnSpawn(Base.gameObject);
+            Base.VisualizeBounds = VisualizeBounds;
+            Base.Priority = Priority;
+            Base.BoundsSize = BoundsSize;
+            Object = Base.gameObject;
             SetWorldTransform(schematic);
-            NetworkServer.Spawn(toy.gameObject);
-            NetId = toy.netId;
+            NetworkServer.Spawn(Base.gameObject);
+            NetId = Base.netId;
 
             base.SpawnObject(schematic, serializable);
         }
@@ -126,14 +127,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
 
             WaypointToy toy = UnityEngine.Object.Instantiate(PrefabHelper.WaypointToy);
-            NetworkServer.UnSpawn(toy.gameObject);
-            toy.VisualizeBounds = VisualizeBounds;
-            toy.Priority = Priority;
-            toy.BoundsSize = BoundsSize;
-            Object = toy.gameObject;
+            Base = toy;
+            NetworkServer.UnSpawn(Base.gameObject);
+            Base.VisualizeBounds = VisualizeBounds;
+            Base.Priority = Priority;
+            Base.BoundsSize = BoundsSize;
+            Object = Base.gameObject;
             SetWorldTransform(schematic);
-            NetworkServer.Spawn(toy.gameObject);
-            NetId = toy.netId;
+            NetworkServer.Spawn(Base.gameObject);
+            NetId = Base.netId;
         }
     }
 }

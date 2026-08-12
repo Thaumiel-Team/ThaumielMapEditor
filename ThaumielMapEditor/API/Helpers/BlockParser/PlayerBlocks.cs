@@ -10,6 +10,8 @@ using System.Reflection;
 using HarmonyLib;
 using LabApi.Features.Wrappers;
 using PlayerRoles;
+using ThaumielMapEditor.API.Blocks;
+using UnityEngine;
 
 namespace ThaumielMapEditor.API.Helpers.BlockParser
 {
@@ -97,6 +99,32 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public override object ReturnExecute()
             => Player.ReadyList;
+    }
+
+    public class PlayerGetByColliderBlock : BlockBase
+    {
+        public override object ReturnExecute(object obj)
+        {
+            if (obj is Player player)
+                return player;
+
+            if (obj is ServerObject serverObject && serverObject.Object != null)
+            {
+                Collider collider = serverObject.Object.GetComponent<Collider>();
+                if (collider != null)
+                {
+                    Bounds bounds = collider.bounds;
+
+                    foreach (Player candidate in Player.ReadyList)
+                    {
+                        if (candidate.IsAlive && bounds.Contains(candidate.Position))
+                            return candidate;
+                    }
+                }
+            }
+
+            return null!;
+        }
     }
 
     public class PlayerSetGravityBlock : BlockBase

@@ -69,7 +69,6 @@ namespace ThaumielMapEditor.API.Helpers
                     colliders.Add(collider);
                     colGo.transform.SetParent(schematic.Primitive?.Transform, worldPositionStays: true);
                     SchematicColliders[schematic].Add(collider);
-                    LogManager.Debug($"Created {col.GetType().Name} for '{clientObject.ObjectType}' at {colGo.transform.position}.");
                 }
                 else
                 {
@@ -198,7 +197,7 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="primitive"></param>
         public static void CreateCollisionMesh(PrimitiveObject primitive)
         {
-            if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.Schematic == null)
+            if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.Schematic == null)
                 return;
 
             GameObject collider = new();
@@ -225,11 +224,10 @@ namespace ThaumielMapEditor.API.Helpers
                 if (!SchematicColliders.TryGetValue(primitive.Schematic, out var value))
                 {
                     value = [];
-                    SchematicColliders.Add(primitive.Schematic, []);
+                    SchematicColliders.Add(primitive.Schematic, value);
                 }
 
                 value.Add(mesh);
-                SchematicColliders[primitive.Schematic] = value;
                 LogManager.Debug($"Created collider for primitive {primitive.Name} with type {primitive.PrimitiveType} at {collider.transform.position}.");
             }
             else

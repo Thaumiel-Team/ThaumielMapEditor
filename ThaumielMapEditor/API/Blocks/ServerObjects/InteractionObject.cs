@@ -50,7 +50,9 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             get;
             set
             {
-                if (field == value) return;
+                if (field == value)
+                    return;
+
                 field = value;
                 Base?.Shape = value;
             }
@@ -62,7 +64,9 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             get;
             set
             {
-                if (field == value) return;
+                if (field == value)
+                    return;
+
                 field = value;
                 Base?.InteractionDuration = value;
             }
@@ -74,7 +78,9 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             get;
             set
             {
-                if (field == value) return;
+                if (field == value)
+                    return;
+                    
                 field = value;
                 Base?.IsLocked = value;
             }
@@ -174,34 +180,22 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
         private void HandleInteracted(ReferenceHub hub)
         {
-            if (!hub.TryGet(out var player))
-                return;
-
-            OnInteracted?.Invoke(this, player);
+            OnInteracted?.Invoke(this, Player.Get(hub));
         }
 
         private void HandleSearching(ReferenceHub hub)
         {
-            if (!hub.TryGet(out var player))
-                return;
-
-            OnSearching?.Invoke(this, player);
+            OnSearching?.Invoke(this, Player.Get(hub));
         }
 
         private void HandleSearched(ReferenceHub hub)
         {
-            if (!hub.TryGet(out var player))
-                return;
-
-            OnSearched?.Invoke(this, player);
+            OnSearched?.Invoke(this, Player.Get(hub));
         }
 
         private void HandleSearchAborted(ReferenceHub hub)
         {
-            if (!hub.TryGet(out var player))
-                return;
-
-            OnSearchAborted?.Invoke(this, player);
+            OnSearchAborted?.Invoke(this, Player.Get(hub));
         }
 
         public static bool TryGetInteractionObject(InvisibleInteractableToy toy, out InteractionObject interactionobj)

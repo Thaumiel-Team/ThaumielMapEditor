@@ -66,6 +66,8 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             if (workstationPrefab.TryGetComponent(out StructurePositionSync structurePositionSync))
             {
                 structurePositionSync.Network_position = workstationPrefab.transform.position;
+                
+                Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up)
                 structurePositionSync.Network_rotationY = (sbyte)Mathf.RoundToInt(workstationPrefab.transform.rotation.eulerAngles.y / 5.625f);
             }
 

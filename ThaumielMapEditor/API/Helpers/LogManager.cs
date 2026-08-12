@@ -68,8 +68,11 @@ namespace ThaumielMapEditor.API.Helpers
 
         public static void Debug(string message)
         {
+            if (Main.Instance.Config is not { Debug: true })
+                return;
+
             string formattedMessage = FormatLogMessage(message);
-            Logger.Debug(formattedMessage, Main.Instance.Config!.Debug);
+            Logger.Debug(formattedMessage, true);
             Log log = new()
             {
                 LogLevel = LogLevel.Debug,

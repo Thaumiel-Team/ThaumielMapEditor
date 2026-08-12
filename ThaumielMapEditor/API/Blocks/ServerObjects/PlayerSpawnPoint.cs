@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
-using System.Linq;
 using LabApi.Events.Arguments.PlayerEvents;
 using MEC;
 using PlayerRoles;
@@ -67,17 +66,18 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
         internal static void OnPlayerSpawned(PlayerSpawnedEventArgs ev)
         {
-            List<PlayerSpawnPoint> validSpawns = Instances.Where(p => p.AllowedRoles.Contains(ev.Role.RoleTypeId) && !p.Disabled).ToList();
-            if (validSpawns.Count == 0)
-                return;
-
+            List<PlayerSpawnPoint> validSpawns = [];
             float totalWeight = 0;
-            foreach (PlayerSpawnPoint spawn in validSpawns)
+            foreach (PlayerSpawnPoint spawn in Instances)
             {
+                if (spawn.Disabled || !spawn.AllowedRoles.Contains(ev.Role.RoleTypeId))
+                    continue;
+
+                validSpawns.Add(spawn);
                 totalWeight += spawn.Chance;
             }
 
-            if (totalWeight <= 0)
+            if (validSpawns.Count == 0 || totalWeight <= 0)
                 return;
 
             float roll = Random.Range(0f, totalWeight);

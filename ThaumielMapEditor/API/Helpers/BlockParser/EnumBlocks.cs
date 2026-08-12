@@ -16,7 +16,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public override object ReturnExecute()
         {
             if (Value is not Enum enum1)
-                return null!;
+                return Value?.ToString() ?? string.Empty;
 
             return enum1.ToString();
         }
@@ -29,21 +29,13 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object ReturnExecute()
         {
-            object valA = ResolveValue(InputA!);
-            object valB = ResolveValue(InputB!);
+            object valA = ResolveValue(InputA!)!;
+            object valB = ResolveValue(InputB!)!;
 
             if (valA is Enum a && valB is Enum b)
                 return Enum.ToObject(a.GetType(), Convert.ToInt64(a) | Convert.ToInt64(b));
 
             return valA ?? valB;
-        }
-
-        private object ResolveValue(object input)
-        {
-            if (input is BlockBase block)
-                return block.ReturnExecute();
-
-            return input;
         }
     }
 }

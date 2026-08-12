@@ -49,6 +49,7 @@ namespace ThaumielMapEditor
             "#   Unload::MapName\n" +
             "#   Unload::MapA||MapB\n" +
             "#   Unload::MapA&&MapB\n" +
+            "#   Reload::MapName    |   Toggle::MapName\n" +
             "#   LoadIf::MapName::IsLoaded::ConditionMap\n" +
             "#   LoadIf::MapName::IsNotLoaded::ConditionMap\n" +
             "#   UnloadIf::MapName::IsLoaded::ConditionMap\n" +

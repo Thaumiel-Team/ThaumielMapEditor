@@ -11,6 +11,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>CS1591</NoWarn>
     <DebugType>embedded</DebugType>
+    <SolutionDir Condition="'$(SolutionDir)' == '' or '$(SolutionDir)' == '*Undefined*'">$(MSBuildProjectDirectory)/../</SolutionDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,15 +21,11 @@
     <PackageReference Include="Costura.Fody" Version="6.0.0" PrivateAssets="all"/>
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NAudio.Core" Version="2.2.1" />
+    <PackageReference Include="SecretLabNAudio.Core" Version="2.1.0" />
+    <PackageReference Include="Lib.Harmony" Version="2.2.2" />
   </ItemGroup>
   <ItemGroup>
     <!--Dependencies-->
-    <Reference Include="SecretLabNAudio.Core" HintPath="deps/SecretLabNAudio.Core.dll"/>
-    <Reference Include="SecretLabNAudio.FFmpeg" HintPath="deps/SecretLabNAudio.FFmpeg.dll"/>
-    <Reference Include="SecretLabNAudio.MediaFoundation" HintPath="deps/SecretLabNAudio.MediaFoundation.dll"/>
-    <Reference Include="SecretLabNAudio.NLayer" HintPath="deps/SecretLabNAudio.NLayer.dll"/>
-    <Reference Include="SecretLabNAudio.NVorbis" HintPath="deps/SecretLabNAudio.NVorbis.dll"/>
-    <Reference Include="0Harmony" HintPath="deps/0Harmony.dll"/>
     <Reference Include="LabApiExtensions" Publicize="true" HintPath="deps/LabApiExtensions.dll"/>
 
     <!--SL References-->
@@ -60,10 +57,6 @@
     <AppDataPath>$(HOME)/.config/</AppDataPath>
   </PropertyGroup>
 
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
-    <AppDataPath>$(HOME)/Library/Application Support/</AppDataPath>
-  </PropertyGroup>
-
   <Target Name="SyncVersion" BeforeTargets="BeforeBuild">
     <Message Text="Syncing version..." Importance="high" />
     <Exec Command="python $(SolutionDir)syncversion.py" />
@@ -77,7 +70,7 @@
 
   <Target Name="PostBuildCopy" AfterTargets="Build">
     <Message Text="Copying dll to LabAPI plugin folder..." Importance="high" />
-    <Copy SourceFiles="$(OutputPath)ThaumielMapEditor.dll" DestinationFolder="$(AppDataPath)/SCP Secret Laboratory/LabAPI/plugins/global" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(AppDataPath)/SCP Secret Laboratory/LabAPI/plugins/global" SkipUnchangedFiles="true" />
   </Target>
 
   <Target Name="DocumentCommands" AfterTargets="PostBuildCopy">

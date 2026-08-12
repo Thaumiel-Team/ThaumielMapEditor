@@ -32,7 +32,19 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Determined by parsing serialized data before spawning.
         /// </summary>
         [YamlMember(Alias = "TargetType")]
-        public TargetType Type { get; set; }
+        public TargetType Type
+        {
+            get;
+            set
+            {
+                if (field == value)
+                    return;
+
+                field = value;
+                NetworkServer.Destroy(Object);
+                SpawnObject();
+            }
+        }
 
         /// <inheritdoc/>
         public override ObjectType ObjectType { get; set; } = ObjectType.Target;
@@ -72,6 +84,21 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             NetId = target.netId;
 
             base.SpawnObject(schematic, serializable);
+        }
+
+        private void SpawnObject()
+        {
+            ShootingTarget? prefab = GetPrefab(Type);
+            if (prefab == null) 
+                return;
+                
+            ShootingTarget? target = UnityEngine.Object.Instantiate(prefab);
+            NetworkServer.UnSpawn(target.gameObject);
+            Object = target.gameObject;
+            Base = target;
+            Base.transform.SetPositionAndRotation(Position, Rotation);
+            NetworkServer.Spawn(target.gameObject);
+            NetId = target.netId;
         }
     }
 }

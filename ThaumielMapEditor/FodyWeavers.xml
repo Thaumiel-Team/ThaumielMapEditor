@@ -4,10 +4,6 @@
       0Harmony
       LabApiExtensions
       SecretLabNAudio.Core
-      SecretLabNAudio.FFmpeg
-      SecretLabNAudio.MediaFoundation
-      SecretLabNAudio.NLayer
-      SecretLabNAudio.NVorbis
       NAudio
       NAudio.Core
     </IncludeAssemblies>

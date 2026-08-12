@@ -134,20 +134,25 @@ namespace ThaumielMapEditor.Events
 
         private static void OnPlayerJoined(PlayerJoinedEventArgs ev)
         {
-            if (ev.Player == null)
+            if (ev.Player == null || ev.Player.IsHost || ev.Player.IsDummy)
+            {
+                LogManager.Warn($"Player was null when joined.");
                 return;
+            }
 
-            Timing.CallDelayed(0.5f, () =>
+            string name = ev.Player.DisplayName;
+
+            Timing.CallDelayed(Timing.WaitUntilTrue(() => ev.Player.IsReady), () =>
             {
                 if (ev.Player == null || ev.Player.IsDestroyed)
                 {
-                    LogManager.Warn($"Player was null or destroyed before sync could run.");
+                    LogManager.Warn($"Player with name {name} was null or destroyed before sync could run.");
                     return;
                 }
 
                 foreach (SchematicData data in Loader.SchematicsById.Values)
                 {
-                    LogManager.Debug($"Spawning {data.FileName} for player {ev.Player.DisplayName}");
+                    LogManager.Debug($"Syncing {data.FileName} to {name}");
                     data.SyncWithPlayer(ev.Player);
                 }
 

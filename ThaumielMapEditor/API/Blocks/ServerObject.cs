@@ -180,6 +180,16 @@ namespace ThaumielMapEditor.API.Blocks
             }
         }
 
+
+        /// <summary>
+        /// Gets or sets the sync interval of the <see cref="ClientObject"/>.
+        /// </summary>
+        public byte SyncInterval
+        {
+            get => MovementSmoothing;
+            set => MovementSmoothing = value;
+        }
+
         /// <summary>
         /// The NetId of the spawned ServerObject.
         /// </summary>

@@ -163,6 +163,15 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
+        /// Gets or sets the sync interval of the <see cref="ClientObject"/>.
+        /// </summary>
+        public byte SyncInterval
+        {
+            get => MovementSmoothing;
+            set => MovementSmoothing = value;
+        }
+
+        /// <summary>
         /// Gets or sets the world position of the <see cref="ClientObject"/> instance.
         /// </summary>
         public Vector3 WorldPosition { get; set; }
@@ -225,7 +234,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         {
             foreach (Player player in Player.ReadyList)
             {
-                if (player.IsHost)
+                if (player.IsHost || player.IsDummy)
                     continue;
 
                 DestroyForPlayer(player);

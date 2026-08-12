@@ -56,9 +56,23 @@ namespace ThaumielMapEditor
                 SaveConfig();
             }
             
-            HarmonyId = $"MrBaguetter_TME_{Guid.NewGuid()}";
-            harmony = new(HarmonyId);
-            harmony.PatchAll();
+            try
+            {
+                HarmonyId = $"MrBaguetter_TME_{Guid.NewGuid()}";
+                harmony = new(HarmonyId);
+                harmony.PatchAll();
+            }
+            catch (HarmonyException ex)
+            {
+                LogManager.Error($"Failed to enable Harmony patches! \nMessage: {ex.Message}\n InnerException: {ex.InnerException?.Message}\n Full Exception: {ex}\n");
+
+                if (ex.InnerException != null)
+                    LogManager.Error($"Inner Exception Details: \n{ex.InnerException}");
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"Unexpected error while enabling Harmony patches: \n{ex}");
+            }
         }
 
         public override void Disable()

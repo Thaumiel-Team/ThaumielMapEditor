@@ -12,10 +12,10 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 {
     public class TextLengthBlock : BlockBase
     {
-        public string Text { get; set; } = string.Empty;
+        public object? Text { get; set; }
 
         public override object ReturnExecute()
-            => Text.Length;
+            => ResolveString(Text).Length;
     }
 
     public class TextJoinBlock : BlockBase

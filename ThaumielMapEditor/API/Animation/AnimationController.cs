@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
-using System.Linq;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
 using UnityEngine;
@@ -155,7 +154,9 @@ namespace ThaumielMapEditor.API.Animation
         /// <param name="animatorName">The name of the animator GameObject to stop.</param>
         public void Stop(string animatorName)
         {
-            Animator animator = Animators.FirstOrDefault(a => a.name == animatorName);
+            if (!TryGetAnimator(animatorName, out Animator animator))
+                return;
+
             animator.StopPlayback();
             animator.speed = 0f;
         }

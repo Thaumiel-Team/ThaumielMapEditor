@@ -91,6 +91,18 @@ namespace ThaumielMapEditor.API.Helpers
         public static Dictionary<LODZone, SchematicData> SchematicLODZones = [];
 
         /// <summary>
+        /// Caches resolved animator controllers so asset bundles are only scanned once per animator.
+        /// A <see langword="null"/> value means the animator was previously not found.
+        /// </summary>
+        private static readonly Dictionary<(string Schematic, string Animator), RuntimeAnimatorController?> AnimatorControllerCache = [];
+
+        /// <summary>
+        /// Caches the <see cref="RuntimeAnimatorController"/>s already loaded from each asset bundle,
+        /// so <see cref="AssetBundle.LoadAllAssets{T}"/> is never called twice on the same bundle.
+        /// </summary>
+        private static readonly Dictionary<AssetBundle, RuntimeAnimatorController[]> BundleControllerCache = [];
+
+        /// <summary>
         /// The YAML deserializer used to parse schematic and map files
         /// </summary>
         public static IDeserializer Deserializer { get; } = new DeserializerBuilder()
@@ -126,6 +138,8 @@ namespace ThaumielMapEditor.API.Helpers
             MapsById.Clear();
             SchematicsById.Clear();
             _nextId = 0;
+            AnimatorControllerCache.Clear();
+            BundleControllerCache.Clear();
         }
 
         /// <summary>
@@ -367,7 +381,6 @@ namespace ThaumielMapEditor.API.Helpers
                     }
 
                     list.Add(obj);
-                    parentDict[obj.ParentId] = list;
                 }
 
                 foreach (SerializableObject obj in schematic.ServerSideObjects)
@@ -456,8 +469,9 @@ namespace ThaumielMapEditor.API.Helpers
                     try
                     {
                         schematicData.Executor = new(schematicData);
-                        ApplyAnimators(schematic, schematicData);
-                        ApplyTools(schematic, schematicData);
+                        Dictionary<int, ServerObject> serverObjectsById = schematicData.SpawnedServerObjects.ToDictionary(o => o.ObjectId);
+                        ApplyAnimators(schematic, schematicData, serverObjectsById);
+                        ApplyTools(schematic, schematicData, serverObjectsById);
 
                         SchematicHandler.OnSchematicSpawned(new(schematicData));
                         SchematicSpawned?.Invoke(schematicData);
@@ -919,8 +933,6 @@ namespace ThaumielMapEditor.API.Helpers
                     dummyNode.transform.localPosition = obj.Position;
                     dummyNode.transform.localRotation = obj.Rotation;
                     dummyNode.transform.localScale = obj.Scale;
-
-                    LogManager.Debug($"Added transform with local position: {dummyNode.transform.localPosition}");
                     schematicData.ServerSideTransforms[obj.ObjectId] = dummyNode.transform;
                 }
             }
@@ -931,17 +943,43 @@ namespace ThaumielMapEditor.API.Helpers
             controller = null!;
             outbundle = null;
 
+            if (AnimatorControllerCache.TryGetValue((schematicFileName, animatorName), out RuntimeAnimatorController? cached))
+            {
+                if (cached != null)
+                {
+                    controller = cached;
+                    return true;
+                }
+
+                return false;
+            }
+
             foreach (AssetBundle bundle in AssetBundle.GetAllLoadedAssetBundles())
             {
-                RuntimeAnimatorController[] controllers = bundle.LoadAllAssets<RuntimeAnimatorController>();
+                if (!BundleControllerCache.TryGetValue(bundle, out RuntimeAnimatorController[] controllers))
+                {
+                    controllers = bundle.LoadAllAssets<RuntimeAnimatorController>();
+                    BundleControllerCache[bundle] = controllers;
+                }
+
                 if (controllers.Length == 0)
                     continue;
 
-                RuntimeAnimatorController? match = controllers.FirstOrDefault(c => c.name == animatorName);
+                RuntimeAnimatorController? match = null;
+                foreach (RuntimeAnimatorController c in controllers)
+                {
+                    if (c.name == animatorName)
+                    {
+                        match = c;
+                        break;
+                    }
+                }
+
                 if (match == null)
                     continue;
 
                 controller = match;
+                AnimatorControllerCache[(schematicFileName, animatorName)] = controller;
                 return true;
             }
 
@@ -949,6 +987,7 @@ namespace ThaumielMapEditor.API.Helpers
             if (!File.Exists(path))
             {
                 LogManager.Warn($"Animator bundle not found at '{path}'.");
+                AnimatorControllerCache[(schematicFileName, animatorName)] = null!;
                 return false;
             }
 
@@ -956,21 +995,25 @@ namespace ThaumielMapEditor.API.Helpers
             if (outbundle == null)
             {
                 LogManager.Warn($"Failed to load asset bundle at '{path}'.");
+                AnimatorControllerCache[(schematicFileName, animatorName)] = null!;
                 return false;
             }
 
             RuntimeAnimatorController[] bundleControllers = outbundle.LoadAllAssets<RuntimeAnimatorController>();
             if (bundleControllers.Length == 0)
+            {
+                AnimatorControllerCache[(schematicFileName, animatorName)] = null!;
                 return false;
+            }
 
             controller = bundleControllers.FirstOrDefault(c => c.name == animatorName) ?? bundleControllers[0];
+            AnimatorControllerCache[(schematicFileName, animatorName)] = controller;
             return true;
         }
 
-        private static void ApplyAnimators(SerializableSchematic schematic, SchematicData schematicData)
+        private static void ApplyAnimators(SerializableSchematic schematic, SchematicData schematicData, Dictionary<int, ServerObject> serverObjectsById)
         {
             IEnumerable<SerializableObject> animatables = schematic.Objects.Concat(schematic.ServerSideObjects).Where(o => !string.IsNullOrEmpty(o.AnimatorName));
-            Dictionary<int, ServerObject> serverObjectsById = schematicData.SpawnedServerObjects.ToDictionary(o => o.ObjectId);
 
             foreach (SerializableObject serializable in animatables)
             {
@@ -991,10 +1034,8 @@ namespace ThaumielMapEditor.API.Helpers
             }
         }
 
-        private static void ApplyTools(SerializableSchematic schematic, SchematicData schematicData)
+        private static void ApplyTools(SerializableSchematic schematic, SchematicData schematicData, Dictionary<int, ServerObject> serverObjectsById)
         {
-            Dictionary<int, ServerObject> serverObjectsById = schematicData.SpawnedServerObjects.ToDictionary(o => o.ObjectId);
-
             foreach (SerializableObject serializable in schematic.Objects.Concat(schematic.ServerSideObjects).Where(o => o.Tools.Count > 0))
             {
                 if (!serverObjectsById.TryGetValue(serializable.ObjectId, out ServerObject match) || match.Object == null)
@@ -1097,7 +1138,6 @@ namespace ThaumielMapEditor.API.Helpers
 
                         serverprim.Name = serializable.Name;
                         SetupCulling(serializable, serverprim);
-                        LogManager.Debug($"[SERVER] {serverprim.Name} - {serverprim.Color} - {serverprim.PrimitiveType} - {serverprim.PrimitiveFlags}");
                         return serverprim.NetId;
                     }
                     else
@@ -1116,7 +1156,6 @@ namespace ThaumielMapEditor.API.Helpers
                         primitive.ObjectId = serializable.ObjectId;
                         primitive.ParentId = serializable.ParentId;
 
-                        LogManager.Debug($"[CLIENT] {primitive.Name} - {primitive.Color} - {primitive.PrimitiveType} - {primitive.PrimitiveFlags}");
                         schematicData.SpawnedClientObjects.Add(primitive);
                         if (lodZones.IsEmpty())
                         {
@@ -1127,10 +1166,9 @@ namespace ThaumielMapEditor.API.Helpers
                         }
                         else
                         {
-                            LODZone[] varzone = lodZones.Where(z => z.PrimitivestoUnload.Contains(primitive.PrimitiveType)).ToArray();
-                            foreach (LODZone zone in varzone)
+                            foreach (LODZone zone in lodZones)
                             {
-                                if (zone.Collider == null)
+                                if (!zone.PrimitivestoUnload.Contains(primitive.PrimitiveType) || zone.Collider == null)
                                     continue;
 
                                 foreach (Player player in Player.ReadyList)

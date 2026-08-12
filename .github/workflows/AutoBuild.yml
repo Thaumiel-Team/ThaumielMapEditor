@@ -1,0 +1,74 @@
+name: ThaumielMapEditor Auto Build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+env:
+  GAME_INSTALL_PATH: ${{ github.workspace }}/scpsl_server
+  SL_REFERENCES: "${{ github.workspace }}/scpsl_server/SCPSL_Data/Managed"
+  STEAM_APP_ID: "996560" # ID for Dedicated Server
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Download build dependencies
+        run: |
+          mkdir -p ThaumielMapEditor/deps
+          curl -fsSL "https://github.com/KadavasKingdom/LabApiExtensions/releases/download/release-v0.3.0/LabApiExtensions.dll" -o "ThaumielMapEditor/deps/LabApiExtensions.dll"
+
+      - name: Download SL
+        run: |
+          mkdir -p "${{ env.GAME_INSTALL_PATH }}"
+          steamcmd +login anonymous +quit
+          steamcmd +force_install_dir "${{ env.GAME_INSTALL_PATH }}" \
+                   +login anonymous \
+                   +app_update ${{ env.STEAM_APP_ID }} validate \
+                   +quit
+
+      - name: Build
+        run: dotnet build ThaumielMapEditor/ThaumielMapEditor.csproj --configuration Release --output build "-p:SL_REFERENCES=${{ env.SL_REFERENCES }}"
+        
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThaumielMapEditor
+          path: build/
+
+      - name: Extract version
+        id: get_version
+        run: |
+          VERSION=$(grep "public override Version Version" ThaumielMapEditor/Main.cs | sed -n 's/.*new(\([^)]*\)).*/\1/p' | sed 's/ //g' | sed 's/,/./g')
+          echo "Detected version: $VERSION"
+          echo "plugin_version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create draft release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          tag_name: ${{ steps.get_version.outputs.plugin_version }}
+          name: "Build #${{ github.run_number }} — ${{ github.sha }}"
+          body: |
+            Automated release for version ${{ steps.get_version.outputs.plugin_version }}.
+          files: |
+            build/ThaumielMapEditor.dll
+          skip-if-release-exists: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup SL Server
+        if: always()
+        run: rm -rf "${{ env.GAME_INSTALL_PATH }}"

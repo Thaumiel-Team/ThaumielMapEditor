@@ -45,10 +45,7 @@ namespace ThaumielMapEditor.API.Helpers
                 return TagType.None;
 
             if (!Credits.TryGetValue(ParseId(player), out var type))
-            {
-                LogManager.Debug($"Player {player.DisplayName} is not in the Credits dictionary.");
                 return TagType.None;
-            }
 
             switch (type)
             {

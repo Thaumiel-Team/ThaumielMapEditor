@@ -54,7 +54,19 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// The visual and functional type of this door.
         /// </summary>
         [YamlMember(Alias = "DoorType")]
-        public DoorType DoorType { get; set; }
+        public DoorType DoorType
+        {
+            get;
+            set
+            {
+                if (field == value || Base == null)
+                    return;
+
+                field = value;
+                NetworkServer.Destroy(Object);
+                SpawnObject();
+            }
+        }
 
         /// <summary>
         /// The keycard permission flags required to interact with this door.
@@ -191,14 +203,14 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// <inheritdoc/>
         public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
         {
-            Base = GetDoorFromType(DoorType);
-            if (Base == null)
+            DoorVariant? door = GetDoorFromType(DoorType);
+            if (door == null)
             {
                 LogManager.Warn($"Failed to get DoorVariant from {schematic.FileName}, DoorType: {DoorType}");
                 return;
             }
 
-            DoorVariant doorPrefab = UnityEngine.Object.Instantiate(Base);
+            DoorVariant doorPrefab = UnityEngine.Object.Instantiate(door);
             NetworkServer.UnSpawn(doorPrefab.gameObject);
             if (doorPrefab.TryGetComponent<WallableSmallNodeRoomConnector>(out var con) && DoorType == DoorType.Hcz)
                 con.Network_syncBitmask = 3;
@@ -207,6 +219,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
                 UnityEngine.Object.Destroy(doorRandomInitialStateExtension);
 
             Object = doorPrefab.gameObject;
+            Base = doorPrefab;
             SetWorldTransform(schematic);
             ApplyProperties(doorPrefab);
             NetworkServer.Spawn(Object);
@@ -217,14 +230,14 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
         public void SpawnObject(SchematicData schematic)
         {
-            Base = GetDoorFromType(DoorType);
-            if (Base == null)
+            DoorVariant? door = GetDoorFromType(DoorType);
+            if (door == null)
             {
                 LogManager.Warn($"Failed to get DoorVariant from {schematic.FileName}, DoorType: {DoorType}");
                 return;
             }
 
-            DoorVariant doorPrefab = UnityEngine.Object.Instantiate(Base);
+            DoorVariant doorPrefab = UnityEngine.Object.Instantiate(door);
             NetworkServer.UnSpawn(doorPrefab.gameObject);
             if (doorPrefab.TryGetComponent<WallableSmallNodeRoomConnector>(out var con) && DoorType == DoorType.Hcz)
                 con.Network_syncBitmask = 3;
@@ -233,6 +246,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
                 UnityEngine.Object.Destroy(doorRandomInitialStateExtension);
 
             Object = doorPrefab.gameObject;
+            Base = doorPrefab;
             SetWorldTransform(schematic);
             ApplyProperties(doorPrefab);
             NetworkServer.Spawn(Object);
@@ -241,6 +255,31 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             ObjectHandler.OnServerObjectSpawned(new(this));
             SpawnedObjects.Add(this);
             schematic.SpawnedServerObjects.Add(this);
+        }
+
+        private void SpawnObject()
+        {
+            DoorVariant? door = GetDoorFromType(DoorType);
+            if (door == null)
+            {
+                LogManager.Warn($"Failed to get DoorVariant, DoorType: {DoorType}");
+                return;
+            }
+
+            DoorVariant doorPrefab = UnityEngine.Object.Instantiate(door);
+            NetworkServer.UnSpawn(doorPrefab.gameObject);
+            if (doorPrefab.TryGetComponent<WallableSmallNodeRoomConnector>(out var con) && DoorType == DoorType.Hcz)
+                con.Network_syncBitmask = 3;
+
+            if (doorPrefab.TryGetComponent(out DoorRandomInitialStateExtension doorRandomInitialStateExtension))
+                UnityEngine.Object.Destroy(doorRandomInitialStateExtension);
+
+            Object = doorPrefab.gameObject;
+            Base = doorPrefab;
+            Base.gameObject.transform.SetPositionAndRotation(Position, Rotation);
+            ApplyProperties(Base);
+            NetworkServer.Spawn(Object);
+            NetId = doorPrefab.netId;
         }
 
         /// <summary>
