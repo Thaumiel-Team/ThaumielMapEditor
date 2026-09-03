@@ -80,9 +80,27 @@ namespace ThaumielMapEditor
             PlayerHandler.Unregister();
             ServerHandler.Unregister();
             PrimitiveHandler.Unregister();
-            
+            SchematicHandler.Unregister();
+
+            try
+            {
+                Loader.Cleanup();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"[ThaumielMapEditor] Exception during cleanup on disable: {ex.Message}");
+            }
+
+            try
+            {
+                harmony?.UnpatchAll(HarmonyId);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"[ThaumielMapEditor] Exception while unpatching Harmony on disable: {ex.Message}");
+            }
+
             Instance = null!;
-            harmony.UnpatchAll();
         }
     }
 }

@@ -5,6 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,7 @@ using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Extensions;
+using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
 using YamlDotNet.Serialization;
 
@@ -58,7 +60,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             if (Object == null)
                 return;
 
-            Object.Tools = Object.Tools.Where(t => t != this);
+            Object.Tools = Object.Tools.Where(t => t != this).ToList();
         }
 
         public T? MapToObject<T>(object data)
@@ -66,7 +68,15 @@ namespace ThaumielMapEditor.API.Components.Tools
             if (data is T alreadyType)
                 return alreadyType;
 
-            return JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(data));
+            try
+            {
+                return JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(data));
+            }
+            catch (Exception ex)
+            {
+                LogManager.Warn($"Failed to map object to {typeof(T).Name}: {ex.Message}");
+                return default;
+            }
         }
 
         public bool IsLocalFile(string path)

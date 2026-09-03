@@ -10,6 +10,7 @@ using MEC;
 using Mirror;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Helpers;
 
@@ -19,11 +20,15 @@ namespace ThaumielMapEditor.API.Blocks
     {
         private static readonly HashSet<ClientObject> PendingClientSyncs = [];
         private static readonly HashSet<ServerObject> PendingServerSyncs = [];
+        private static readonly object ClientLock = new();
+        private static readonly object ServerLock = new();
 
-        private static bool IsClientSyncScheduled = false;
-        private static bool IsServerSyncScheduled = false;
+        private static volatile bool IsClientSyncScheduled = false;
+        private static volatile bool IsServerSyncScheduled = false;
 
         private const int MaxFlushIterations = 16;
+        private const int MaxSyncRetries = 3;
+        private static readonly Dictionary<ServerObject, int> ServerRetryCounts = [];
 
         /// <summary>
         /// Registers a <see cref="ClientObject"/> to be synced at the end of the current frame.
@@ -33,7 +38,11 @@ namespace ThaumielMapEditor.API.Blocks
             if (obj == null)
                 return;
 
-            PendingClientSyncs.Add(obj);
+            lock (ClientLock)
+            {
+                PendingClientSyncs.Add(obj);
+            }
+
             ScheduleClientSync();
         }
 
@@ -45,7 +54,11 @@ namespace ThaumielMapEditor.API.Blocks
             if (obj == null)
                 return;
 
-            PendingServerSyncs.Add(obj);
+            lock (ServerLock)
+            {
+                PendingServerSyncs.Add(obj);
+            }
+
             ScheduleServerSync();
         }
 
@@ -74,8 +87,11 @@ namespace ThaumielMapEditor.API.Blocks
         {
             ProcessPendingClientSyncs();
 
-            if (!PendingClientSyncs.IsEmpty())
-                ScheduleClientSync();
+            lock (ClientLock)
+            {
+                if (PendingClientSyncs.Count > 0)
+                    ScheduleClientSync();
+            }
         }
 
         /// <summary>
@@ -85,8 +101,11 @@ namespace ThaumielMapEditor.API.Blocks
         {
             ProcessPendingServerSyncs();
 
-            if (!PendingServerSyncs.IsEmpty())
-                ScheduleServerSync();
+            lock (ServerLock)
+            {
+                if (PendingServerSyncs.Count > 0)
+                    ScheduleServerSync();
+            }
         }
 
         /// <summary>
@@ -94,8 +113,12 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         public static void ClearClientPending()
         {
-            PendingClientSyncs.Clear();
-            IsClientSyncScheduled = false;
+            lock (ClientLock)
+            {
+                PendingClientSyncs.Clear();
+                IsClientSyncScheduled = false;
+            }
+
             Timing.KillCoroutines("TME_BatchSync_Client");
         }
 
@@ -104,9 +127,45 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         public static void ClearServerPending()
         {
-            PendingServerSyncs.Clear();
-            IsServerSyncScheduled = false;
+            lock (ServerLock)
+            {
+                PendingServerSyncs.Clear();
+                IsServerSyncScheduled = false;
+            }
+
+            lock (ServerRetryCounts)
+            {
+                ServerRetryCounts.Clear();
+            }
+
             Timing.KillCoroutines("TME_BatchSync_Server");
+        }
+
+        internal static void RemoveFromPending(ClientObject obj)
+        {
+            if (obj == null)
+                return;
+
+            lock (ClientLock)
+            {
+                PendingClientSyncs.Remove(obj);
+            }
+        }
+
+        internal static void RemoveFromPending(ServerObject obj)
+        {
+            if (obj == null)
+                return;
+
+            lock (ServerLock)
+            {
+                PendingServerSyncs.Remove(obj);
+            }
+
+            lock (ServerRetryCounts)
+            {
+                ServerRetryCounts.Remove(obj);
+            }
         }
 
 
@@ -117,13 +176,19 @@ namespace ThaumielMapEditor.API.Blocks
             try
             {
                 int iteration = 0;
+                bool hasPending;
                 do
                 {
                     ProcessPendingClientSyncs();
                     ProcessPendingServerSyncs();
                     iteration++;
+                    lock (ClientLock)
+                    lock (ServerLock)
+                    {
+                        hasPending = PendingClientSyncs.Count > 0 || PendingServerSyncs.Count > 0;
+                    }
                 }
-                while (iteration < MaxFlushIterations && (!PendingClientSyncs.IsEmpty() || !PendingServerSyncs.IsEmpty()));
+                while (iteration < MaxFlushIterations && hasPending);
             }
             finally
             {
@@ -131,31 +196,42 @@ namespace ThaumielMapEditor.API.Blocks
                 IsServerSyncScheduled = false;
             }
 
-            if (!PendingClientSyncs.IsEmpty())
-                ScheduleClientSync();
+            lock (ClientLock)
+            {
+                if (PendingClientSyncs.Count > 0)
+                    ScheduleClientSync();
+            }
 
-            if (!PendingServerSyncs.IsEmpty())
-                ScheduleServerSync();
+            lock (ServerLock)
+            {
+                if (PendingServerSyncs.Count > 0)
+                    ScheduleServerSync();
+            }
         }
 
         private static void ProcessPendingClientSyncs()
         {
-            if (PendingClientSyncs.IsEmpty())
-                return;
+            List<ClientObject> snapshot;
+            lock (ClientLock)
+            {
+                if (PendingClientSyncs.Count == 0)
+                    return;
 
-            List<ClientObject> snapshot = [.. PendingClientSyncs];
-            PendingClientSyncs.Clear();
+                snapshot = [.. PendingClientSyncs];
+                PendingClientSyncs.Clear();
+            }
 
             Dictionary<Player, List<ClientObject>> playerBatches = [];
 
             foreach (ClientObject obj in snapshot)
             {
-                if (!obj.Spawned)
+                if (obj == null || !obj.Spawned)
                     continue;
 
-                foreach (Player player in obj.SpawnedPlayers)
+                Player[] targets = obj.SpawnedPlayers.ToArray();
+                foreach (Player player in targets)
                 {
-                    if (player.IsHost)
+                    if (player == null || player.IsHost || player.IsDestroyed)
                         continue;
 
                     if (!playerBatches.TryGetValue(player, out var list))
@@ -166,10 +242,9 @@ namespace ThaumielMapEditor.API.Blocks
 
                     list.Add(obj);
                 }
-
-                obj.ClearDirtyFlags();
             }
 
+            List<ClientObject> failed = [];
             foreach (KeyValuePair<Player, List<ClientObject>> kvp in playerBatches)
             {
                 foreach (ClientObject obj in kvp.Value)
@@ -181,7 +256,24 @@ namespace ThaumielMapEditor.API.Blocks
                     catch (Exception ex)
                     {
                         LogManager.Error($"Failed to sync object {obj.NetId} to {kvp.Key.DisplayName}: {ex.Message}");
+                        if (!failed.Contains(obj))
+                            failed.Add(obj);
                     }
+                }
+            }
+
+            foreach (ClientObject obj in snapshot)
+            {
+                if (!failed.Contains(obj))
+                    obj.ClearDirtyFlags();
+            }
+
+            if (failed.Count > 0)
+            {
+                lock (ClientLock)
+                {
+                    foreach (ClientObject obj in failed)
+                        PendingClientSyncs.Add(obj);
                 }
             }
 
@@ -191,24 +283,56 @@ namespace ThaumielMapEditor.API.Blocks
 
         private static void ProcessPendingServerSyncs()
         {
-            if (PendingServerSyncs.IsEmpty())
-                return;
+            List<ServerObject> snapshot;
+            lock (ServerLock)
+            {
+                if (PendingServerSyncs.Count == 0)
+                    return;
 
-            List<ServerObject> snapshot = [.. PendingServerSyncs];
-            PendingServerSyncs.Clear();
+                snapshot = [.. PendingServerSyncs];
+                PendingServerSyncs.Clear();
+            }
 
             foreach (ServerObject obj in snapshot)
             {
+                if (obj == null || obj.Object == null)
+                    continue;
+
                 try
                 {
                     NetworkServer.UnSpawn(obj.Object);
                     NetworkServer.Spawn(obj.Object);
                     obj.ClearDirtyFlags();
+                    lock (ServerRetryCounts)
+                    {
+                        ServerRetryCounts.Remove(obj);
+                    }
                 }
                 catch (Exception ex)
                 {
                     LogManager.Error($"Failed to sync object {obj.Name} - {obj.NetId}: {ex.Message}");
-                    PendingServerSyncs.Add(obj);
+                    bool retry = true;
+                    lock (ServerRetryCounts)
+                    {
+                        ServerRetryCounts.TryGetValue(obj, out int count);
+                        count++;
+                        if (count >= MaxSyncRetries)
+                        {
+                            ServerRetryCounts.Remove(obj);
+                            retry = false;
+                            LogManager.Warn($"Dropping server sync for '{obj.Name}' after {count} failures.");
+                        }
+                        else
+                            ServerRetryCounts[obj] = count;
+                    }
+
+                    if (retry)
+                    {
+                        lock (ServerLock)
+                        {
+                            PendingServerSyncs.Add(obj);
+                        }
+                    }
                 }
             }
 

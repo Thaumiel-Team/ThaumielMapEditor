@@ -15,10 +15,14 @@ namespace ThaumielMapEditor.HarmonyPatches
         [HarmonyPatch(typeof(ServerConsole), nameof(ServerConsole.ReloadServerName))]
         public static void Postfix()
         {
-            if (!Main.Instance.Config!.EnableServerTracking)
+            if (!Main.Instance.Config.EnableServerTracking)
+                return;
+
+            const string marker = $"TME ";
+            if (ServerConsole.ServerName.Contains(marker))
                 return;
             
-            ServerConsole.ServerName += $"<color=#00000000><size=1>TME {Main.Instance.Version}</size></color>";
+            ServerConsole.ServerName += $"<color=#00000000><size=1>{marker}{Main.Instance.Version}</size></color>";
         }
     }
 }

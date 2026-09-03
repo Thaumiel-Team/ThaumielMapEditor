@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Globalization;
 using System.Text;
 using CommandSystem;
 using LabApi.Features.Wrappers;
@@ -38,6 +39,12 @@ namespace ThaumielMapEditor.Commands.Admin
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
+            if (arguments.Count < 1)
+            {
+                response = $"Wrong usage! Correct usage: tme {Name} {VisibleArgs}";
+                return false;
+            }
+
             if (!Loader.LoadedSchematics.TryGetValue(arguments.At(0), out SerializableSchematic schematic))
             {
                 response = $"Schematic '{arguments.At(0)}' not found.";
@@ -48,17 +55,17 @@ namespace ThaumielMapEditor.Commands.Admin
 
             if (arguments.Count == 4)
             {
-                if (!float.TryParse(arguments.At(1), out var x))
+                if (!float.TryParse(arguments.At(1), NumberStyles.Float, CultureInfo.InvariantCulture, out var x) || float.IsNaN(x) || float.IsInfinity(x))
                 {
                     response = $"Failed to parse X value. Invalid float: {arguments.At(1)}";
                     return false;
                 }
-                if (!float.TryParse(arguments.At(2), out var y))
+                if (!float.TryParse(arguments.At(2), NumberStyles.Float, CultureInfo.InvariantCulture, out var y) || float.IsNaN(y) || float.IsInfinity(y))
                 {
                     response = $"Failed to parse Y value. Invalid float: {arguments.At(2)}";
                     return false;
                 }
-                if (!float.TryParse(arguments.At(3), out var z))
+                if (!float.TryParse(arguments.At(3), NumberStyles.Float, CultureInfo.InvariantCulture, out var z) || float.IsNaN(z) || float.IsInfinity(z))
                 {
                     response = $"Failed to parse Z value. Invalid float: {arguments.At(3)}";
                     return false;
@@ -66,21 +73,26 @@ namespace ThaumielMapEditor.Commands.Admin
 
                 position = new(x, y, z);
             }
-            else
+            else if (arguments.Count == 1)
             {
-                if (!Player.TryGet(sender, out var player))
+                if (!Player.TryGet(sender, out var player) || player.Camera == null)
                 {
-                    response = "Failed to get Player.";
+                    response = "Failed to get player camera. Provide X Y Z explicitly or look at a placement position.";
                     return false;
                 }
 
-                if (!Physics.Raycast(player.Camera.transform.position + player.Camera.forward, player.Camera.forward, out var hit, 50, RayMask))
+                if (!Physics.Raycast(player.Camera.position, player.Camera.forward, out var hit, 50, RayMask))
                 {
                     response = "Failed to get placement position from raycast.";
                     return false;
                 }
 
                 position = hit.point;
+            }
+            else
+            {
+                response = $"Wrong usage! Correct usage: tme {Name} {VisibleArgs}";
+                return false;
             }
 
             SchematicData data = Loader.SpawnSchematic(schematic, position);
@@ -90,7 +102,7 @@ namespace ThaumielMapEditor.Commands.Admin
             sb.AppendLine($"- Id: {data.Id}");
             sb.AppendLine($"- Position: {position}");
             sb.AppendLine($"- Scale: {schematic.Scale}");
-            sb.AppendLine($"- Objects queued: {schematic.Objects.Count}");
+            sb.AppendLine($"- Objects queued: {schematic.Objects.Count + schematic.ServerSideObjects.Count}");
 
             response = sb.ToString();
             return true;

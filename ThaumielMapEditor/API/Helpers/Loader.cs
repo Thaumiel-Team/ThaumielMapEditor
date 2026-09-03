@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using ThaumielMapEditor.API.Animation;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
@@ -137,9 +138,61 @@ namespace ThaumielMapEditor.API.Helpers
         {
             MapsById.Clear();
             SchematicsById.Clear();
-            _nextId = 0;
             AnimatorControllerCache.Clear();
             BundleControllerCache.Clear();
+            SchematicLODZones.Clear();
+            lock (IdLock)
+            {
+                _nextId = 0;
+            }
+
+            try
+            {
+                AnimationController.ClearAll();
+            }
+            catch { }
+
+            try
+            {
+                DoorLink.ClearAll();
+            }
+            catch { }
+
+            try
+            {
+                SyncManager.ClearClientPending();
+            }
+            catch { }
+
+            try
+            {
+                SyncManager.ClearServerPending();
+            }
+            catch { }
+
+            try
+            {
+                ServerObject.SpawnedObjects.Clear();
+            }
+            catch { }
+
+            try
+            {
+                ColliderHelper.SchematicColliders.Clear();
+            }
+            catch { }
+
+            try
+            {
+                CullingObject.AllInstances.Clear();
+            }
+            catch { }
+
+            try
+            {
+                LODHelper.PlayersInLODZones.Clear();
+            }
+            catch { }
         }
 
         /// <summary>
@@ -171,9 +224,6 @@ namespace ThaumielMapEditor.API.Helpers
         {
             SchematicDestroyed?.Invoke(data);
             SchematicsById.Remove(data.Id);
-
-            if (data.Id < _nextId)
-                _nextId = data.Id;
 
             data.Destroy();
         }
@@ -256,7 +306,7 @@ namespace ThaumielMapEditor.API.Helpers
                             {
                                 SerializableMap map = Deserializer.Deserialize<SerializableMap>(value);
                                 map.FileName = name;
-                                LoadedMaps.Add(map.FileName, map);
+                                LoadedMaps[map.FileName] = map;
                                 LogManager.Debug($"Loaded map {name} on background thread");
                             }
                             catch (YamlException yamlex)
@@ -273,7 +323,7 @@ namespace ThaumielMapEditor.API.Helpers
                     {
                         SerializableMap map = Deserializer.Deserialize<SerializableMap>(File.ReadAllText(path));
                         map.FileName = name;
-                        LoadedMaps.Add(map.FileName, map);
+                        LoadedMaps[map.FileName] = map;
                         LogManager.Debug($"Loaded map {name} on main thread");
                     }
                 }
@@ -329,6 +379,7 @@ namespace ThaumielMapEditor.API.Helpers
         }
 
         private static uint _nextId;
+        private static readonly object IdLock = new();
 
         /// <summary>
         /// Gets a unique id for all <see cref="SchematicData"/>
@@ -336,10 +387,13 @@ namespace ThaumielMapEditor.API.Helpers
         /// <returns><see cref="uint"/> id</returns>
         public static uint GetId()
         {
-            while (SchematicsById.ContainsKey(_nextId))
-                _nextId++;
+            lock (IdLock)
+            {
+                while (SchematicsById.ContainsKey(_nextId))
+                    _nextId++;
 
-            return _nextId;
+                return _nextId++;
+            }
         }
 
         // Hopefuly this will stop clients from crashing when spawning large schematics.
@@ -354,18 +408,33 @@ namespace ThaumielMapEditor.API.Helpers
                     Dictionary<int, List<SerializableObject>> serverObjectsByParent = [];
                     LODZone[] lodZones = [];
 
-                    MainThreadDispatcher.Dispatch(() =>
+                    TaskCompletionSource<bool> lodTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                    try
                     {
-                        try
+                        MainThreadDispatcher.Dispatch(() =>
                         {
-                            if (schematicData.Primitive?.GameObject != null)
-                                lodZones = schematicData.Primitive.GameObject.GetComponents<LODZone>();
-                        }
-                        catch (Exception ex)
-                        {
-                            LogManager.Error($"Exception while fetching LOD zones: {ex}");
-                        }
-                    });
+                            try
+                            {
+                                if (schematicData.Primitive?.GameObject != null)
+                                    lodZones = schematicData.Primitive.GameObject.GetComponents<LODZone>();
+                            }
+                            catch (Exception ex)
+                            {
+                                LogManager.Error($"Exception while fetching LOD zones: {ex}");
+                            }
+                            finally
+                            {
+                                lodTcs.TrySetResult(true);
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"Failed to dispatch LOD fetch for '{schematic.FileName}': {ex.Message}");
+                        lodTcs.TrySetResult(true);
+                    }
+
+                    await Task.WhenAny(lodTcs.Task, Task.Delay(5000));
 
                 void CacheObject(SerializableObject obj, Dictionary<int, List<SerializableObject>> parentDict, bool serverside = false)
                 {
@@ -413,35 +482,50 @@ namespace ThaumielMapEditor.API.Helpers
                         continue;
 
                     List<(int id, uint spawnedNetId)> batchResults = [];
-                    TaskCompletionSource<bool> tcs = new();
+                    TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                    MainThreadDispatcher.Dispatch(() =>
+                    try
                     {
-                        try
+                        MainThreadDispatcher.Dispatch(() =>
                         {
-                            foreach ((int currentId, uint parentNetId) in currentBatch)
+                            try
                             {
-                                uint currentNetId = parentNetId;
-
-                                if (objectsById.TryGetValue(currentId, out var obj))
+                                foreach ((int currentId, uint parentNetId) in currentBatch)
                                 {
-                                    currentNetId = SpawnSerializableObject(obj.Item1, schematicData, parentNetId, lodZones, serverside: obj.Item2);
+                                    uint currentNetId = parentNetId;
+
+                                    try
+                                    {
+                                        if (objectsById.TryGetValue(currentId, out var obj))
+                                        {
+                                            currentNetId = SpawnSerializableObject(obj.Item1, schematicData, parentNetId, lodZones, serverside: obj.Item2);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        LogManager.Error($"Exception spawning object id {currentId} in '{schematic.FileName}': {ex}");
+                                    }
+
+                                    batchResults.Add((currentId, currentNetId));
                                 }
-
-                                batchResults.Add((currentId, currentNetId));
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            LogManager.Error($"Exception during object spawning batch: {ex}");
-                        }
-                        finally
-                        {
-                            tcs.SetResult(true);
-                        }
-                    });
+                            catch (Exception ex)
+                            {
+                                LogManager.Error($"Exception during object spawning batch: {ex}");
+                            }
+                            finally
+                            {
+                                tcs.TrySetResult(true);
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"Failed to dispatch spawn batch for '{schematic.FileName}': {ex.Message}");
+                        tcs.TrySetResult(true);
+                    }
 
-                    await tcs.Task;
+                    await Task.WhenAny(tcs.Task, Task.Delay(30000));
 
                     foreach ((int currentId, uint currentNetId) in batchResults)
                     {
@@ -463,35 +547,52 @@ namespace ThaumielMapEditor.API.Helpers
                     }
                 }
 
-                TaskCompletionSource<bool> completionTcs = new();
-                MainThreadDispatcher.Dispatch(() =>
+                TaskCompletionSource<bool> completionTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                try
                 {
-                    try
+                    MainThreadDispatcher.Dispatch(() =>
                     {
-                        schematicData.Executor = new(schematicData);
-                        Dictionary<int, ServerObject> serverObjectsById = schematicData.SpawnedServerObjects.ToDictionary(o => o.ObjectId);
-                        ApplyAnimators(schematic, schematicData, serverObjectsById);
-                        ApplyTools(schematic, schematicData, serverObjectsById);
+                        try
+                        {
+                            schematicData.Executor = new(schematicData);
+                            Dictionary<int, ServerObject> serverObjectsById = schematicData.SpawnedServerObjects.ToDictionary(o => o.ObjectId);
+                            ApplyAnimatorsAndTools(schematic, schematicData, serverObjectsById);
 
-                        SchematicHandler.OnSchematicSpawned(new(schematicData));
-                        SchematicSpawned?.Invoke(schematicData);
-                        LogManager.Info($"Schematic '{schematic.FileName}' fully spawned.");
-                        SchematicsById.Add(schematicData.Id, schematicData);
+                            SchematicHandler.OnSchematicSpawned(new(schematicData));
+                            SchematicSpawned?.Invoke(schematicData);
+                            LogManager.Info($"Schematic '{schematic.FileName}' fully spawned.");
+                            SchematicsById[schematicData.Id] = schematicData;
 
-                        if (Main.Instance.Config!.SchematicAnimationPlayOnLoad.TryGetValue(schematicData.FileName, out var animationname))
-                            schematicData.AnimationController.Play(animationname);
-                    }
-                    catch (Exception ex)
-                    {
-                        LogManager.Error($"Exception completing schematic spawn: {ex}");
-                    }
-                    finally
-                    {
-                        completionTcs.SetResult(true);
-                    }
-                });
+                            if (Main.Instance.Config!.SchematicAnimationPlayOnLoad.TryGetValue(schematicData.FileName, out var animationname))
+                            {
+                                try
+                                {
+                                    schematicData.AnimationController.Play(animationname);
+                                }
+                                catch (Exception ex)
+                                {
+                                    LogManager.Warn($"Failed to play onload animation '{animationname}': {ex.Message}");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogManager.Error($"Exception completing schematic spawn: {ex}");
+                            SchematicsById[schematicData.Id] = schematicData;
+                        }
+                        finally
+                        {
+                            completionTcs.TrySetResult(true);
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Error($"Failed to dispatch spawn completion for '{schematic.FileName}': {ex.Message}");
+                    completionTcs.TrySetResult(true);
+                }
 
-                await completionTcs.Task;
+                await Task.WhenAny(completionTcs.Task, Task.Delay(30000));
                 });
             }
             catch (Exception ex)
@@ -919,23 +1020,33 @@ namespace ThaumielMapEditor.API.Helpers
         {
             foreach (SerializableObject obj in schematic.Objects)
             {
-                if (obj.ObjectType == ObjectType.GameObject)
-                {
-                    GameObject dummyNode = new($"[SchematicNode] {obj.Name}");
-
-                    if (schematicData.ServerSideTransforms.TryGetValue(obj.ParentId, out Transform parentTransform))
-                    {
-                        dummyNode.transform.SetParent(parentTransform, false);
-                    }
-                    else
-                        dummyNode.transform.SetParent(schematicData.Primitive?.Transform, false);
-
-                    dummyNode.transform.localPosition = obj.Position;
-                    dummyNode.transform.localRotation = obj.Rotation;
-                    dummyNode.transform.localScale = obj.Scale;
-                    schematicData.ServerSideTransforms[obj.ObjectId] = dummyNode.transform;
-                }
+                CreateGameObjectTransform(obj, schematicData);
             }
+
+            foreach (SerializableObject obj in schematic.ServerSideObjects)
+            {
+                CreateGameObjectTransform(obj, schematicData);
+            }
+        }
+
+        private static void CreateGameObjectTransform(SerializableObject obj, SchematicData schematicData)
+        {
+            if (obj.ObjectType != ObjectType.GameObject)
+                return;
+
+            GameObject dummyNode = new($"[SchematicNode] {obj.Name}");
+
+            if (schematicData.ServerSideTransforms.TryGetValue(obj.ParentId, out Transform parentTransform) && parentTransform != null)
+            {
+                dummyNode.transform.SetParent(parentTransform, false);
+            }
+            else if (schematicData.Primitive?.Transform != null)
+                dummyNode.transform.SetParent(schematicData.Primitive.Transform, false);
+
+            dummyNode.transform.localPosition = obj.Position;
+            dummyNode.transform.localRotation = obj.Rotation;
+            dummyNode.transform.localScale = obj.Scale;
+            schematicData.ServerSideTransforms[obj.ObjectId] = dummyNode.transform;
         }
 
         private static bool TryLoadAnimatorController(string schematicFileName, string animatorName, out RuntimeAnimatorController controller, out AssetBundle? outbundle)
@@ -983,7 +1094,16 @@ namespace ThaumielMapEditor.API.Helpers
                 return true;
             }
 
-            string path = Path.Combine(ThaumFileManager.Dir(["Schematics"]), $"{schematicFileName}-{animatorName}");
+            string safeSchematic = string.Concat(schematicFileName.Split(Path.GetInvalidFileNameChars()));
+            string safeAnimator = string.Concat(animatorName.Split(Path.GetInvalidFileNameChars()));
+            if (safeSchematic.Contains("..") || safeAnimator.Contains("..") || string.IsNullOrEmpty(safeSchematic) || string.IsNullOrEmpty(safeAnimator))
+            {
+                LogManager.Warn($"Blocked animator bundle path traversal attempt: '{schematicFileName}-{animatorName}'.");
+                AnimatorControllerCache[(schematicFileName, animatorName)] = null!;
+                return false;
+            }
+
+            string path = Path.Combine(ThaumFileManager.Dir(["Schematics"]), $"{safeSchematic}-{safeAnimator}");
             if (!File.Exists(path))
             {
                 LogManager.Warn($"Animator bundle not found at '{path}'.");
@@ -1011,13 +1131,63 @@ namespace ThaumielMapEditor.API.Helpers
             return true;
         }
 
+        private static void ApplyAnimatorsAndTools(SerializableSchematic schematic, SchematicData schematicData, Dictionary<int, ServerObject> serverObjectsById)
+        {
+            foreach (SerializableObject serializable in schematic.Objects)
+            {
+                ApplyAnimatorAndToolsForObject(serializable, schematic, schematicData, serverObjectsById);
+            }
+
+            foreach (SerializableObject serializable in schematic.ServerSideObjects)
+            {
+                ApplyAnimatorAndToolsForObject(serializable, schematic, schematicData, serverObjectsById);
+            }
+        }
+
+        private static void ApplyAnimatorAndToolsForObject(SerializableObject serializable, SerializableSchematic schematic, SchematicData schematicData, Dictionary<int, ServerObject> serverObjectsById)
+        {
+            bool wantsAnimator = !string.IsNullOrEmpty(serializable.AnimatorName);
+            bool wantsTools = serializable.Tools.Count > 0;
+            if (!wantsAnimator && !wantsTools)
+                return;
+
+            if (!serverObjectsById.TryGetValue(serializable.ObjectId, out ServerObject match) || match.Object == null)
+            {
+                LogManager.Warn($"Could not find spawned object for animator/tools on '{serializable.Name}' in '{schematic.FileName}'.");
+                return;
+            }
+
+            if (wantsAnimator)
+                ApplyAnimatorForObject(serializable, schematic, match);
+
+            if (wantsTools)
+                ApplyToolsForObject(serializable, schematic, schematicData, match);
+        }
+
+        private static void ApplyAnimatorForObject(SerializableObject serializable, SerializableSchematic schematic, ServerObject match)
+        {
+            try
+            {
+                if (TryLoadAnimatorController(schematic.FileName, serializable.AnimatorName, out RuntimeAnimatorController controller, out AssetBundle? bundle))
+                {
+                    Animator animator = match.Object.GetComponent<Animator>() ?? match.Object.AddComponent<Animator>();
+                    animator.runtimeAnimatorController = controller;
+                    animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                    LogManager.Debug($"Applied animator '{controller.name}' to '{match.Object.name}' in '{schematic.FileName}'.");
+                    bundle?.Unload(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"Failed to apply animator '{serializable.AnimatorName}' on '{serializable.Name}': {ex.Message}");
+            }
+        }
+
         private static void ApplyAnimators(SerializableSchematic schematic, SchematicData schematicData, Dictionary<int, ServerObject> serverObjectsById)
         {
-            IEnumerable<SerializableObject> animatables = schematic.Objects.Concat(schematic.ServerSideObjects).Where(o => !string.IsNullOrEmpty(o.AnimatorName));
-
-            foreach (SerializableObject serializable in animatables)
+            foreach (SerializableObject serializable in schematic.Objects)
             {
-                if (!TryLoadAnimatorController(schematic.FileName, serializable.AnimatorName, out RuntimeAnimatorController controller, out AssetBundle? bundle))
+                if (string.IsNullOrEmpty(serializable.AnimatorName))
                     continue;
 
                 if (!serverObjectsById.TryGetValue(serializable.ObjectId, out ServerObject match) || match.Object == null)
@@ -1026,31 +1196,69 @@ namespace ThaumielMapEditor.API.Helpers
                     continue;
                 }
 
-                Animator animator = match.Object.GetComponent<Animator>() ?? match.Object.AddComponent<Animator>();
-                animator.runtimeAnimatorController = controller;
-                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-                LogManager.Debug($"Applied animator '{controller.name}' to '{match.Object.name}' in '{schematic.FileName}'.");
-                bundle?.Unload(false);
+                ApplyAnimatorForObject(serializable, schematic, match);
+            }
+
+            foreach (SerializableObject serializable in schematic.ServerSideObjects)
+            {
+                if (string.IsNullOrEmpty(serializable.AnimatorName))
+                    continue;
+
+                if (!serverObjectsById.TryGetValue(serializable.ObjectId, out ServerObject match) || match.Object == null)
+                {
+                    LogManager.Warn($"Could not find spawned object for animator '{serializable.AnimatorName}' in '{schematic.FileName}'.");
+                    continue;
+                }
+
+                ApplyAnimatorForObject(serializable, schematic, match);
             }
         }
 
         private static void ApplyTools(SerializableSchematic schematic, SchematicData schematicData, Dictionary<int, ServerObject> serverObjectsById)
         {
-            foreach (SerializableObject serializable in schematic.Objects.Concat(schematic.ServerSideObjects).Where(o => o.Tools.Count > 0))
+            foreach (SerializableObject serializable in schematic.Objects)
             {
+                if (serializable.Tools.Count == 0)
+                    continue;
+
                 if (!serverObjectsById.TryGetValue(serializable.ObjectId, out ServerObject match) || match.Object == null)
                 {
                     LogManager.Warn($"Could not find spawned object for tools on '{serializable.Name}' in '{schematic.FileName}'.");
                     continue;
                 }
 
-                foreach (SerializableTool tool in serializable.Tools)
+                ApplyToolsForObject(serializable, schematic, schematicData, match);
+            }
+
+            foreach (SerializableObject serializable in schematic.ServerSideObjects)
+            {
+                if (serializable.Tools.Count == 0)
+                    continue;
+
+                if (!serverObjectsById.TryGetValue(serializable.ObjectId, out ServerObject match) || match.Object == null)
+                {
+                    LogManager.Warn($"Could not find spawned object for tools on '{serializable.Name}' in '{schematic.FileName}'.");
+                    continue;
+                }
+
+                ApplyToolsForObject(serializable, schematic, schematicData, match);
+            }
+        }
+
+        private static void ApplyToolsForObject(SerializableObject serializable, SerializableSchematic schematic, SchematicData schematicData, ServerObject match)
+        {
+            foreach (SerializableTool tool in serializable.Tools)
+            {
+                try
                 {
                     if (!Enum.TryParse<ToolType>(tool.ToolName, true, out ToolType type))
                     {
                         LogManager.Warn($"Unknown tool type '{tool.ToolName}' on object '{serializable.Name}'.");
                         continue;
                     }
+
+                    if (match.Object == null)
+                        continue;
 
                     switch (type)
                     {
@@ -1087,20 +1295,26 @@ namespace ThaumielMapEditor.API.Helpers
                         case ToolType.BlockyRuntime:
                             BlockyRuntime blocky = match.Object.AddComponent<BlockyRuntime>();
                             blocky.Init(match, schematicData, tool.Properties);
-                            schematicData.Executor?.Execute(ArgumentsParser.Load(blocky.Blocky!), null!, EventType.OnSpawned);
+                            if (blocky.Blocky != null && !string.IsNullOrEmpty(blocky.Blocky.Code))
+                                schematicData.Executor?.Execute(ArgumentsParser.Load(blocky.Blocky), null!, EventType.OnSpawned);
+                                
                             match.Tools.AddItem(blocky);
                             break;
                     }
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Error($"Failed to apply tool '{tool.ToolName}' on '{serializable.Name}': {ex.Message}");
                 }
             }
         }
 
         /// <summary>
-        /// Deserializes custom block values from <see cref="SerializableObject.Values"/> into an instance of <typeparamref name="T"/> using YAML deserialization.
+        /// Deserializes custom block values from <see cref="SerializableObject.Values"/> into an instance of <typeparamref name="T"/> without a YAML string round-trip.
         /// </summary>
         /// <typeparam name="T">The object type to deserialize into.</typeparam>
         /// <param name="serializable">The serializable object containing the values dictionary.</param>
-        /// <returns>An instance of <typeparamref name="T"/> populated from the YAML values.</returns>
+        /// <returns>An instance of <typeparamref name="T"/> populated from the values dictionary.</returns>
         private static T DeserializeObject<T>(SerializableObject serializable) where T : new()
         {
             if (serializable.Values == null || serializable.Values.Count == 0)
@@ -1108,11 +1322,11 @@ namespace ThaumielMapEditor.API.Helpers
 
             try
             {
-                return Deserializer.Deserialize<T>(Serializer.Serialize(serializable.Values)) ?? new T();
+                return serializable.Values.ConvertTo<T>();
             }
             catch (Exception ex)
             {
-                LogManager.Warn($"Failed to deserialize object values for '{serializable.Name}' as {typeof(T).Name}: {ex}");
+                LogManager.Warn($"Failed to deserialize object values for '{serializable.Name}' as {typeof(T).Name}: {ex.Message}");
                 return new T();
             }
         }
@@ -1142,6 +1356,12 @@ namespace ThaumielMapEditor.API.Helpers
                     }
                     else
                     {
+                        if (PrefabHelper.PrimitiveObject?.netIdentity == null)
+                        {
+                            LogManager.Warn($"Skipping primitive '{serializable.Name}': Primitive prefab not registered.");
+                            return parentNetId;
+                        }
+
                         PrimitiveObject primitive = DeserializeObject<PrimitiveObject>(serializable);
                         primitive.Name = serializable.Name;
                         primitive.ParentNetId = parentNetId;
@@ -1151,15 +1371,16 @@ namespace ThaumielMapEditor.API.Helpers
                         primitive.Position = serializable.Position;
                         primitive.Rotation = serializable.Rotation;
                         primitive.MovementSmoothing = serializable.MovementSmoothing;
-                        primitive.AssetId = PrefabHelper.PrimitiveObject!.netIdentity.assetId;
+                        primitive.AssetId = PrefabHelper.PrimitiveObject.netIdentity.assetId;
                         primitive.Schematic = schematicData;
                         primitive.ObjectId = serializable.ObjectId;
                         primitive.ParentId = serializable.ParentId;
 
                         schematicData.SpawnedClientObjects.Add(primitive);
+                        Player[] readyPlayers = Player.ReadyList.ToArray();
                         if (lodZones.IsEmpty())
                         {
-                            foreach (Player player in Player.ReadyList)
+                            foreach (Player player in readyPlayers)
                             {
                                 primitive.SpawnForPlayer(player);
                             }
@@ -1168,12 +1389,13 @@ namespace ThaumielMapEditor.API.Helpers
                         {
                             foreach (LODZone zone in lodZones)
                             {
-                                if (!zone.PrimitivestoUnload.Contains(primitive.PrimitiveType) || zone.Collider == null)
+                                if (zone == null || !zone.PrimitivestoUnload.Contains(primitive.PrimitiveType) || zone.Collider == null)
                                     continue;
 
-                                foreach (Player player in Player.ReadyList)
+                                Bounds zoneBounds = zone.Collider.bounds;
+                                foreach (Player player in readyPlayers)
                                 {
-                                    if (zone.Collider.bounds.Contains(player.Position))
+                                    if (zoneBounds.Contains(player.Position))
                                         primitive.SpawnForPlayer(player);
                                 }
                             }
@@ -1264,7 +1486,7 @@ namespace ThaumielMapEditor.API.Helpers
 
                         schematicData.SpawnedClientObjects.Add(capybara);
 
-                        foreach (Player player in Player.ReadyList)
+                        foreach (Player player in Player.ReadyList.ToArray())
                         {
                             capybara.SpawnForPlayer(player);
                         }
@@ -1295,10 +1517,16 @@ namespace ThaumielMapEditor.API.Helpers
                     }
                     else
                     {
+                        if (PrefabHelper.LightSource?.netIdentity == null)
+                        {
+                            LogManager.Warn($"Skipping light '{serializable.Name}': Light prefab not registered.");
+                            return parentNetId;
+                        }
+
                         LightObject light = DeserializeObject<LightObject>(serializable);
                         light.ParentNetId = parentNetId;
                         light.NetId = NetworkIdentity.GetNextNetworkId();
-                        light.AssetId = PrefabHelper.LightSource!.netIdentity.assetId;
+                        light.AssetId = PrefabHelper.LightSource.netIdentity.assetId;
                         light.Scale = serializable.Scale;
                         light.IsStatic = serializable.IsStatic;
                         light.Position = serializable.Position;
@@ -1310,7 +1538,7 @@ namespace ThaumielMapEditor.API.Helpers
 
                         schematicData.SpawnedClientObjects.Add(light);
 
-                        foreach (Player player in Player.ReadyList)
+                        foreach (Player player in Player.ReadyList.ToArray())
                         {
                             light.SpawnForPlayer(player);
                         }
@@ -1497,9 +1725,17 @@ namespace ThaumielMapEditor.API.Helpers
         {
             if (serializable.CullingSettings.Bounds != Vector3.zero)
             {
+                if (obj.Object == null)
+                {
+                    LogManager.Warn($"Skipping culling setup for '{obj.Name}': GameObject is null.");
+                    return;
+                }
+
                 GameObject gameObject = new($"{obj.Name} - Culling Object");
-                gameObject.transform.SetParent(obj.Object?.transform);
-                gameObject.AddComponent<CullingObject>().Init(obj, serializable.CullingSettings.Bounds);
+                gameObject.transform.SetParent(obj.Object.transform, false);
+                CullingObject culling = gameObject.AddComponent<CullingObject>();
+                culling.Init(obj, serializable.CullingSettings.Bounds);
+                culling.Setup();
             }
         }
 
@@ -1513,13 +1749,21 @@ namespace ThaumielMapEditor.API.Helpers
         {
             if (serializable.CullingSettings.Bounds != Vector3.zero)
             {
-                GameObject gameObject = new($"{serializable.Name} - Culling Object");
                 Transform? targetParent = ColliderHelper.ResolveServerParentTransform(serializable.ParentId, schematic);
+                if (targetParent == null)
+                {
+                    LogManager.Warn($"Skipping culling setup for '{serializable.Name}': parent transform is null.");
+                    return;
+                }
+
+                GameObject gameObject = new($"{serializable.Name} - Culling Object");
                 gameObject.transform.SetParent(targetParent, false);
                 gameObject.transform.localPosition = serializable.Position;
                 gameObject.transform.localRotation = serializable.Rotation;
                 gameObject.transform.localScale = new Vector3(Math.Abs(serializable.Scale.x), Math.Abs(serializable.Scale.y), Math.Abs(serializable.Scale.z));
-                gameObject.AddComponent<CullingObject>().Init(obj, serializable.CullingSettings.Bounds);
+                CullingObject culling = gameObject.AddComponent<CullingObject>();
+                culling.Init(obj, serializable.CullingSettings.Bounds);
+                culling.Setup();
             }
         }
 
@@ -1548,9 +1792,24 @@ namespace ThaumielMapEditor.API.Helpers
                 map.Schematics.Add(mapSchematic);
             }
 
+            string safeName = string.Concat(map.FileName.Split(Path.GetInvalidFileNameChars()));
+            if (string.IsNullOrWhiteSpace(safeName) || safeName.Contains(".."))
+            {
+                LogManager.Warn($"Blocked map save with unsafe file name '{map.FileName}'.");
+                return map;
+            }
+
             string mapsDir = ThaumFileManager.Dir(["Maps"]);
             ThaumFileManager.TryCreateDirectory(mapsDir);
-            File.WriteAllText(Path.Combine(mapsDir, $"{map.FileName}.yml"), Serializer.Serialize(map));
+            string finalPath = Path.Combine(mapsDir, $"{safeName}.yml");
+            string tempPath = finalPath + ".tmp";
+            File.WriteAllText(tempPath, Serializer.Serialize(map));
+            File.Copy(tempPath, finalPath, overwrite: true);
+            try
+            {
+                File.Delete(tempPath);
+            }
+            catch { }
             return map;
         }
     }

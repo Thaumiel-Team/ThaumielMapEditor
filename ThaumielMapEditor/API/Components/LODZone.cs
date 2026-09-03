@@ -41,21 +41,12 @@ namespace ThaumielMapEditor.API.Components
         /// <param name="index">The index of this zone within the schematic.</param>
         public void Init(SchematicData schematic, List<PrimitiveType> unload, uint index)
         {
-            OnPlayerEntered += OnTriggerEnter;
-            OnPlayerExited += OnTriggerExit;
-
             PrimitivestoUnload = unload;
             Schematic = schematic;
             Index = index;
         }
 
-        private void OnDestroy()
-        {
-            OnPlayerEntered -= OnTriggerEnter;
-            OnPlayerExited -= OnTriggerExit;
-        }
-
-        private void OnTriggerEnter(Player player, Collider other)
+        public override void OnPlayerEntered(Player player)
         {
             UpdateDictionary(player);
 
@@ -72,7 +63,7 @@ namespace ThaumielMapEditor.API.Components
             }
         }
 
-        private void OnTriggerExit(Player player, Collider other)
+        public override void OnPlayerExited(Player player)
         {
             RemoveFromDictionary(player);
 

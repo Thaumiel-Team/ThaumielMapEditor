@@ -8,6 +8,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -122,16 +123,31 @@ namespace ThaumielMapEditor.API.Extensions
         {
             result = default!;
 
-            try
+            string? enumStr = value switch
             {
-                string enumStr = value.ToString()!.Replace(" ", "");
-                result = (T)Enum.Parse(typeof(T), enumStr, ignoreCase: true);
-                return true;
-            }
-            catch
+                string s => s.Replace(" ", ""),
+                Enum => value.ToString(),
+                _ => value.ToString()?.Replace(" ", ""),
+            };
+
+            if (!string.IsNullOrEmpty(enumStr))
             {
-                return false;
+                try
+                {
+                    object? parsed = Enum.Parse(typeof(T), enumStr, ignoreCase: true);
+                    if (parsed is T typed)
+                    {
+                        result = typed;
+                        return true;
+                    }
+                }
+                catch
+                {
+                    return false;
+                }
             }
+
+            return false;
         }
 
         private static bool TryConvertToVector<T>(object value, out T result)
@@ -227,9 +243,9 @@ namespace ThaumielMapEditor.API.Extensions
                 string[] parts = str.Split(',');
                 if (parts.Length is 3 or 4)
                 {
-                    if (float.TryParse(parts[0].Trim(), out float r) && float.TryParse(parts[1].Trim(), out float g) && float.TryParse(parts[2].Trim(), out float b))
+                    if (float.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float r) && float.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float g) && float.TryParse(parts[2].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float b))
                     {
-                        float a = parts.Length == 4 && float.TryParse(parts[3].Trim(), out float pa) ? pa : 1f;
+                        float a = parts.Length == 4 && float.TryParse(parts[3].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float pa) ? pa : 1f;
                         color = new Color(r, g, b, a);
                         return true;
                     }
@@ -267,8 +283,20 @@ namespace ThaumielMapEditor.API.Extensions
 
             if (targetType.IsEnum)
             {
-                string enumStr = item.ToString()!.Replace(" ", "");
-                return Enum.Parse(targetType, enumStr, ignoreCase: true);
+                string? enumStr = item.ToString()?.Replace(" ", "");
+                if (!string.IsNullOrEmpty(enumStr))
+                {
+                    try
+                    {
+                        return Enum.Parse(targetType, enumStr, ignoreCase: true);
+                    }
+                    catch
+                    {
+                        return Activator.CreateInstance(targetType);
+                    }
+                }
+
+                return Activator.CreateInstance(targetType);
             }
 
             if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(List<>))
@@ -280,7 +308,14 @@ namespace ThaumielMapEditor.API.Extensions
             if (item is Dictionary<string, object> dictItem)
                 return ConvertDictionaryToObject(dictItem, targetType);
 
-            return Convert.ChangeType(item, targetType);
+            try
+            {
+                return Convert.ChangeType(item, targetType, CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
+            }
         }
 
         private static object? ConvertToListByType(object item, Type targetType)
@@ -356,13 +391,7 @@ namespace ThaumielMapEditor.API.Extensions
 
         private static PropertyInfo[] GetCachedProperties(Type type)
         {
-            if (!PropertyCache.TryGetValue(type, out var props))
-            {
-                props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-                PropertyCache.Add(type, props);
-            }
-
-            return props;
+            return PropertyCache.GetValue(type, static t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance));
         }
     }
 }

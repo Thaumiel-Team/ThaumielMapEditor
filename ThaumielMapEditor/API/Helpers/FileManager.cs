@@ -40,8 +40,12 @@ namespace ThaumielMapEditor.API.Helpers
         /// <summary>
         /// Tries to create a directory with the inputted name
         /// </summary>
-        /// <param name="name">The name of the directory</param>
-        public static void TryCreateDirectory(string name) => Directory.CreateDirectory(Dir([name]));
+        /// <param name="name">The name of the directory. If rooted, it is used directly.</param>
+        public static void TryCreateDirectory(string name)
+        {
+            string path = Path.IsPathRooted(name) ? name : Dir([name]);
+            Directory.CreateDirectory(path);
+        }
 
         /// <summary>
         /// Tries to create a directory at the path
@@ -52,11 +56,17 @@ namespace ThaumielMapEditor.API.Helpers
         /// <summary>
         /// Gets all the file paths in the Thaumiel directory combined with the specified directory path.
         /// </summary>
-        /// <param name="name">The directory path relative to the Thaumiel directory.</param>
+        /// <param name="name">The directory path relative to the Thaumiel directory, or an absolute path.</param>
         /// <param name="filter">The search pattern to filter files by. Defaults to <c>*</c> which returns all files.</param>
         /// <returns>An array of file paths matching the <paramref name="filter"/> in the resolved directory.</returns>
-        public static string[] GetFilesInDirectory(string name, string filter = "*") =>
-            Directory.GetFiles(Dir([name]), filter);
+        public static string[] GetFilesInDirectory(string name, string filter = "*")
+        {
+            string dir = Path.IsPathRooted(name) ? name : Dir([name]);
+            if (!Directory.Exists(dir))
+                return [];
+
+            return Directory.GetFiles(dir, filter);
+        }
 
         /// <summary>
         /// Reads the specified file at the file path in the background.

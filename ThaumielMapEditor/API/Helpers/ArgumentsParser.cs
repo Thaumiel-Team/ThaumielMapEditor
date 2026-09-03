@@ -34,7 +34,12 @@ namespace ThaumielMapEditor.API.Helpers
             if (payload.Language != "yaml")
                 return [];
 
-            // Cache by the raw source so repeated payload instances (e.g. spawned per schematic) reuse the parse.
+            if (string.IsNullOrEmpty(payload.Code))
+                return [];
+
+            if (Cache.Count > 500)
+                Cache.Clear();
+
             return Cache.GetOrAdd(payload.Code, static code =>
             {
                 List<object> parsedBlocks = [];

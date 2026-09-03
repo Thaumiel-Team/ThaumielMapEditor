@@ -37,6 +37,7 @@ namespace ThaumielMapEditor.Commands.Admin
 
         public override void PopulateSubCommands()
         {
+            SubCommands.Clear();
             SubCommands.Add(new Position());
             SubCommands.Add(new Rotation());
             SubCommands.Add(new Scale());
@@ -47,9 +48,15 @@ namespace ThaumielMapEditor.Commands.Admin
             StringBuilder sb = new();
             sb.AppendLine();
             SchematicData? data;
-            bool hasId = uint.TryParse(arguments.At(1), out uint id);
 
-            ISubCommand? cmd = SubCommands.FirstOrDefault(cmd => cmd.Name == arguments.At(0)) ?? SubCommands.FirstOrDefault(cmd => cmd.Aliases.Contains(arguments.At(0)));
+            if (arguments.Count < 1)
+            {
+                response = $"Wrong usage! Valid subcommands: {string.Join(", ", SubCommands.Select(c => c.Name))}";
+                return false;
+            }
+
+            string invoked = arguments.At(0);
+            ISubCommand? cmd = SubCommands.FirstOrDefault(c => string.Equals(c.Name, invoked, StringComparison.OrdinalIgnoreCase)) ?? SubCommands.FirstOrDefault(c => c.Aliases.Any(a => string.Equals(a, invoked, StringComparison.OrdinalIgnoreCase)));
             if (cmd == null)
             {
                 response = $"SubCommand not found! Valid SubCommands: {string.Join("\n", SubCommands)} - {SubCommands.Count}";
@@ -58,15 +65,18 @@ namespace ThaumielMapEditor.Commands.Admin
 
             if (!sender.HasPermissions(cmd.RequiredPermission))
             {
-                response = $"You don't have permission to access that command! Requited permission: {cmd.RequiredPermission}";
+                response = $"You don't have permission to access that command! Required permission: {cmd.RequiredPermission}";
                 return false;
             }
 
-            if (arguments.Count < cmd.RequiredArgsCount)
+            if (arguments.Count - 1 < cmd.RequiredArgsCount)
             {
-                response = $"Wrong usage! Correct usage: tme {cmd.Name} {cmd.VisibleArgs}";
+                response = $"Wrong usage! Correct usage: tme modify {cmd.Name} {cmd.VisibleArgs}";
                 return false;
             }
+
+            uint id = 0;
+            bool hasId = arguments.Count >= 2 && uint.TryParse(arguments.At(1), out id);
 
             if (hasId)
             {
@@ -75,7 +85,7 @@ namespace ThaumielMapEditor.Commands.Admin
                     sb.AppendLine($"No schematic with id {id} was found.");
                     sb.AppendLine($"Available schematics:");
 
-                    foreach (KeyValuePair<uint, SchematicData> kvp in Loader.SchematicsById)
+                    foreach (KeyValuePair<uint, SchematicData> kvp in Loader.SchematicsById.ToArray())
                     {
                         sb.AppendLine($"- [{kvp.Key}]: {kvp.Value.FileName}");
                     }
@@ -100,7 +110,8 @@ namespace ThaumielMapEditor.Commands.Admin
                 }
             }
 
-            ArraySegment<string> args = new(arguments.Array!, arguments.Offset + 2, arguments.Count - 2);
+            int offset = hasId ? 2 : 1;
+            ArraySegment<string> args = offset >= arguments.Count ? new ArraySegment<string>([], 0, 0) : new(arguments.Array!, arguments.Offset + offset, arguments.Count - offset);
             return cmd.SubCommandExecute(args, sender, data, sb, out response);
         }
     }

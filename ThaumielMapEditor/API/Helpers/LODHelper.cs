@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
+using System.Linq;
 using DrawableLine;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Components;
@@ -80,28 +81,30 @@ namespace ThaumielMapEditor.API.Helpers
         public static IEnumerable<Player> PlayersInsideZone(uint index, SchematicData schematic)
         {
             List<Player> players = [];
-            LODZone lod = null!;
-            foreach (LODZone lodzone in schematic.Primitive!.GameObject.GetComponents<LODZone>())
+            LODZone? lod = null;
+            GameObject? root = schematic.Primitive?.GameObject;
+            if (root != null)
             {
-                if (lodzone.Index != index)
-                    continue;
+                foreach (LODZone lodzone in root.GetComponents<LODZone>())
+                {
+                    if (lodzone.Index != index)
+                        continue;
 
-                lod = lodzone;
-                break;
+                    lod = lodzone;
+                    break;
+                }
             }
 
-            foreach (Player player in Player.ReadyList)
+            if (lod?.Collider == null)
+                return players;
+
+            Bounds bounds = lod.Collider.bounds;
+            foreach (Player player in Player.ReadyList.ToArray())
             {
-                if (player.IsHost)
+                if (player == null || player.IsHost || player.IsDestroyed)
                     continue;
 
-                if (lod == null)
-                    return [];
-
-                if (lod.Collider == null)
-                    return [];
-
-                if (lod.Collider.bounds.Contains(player.Position))
+                if (bounds.Contains(player.Position))
                     players.Add(player);
             }
 
@@ -117,15 +120,16 @@ namespace ThaumielMapEditor.API.Helpers
         {
             List<Player> players = [];
 
-            foreach (Player player in Player.ReadyList)
+            if (zone?.Collider == null)
+                return players;
+
+            Bounds bounds = zone.Collider.bounds;
+            foreach (Player player in Player.ReadyList.ToArray())
             {
-                if (player.IsHost)
+                if (player == null || player.IsHost || player.IsDestroyed)
                     continue;
 
-                if (zone.Collider == null)
-                    break;
-
-                if (zone.Collider.bounds.Contains(player.Position))
+                if (bounds.Contains(player.Position))
                     players.Add(player);
             }
 

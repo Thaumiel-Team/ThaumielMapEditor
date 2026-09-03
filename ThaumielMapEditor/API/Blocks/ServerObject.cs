@@ -251,7 +251,9 @@ namespace ThaumielMapEditor.API.Blocks
                 return;
             }
 
-            NetworkServer.UnSpawn(Object);
+            if (respawn)
+                NetworkServer.UnSpawn(Object);
+
             if (PositionSync == null && Object.TryGetComponent<StructurePositionSync>(out var posSync))
                 PositionSync = posSync;
 
@@ -259,8 +261,12 @@ namespace ThaumielMapEditor.API.Blocks
 
             OnObjectUpdated?.Invoke(this, respawn);
             
-            if (respawn)
+            if (respawn && Object != null)
+            {
                 NetworkServer.Spawn(Object);
+            }
+            else
+                MarkSyncNeeded(SyncFlags.Position | SyncFlags.Rotation | SyncFlags.Scale);
         }
 
         /// <summary>

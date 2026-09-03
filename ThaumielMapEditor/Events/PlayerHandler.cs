@@ -10,12 +10,16 @@ using LabApi.Events.Arguments.Scp079Events;
 using LabApi.Events.Handlers;
 using LabApi.Features.Wrappers;
 using MEC;
+using System.Collections.Generic;
+using System.Linq;
+using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Components;
 using ThaumielMapEditor.API.Components.Tools;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
+using ThaumielMapEditor.Commands.Admin;
 
 namespace ThaumielMapEditor.Events
 {
@@ -42,14 +46,12 @@ namespace ThaumielMapEditor.Events
 
         private static void OnScp079ChangedCamera(Scp079ChangedCameraEventArgs ev)
         {
-            foreach (CullingObject cullingZone in CullingObject.AllInstances)
+            if (ev.Player == null || ev.Camera == null)
+                return;
+
+            foreach (CullingObject cullingZone in CullingObject.AllInstances.ToArray())
             {
-                if (cullingZone.IsInsideCollider(ev.Camera.Position))
-                {
-                    cullingZone.ToggleVisibility(ev.Player, true);
-                }
-                else
-                    cullingZone.ToggleVisibility(ev.Player, false);
+                cullingZone.ToggleVisibility(ev.Player, cullingZone.IsInsideCollider(ev.Camera.Position));
             }
         }
         
@@ -61,18 +63,21 @@ namespace ThaumielMapEditor.Events
             UpdateSpectatorLOD(ev.OldTarget, ev.Player, isNowVisible: false);
             UpdateSpectatorLOD(ev.NewTarget, ev.Player, isNowVisible: true);
 
+            CullingObject[] snapshot = CullingObject.AllInstances.ToArray();
             if (ev.OldTarget != null)
             {
-                foreach (CullingObject cullingZone in CullingObject.AllInstances)
+                foreach (CullingObject cullingZone in snapshot)
                 {
                     if (cullingZone.PlayersInside.Contains(ev.OldTarget))
+                    {
                         cullingZone.ToggleVisibility(ev.Player, false);
+                    }
                 }
             }
 
             if (ev.NewTarget != null)
             {
-                foreach (CullingObject cullingZone in CullingObject.AllInstances)
+                foreach (CullingObject cullingZone in snapshot)
                 {
                     if (cullingZone.PlayersInside.Contains(ev.NewTarget))
                         cullingZone.ToggleVisibility(ev.Player, true);
@@ -116,20 +121,23 @@ namespace ThaumielMapEditor.Events
             if (player.IsHost)
                 return;
 
-            foreach (SchematicData data in Loader.SpawnedSchematics)
+            foreach (SchematicData data in Loader.SpawnedSchematics.ToArray())
             {
-                foreach (ClientObject clientobj in data.SpawnedClientObjects)
+                foreach (ClientObject clientobj in data.SpawnedClientObjects.ToArray())
                 {
                     if (!clientobj.SpawnedPlayers.Contains(player))
                         continue;
 
                     clientobj.SpawnedPlayers.Remove(player);
+                    SyncManager.RemoveFromPending(clientobj);
                 }
             }
 
+            CullingObject.RemovePlayer(player);
             InteractableTrigger.PlayerEffectCache.Remove(player);
             ColliderTrigger.PlayerEffectCache.Remove(player);
             LODHelper.PlayersInLODZones.Remove(player);
+            Grab.ReleasePlayer(player);
         }
 
         private static void OnPlayerJoined(PlayerJoinedEventArgs ev)
@@ -141,23 +149,41 @@ namespace ThaumielMapEditor.Events
             }
 
             string name = ev.Player.DisplayName;
+            Player joining = ev.Player;
+            Timing.RunCoroutine(SyncPlayerWhenReady(joining, name));
+        }
 
-            Timing.CallDelayed(Timing.WaitUntilTrue(() => ev.Player.IsReady), () =>
+        private static IEnumerator<float> SyncPlayerWhenReady(Player player, string name)
+        {
+            float timeout = 30f;
+            while (!player.IsReady && timeout > 0f)
             {
-                if (ev.Player == null || ev.Player.IsDestroyed)
-                {
-                    LogManager.Warn($"Player with name {name} was null or destroyed before sync could run.");
-                    return;
-                }
+                if (player.IsDestroyed)
+                    yield break;
 
-                foreach (SchematicData data in Loader.SchematicsById.Values)
-                {
-                    LogManager.Debug($"Syncing {data.FileName} to {name}");
-                    data.SyncWithPlayer(ev.Player);
-                }
+                timeout -= Timing.DeltaTime;
+                yield return Timing.WaitForOneFrame;
+            }
 
-                CreditHelper.SetTag(ev.Player);
-            });
+            if (player.IsDestroyed)
+            {
+                LogManager.Warn($"Player with name {name} was destroyed before sync could run.");
+                yield break;
+            }
+
+            if (!player.IsReady)
+            {
+                LogManager.Warn($"Timed out waiting for player {name} to be ready; skipping schematic sync.");
+                yield break;
+            }
+
+            foreach (SchematicData data in Loader.SchematicsById.Values.ToArray())
+            {
+                LogManager.Debug($"Syncing {data.FileName} to {name}");
+                data.SyncWithPlayer(player);
+            }
+
+            CreditHelper.SetTag(player);
         }
     }
 }

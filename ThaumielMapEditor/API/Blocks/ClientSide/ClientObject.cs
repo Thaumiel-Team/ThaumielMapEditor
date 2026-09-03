@@ -157,6 +157,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             get;
             set
             {
+                if (field == value)
+                    return;
+
                 field = value;
                 MarkSyncNeeded(SyncFlags.MovementSmoothing);
             }

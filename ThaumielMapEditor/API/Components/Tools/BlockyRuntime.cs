@@ -5,6 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
@@ -29,7 +30,16 @@ namespace ThaumielMapEditor.API.Components.Tools
 
         protected override void OnDestroy()
         {
-            Schematic?.Executor?.Execute(ArgumentsParser.Load(Blocky!), null!, EventType.OnDestroyed);
+            try
+            {
+                if (Blocky != null && !string.IsNullOrEmpty(Blocky.Code) && Schematic?.Executor != null)
+                    Schematic.Executor.Execute(ArgumentsParser.Load(Blocky), null!, EventType.OnDestroyed);
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"BlockyRuntime cleanup failed: {ex.Message}");
+            }
+
             base.OnDestroy();
         }
     }

@@ -6,6 +6,8 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Globalization;
+using System.Linq;
 using System.Text;
 using CommandSystem;
 using ThaumielMapEditor.API.Blocks;
@@ -28,21 +30,27 @@ namespace ThaumielMapEditor.Commands.Admin.ModifySubCommands
 
         public override bool SubCommandExecute(ArraySegment<string> arguments, ICommandSender sender, SchematicData schematic, StringBuilder sb, out string response)
         {
-            if (!float.TryParse(arguments.At(0), out var x))
+            if (arguments.Count < 3)
             {
-                response = "Failed to parse X coordinate. Make sure its a number";
+                response = $"Wrong usage! Correct usage: tme modify {Name} {VisibleArgs}";
                 return false;
             }
 
-            if (!float.TryParse(arguments.At(1), out var y))
+            if (!float.TryParse(arguments.At(0), NumberStyles.Float, CultureInfo.InvariantCulture, out var x) || float.IsNaN(x) || float.IsInfinity(x) || x == 0f)
             {
-                response = "Failed to parse Y coordinate. Make sure its a number";
+                response = "Failed to parse X coordinate. Make sure its a non-zero number";
                 return false;
             }
 
-            if (!float.TryParse(arguments.At(2), out var z))
+            if (!float.TryParse(arguments.At(1), NumberStyles.Float, CultureInfo.InvariantCulture, out var y) || float.IsNaN(y) || float.IsInfinity(y) || y == 0f)
             {
-                response = "Failed to parse Z coordinate. Make sure its a number";
+                response = "Failed to parse Y coordinate. Make sure its a non-zero number";
+                return false;
+            }
+
+            if (!float.TryParse(arguments.At(2), NumberStyles.Float, CultureInfo.InvariantCulture, out var z) || float.IsNaN(z) || float.IsInfinity(z) || z == 0f)
+            {
+                response = "Failed to parse Z coordinate. Make sure its a non-zero number";
                 return false;
             }
 
@@ -50,10 +58,12 @@ namespace ThaumielMapEditor.Commands.Admin.ModifySubCommands
             Vector3 prevscale = schematic.Scale;
             schematic.Scale = scale;
 
-            foreach (ServerObject serverObject in schematic.SpawnedServerObjects)
+            foreach (ServerObject serverObject in schematic.SpawnedServerObjects.ToArray())
             {
-                serverObject.UpdateObject(schematic);
+                serverObject.UpdateObject(schematic, false);
             }
+
+            SyncManager.FlushServer();
 
             response = $"Scaled schematic {schematic.FileName} to {scale} from {prevscale}";
             return true;

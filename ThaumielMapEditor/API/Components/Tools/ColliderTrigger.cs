@@ -5,6 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LabApi.Features.Wrappers;
@@ -58,28 +59,56 @@ namespace ThaumielMapEditor.API.Components.Tools
         {
             base.Init(obj, schem, properties);
             ColliderObject = new($"{Object!.Object!.name} - ColliderObject");
-            ColliderObject.transform.SetParent(Object.Object.transform);
-            Collider = ColliderObject.AddComponent<BoxCollider>();
-            Collider.isTrigger = true;
+            ColliderObject.transform.SetParent(Object.Object.transform, false);
+            ColliderObject.transform.localPosition = Vector3.zero;
+            BoxCollider box = ColliderObject.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            if (Bounds != Vector3.zero)
+                box.size = Bounds;
+
+            Collider = box;
         }
 
         protected override void OnDestroy()
         {
-            if (!OnExited.Blocky.IsEmpty())
+            if (OnExited.Blocky is { Count: > 0 })
             {
                 foreach (BlockyPayload blocky in OnExited.Blocky)
                 {
-                    Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    if (blocky == null)
+                        continue;
+
+                    try
+                    {
+                        Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"ColliderTrigger OnExited cleanup failed: {ex.Message}");
+                    }
                 }
             }
 
-            if (!OnEntered.Blocky.IsEmpty())
+            if (OnEntered.Blocky is { Count: > 0 })
             {
                 foreach (BlockyPayload blocky in OnEntered.Blocky)
                 {
-                    Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    if (blocky == null)
+                        continue;
+
+                    try
+                    {
+                        Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"ColliderTrigger OnEntered cleanup failed: {ex.Message}");
+                    }
                 }
             }
+
+            if (ColliderObject != null)
+                Destroy(ColliderObject);
 
             base.OnDestroy();
         }
@@ -264,23 +293,47 @@ namespace ThaumielMapEditor.API.Components.Tools
 
         private void HandleAudio(ColliderClasses classes, Player player)
         {
+            string? audioPath = Main.Instance?.Config?.AudioPath;
             foreach (PlayAudio play in classes.PlayAudio)
             {
+                if (string.IsNullOrEmpty(play.Path))
+                    continue;
+
+                if (play.Path.Contains(".."))
+                {
+                    LogManager.Warn($"Blocked audio path traversal attempt: '{play.Path}'.");
+                    continue;
+                }
+
                 AudioPlayer audioPlayer = AudioPlayer.CreateDefault(parent: transform);
                 audioPlayer.WithMinDistance(play.MinDistance);
                 audioPlayer.WithMaxDistance(play.MaxDistance);
                 audioPlayer.WithSpatial(play.IsSpatial);
-                if (IsLocalFile(play.Path))
+                try
                 {
-                    audioPlayer.UseFile(Path.Combine(Main.Instance.Config?.AudioPath, play.Path), volume: play.Volume);
+                    if (IsLocalFile(play.Path) && !string.IsNullOrEmpty(audioPath))
+                    {
+                        audioPlayer.UseFile(Path.Combine(audioPath, play.Path), volume: play.Volume);
+                    }
+                    else if (!IsLocalFile(play.Path))
+                    {
+                        audioPlayer.UseFile(play.Path, volume: play.Volume);
+                    }
+                    else
+                        LogManager.Warn($"AudioPath is not configured; skipping local audio '{play.Path}'.");
                 }
-                else
-                    audioPlayer.UseFile(play.Path, volume: play.Volume);
+                catch (Exception ex)
+                {
+                    LogManager.Error($"Failed to play audio '{play.Path}': {ex.Message}");
+                }
             }
         }
 
         public void DrawLines()
         {
+            if (Collider == null)
+                return;
+
             DrawableLines.GenerateBounds(Collider.bounds);
         }
     }

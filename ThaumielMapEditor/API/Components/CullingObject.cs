@@ -5,11 +5,14 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using LabApi.Features.Wrappers;
 using Mirror;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
 
 namespace ThaumielMapEditor.API.Components
@@ -35,30 +38,28 @@ namespace ThaumielMapEditor.API.Components
             ServerObject = server;
             Bounds = bounds;
 
-            NetworkIdentity = ServerObject.Object!.GetComponent<NetworkIdentity>();
+            if (server.Object != null)
+                NetworkIdentity = server.Object.GetComponent<NetworkIdentity>();
         }
 
         public void Setup()
         {
             if (Collider == null)
+            {
+                LogManager.Warn($"CullingObject setup skipped: collider is null for '{ClientObject?.GetType().Name ?? ServerObject?.Name ?? "unknown"}'.");
                 return;
+            }
 
             Collider.size = Bounds;
             AllInstances.Add(this);
-
-            OnPlayerEntered += PlayerEntered;
-            OnPlayerExited += PlayerExited;
         }
 
         private void OnDestroy()
         {
             AllInstances.Remove(this);
-            
-            OnPlayerEntered -= PlayerEntered;
-            OnPlayerExited -= PlayerExited;
         }
 
-        private void PlayerEntered(Player player, Collider _)
+        public override void OnPlayerEntered(Player player)
         {
             if (!PlayersInside.Add(player))
                 return;
@@ -70,9 +71,10 @@ namespace ThaumielMapEditor.API.Components
             }
         }
 
-        private void PlayerExited(Player player, Collider _)
+        public override void OnPlayerExited(Player player)
         {
-            if (!PlayersInside.Remove(player)) return;
+            if (!PlayersInside.Remove(player))
+                return;
 
             ToggleVisibility(player, false);
             foreach (Player spectator in player.CurrentSpectators)
@@ -91,26 +93,47 @@ namespace ThaumielMapEditor.API.Components
 
         public void ToggleVisibility(Player player, bool show)
         {
-            if (ClientObject != null)
-            {
-                if (show)
-                {
-                    ClientObject.SpawnForPlayer(player);
-                }
-                else
-                    ClientObject.DespawnForPlayer(player);
-            }
-            else if (ServerObject != null)
-            {
-                if (NetworkIdentity == null)
-                    return;
+            if (player == null || player.IsDestroyed)
+                return;
 
-                if (show)
+            if (player.Connection == null || !player.Connection.isReady)
+                return;
+
+            try
+            {
+                if (ClientObject != null)
                 {
-                    NetworkServer.ShowForConnection(NetworkIdentity, player.Connection);
+                    if (show)
+                    {
+                        ClientObject.SpawnForPlayer(player);
+                    }
+                    else
+                        ClientObject.DespawnForPlayer(player);
                 }
-                else
-                    NetworkServer.HideForConnection(NetworkIdentity, player.Connection);
+                else if (ServerObject != null)
+                {
+                    if (NetworkIdentity == null)
+                        return;
+
+                    if (show)
+                    {
+                        NetworkServer.ShowForConnection(NetworkIdentity, player.Connection);
+                    }
+                    else
+                        NetworkServer.HideForConnection(NetworkIdentity, player.Connection);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"CullingObject ToggleVisibility failed: {ex.Message}");
+            }
+        }
+
+        internal static void RemovePlayer(Player player)
+        {
+            foreach (CullingObject instance in AllInstances.ToArray())
+            {
+                instance.PlayersInside.Remove(player);
             }
         }
     }

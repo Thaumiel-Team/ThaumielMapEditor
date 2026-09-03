@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using CommandSystem;
 using ThaumielMapEditor.API.Attributes;
@@ -34,10 +35,9 @@ namespace ThaumielMapEditor.Commands.Admin
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            uint count = 0;
-            if (!uint.TryParse(arguments.At(0), out var id))
+            if (arguments.Count < 1 || !uint.TryParse(arguments.At(0), out var id))
             {
-                response = "Invalid uint.";
+                response = "Invalid ID. Run 'tme spawned' to get all spawned schematics.";
                 return false;
             }
 
@@ -47,7 +47,7 @@ namespace ThaumielMapEditor.Commands.Admin
                 sb.AppendLine();
                 sb.AppendLine($"No schematic with id {arguments.At(0)} was found.");
                 sb.AppendLine($"Available schematics:");
-                foreach (KeyValuePair<uint, SchematicData> kvp in Loader.SchematicsById)
+                foreach (KeyValuePair<uint, SchematicData> kvp in Loader.SchematicsById.ToArray())
                     sb.AppendLine($"- [{kvp.Key}]: {kvp.Value.FileName}");
 
                 response = sb.ToString();
@@ -55,7 +55,7 @@ namespace ThaumielMapEditor.Commands.Admin
             }
 
             Loader.DestroySchematic(data);
-            response = $"Destroyed schematic {arguments.At(0)} for {count} players";
+            response = $"Destroyed schematic {id} ({data.FileName}).";
             return true;
         }
     }

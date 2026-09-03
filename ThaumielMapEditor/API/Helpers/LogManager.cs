@@ -18,6 +18,7 @@ namespace ThaumielMapEditor.API.Helpers
     {
         private const int MaxLogs = 10000;
         private static readonly object LogLock = new();
+        private static readonly Regex PatchSuffixRegex = new(@"_Patch\d+", RegexOptions.Compiled);
 
         public class Log
         {
@@ -100,7 +101,7 @@ namespace ThaumielMapEditor.API.Helpers
         public static void Error(string message)
         {
             string formattedMessage = FormatLogMessage(message);
-            string msg = formattedMessage += "\n An error has occured! Please run the command 'tmelogs' and share the issued code in our discord";
+            string msg = formattedMessage + "\n An error has occured! Please run the command 'tmelogs' and share the issued code in our discord";
             Logger.Error(msg);
             Log log = new()
             {
@@ -140,27 +141,34 @@ namespace ThaumielMapEditor.API.Helpers
 
         internal static string FormatLogMessage(string message)
         {
-            StackTrace stackTrace = new(true);
-            StackFrame? frame = stackTrace.GetFrame(2);
-            if (frame != null)
+            try
             {
-                MethodBase method = frame.GetMethod();
-                if (method?.DeclaringType != null)
+                StackTrace stackTrace = new(false);
+                StackFrame? frame = stackTrace.GetFrame(2);
+                if (frame != null)
                 {
-                    string className;
-                    if (method.IsStatic)
+                    MethodBase? method = frame.GetMethod();
+                    if (method?.DeclaringType != null)
                     {
-                        className = method.DeclaringType.FullName + $".{method.Name}()" ?? method.DeclaringType.Name + $".{method.Name}()";
-                    }
-                    else
-                        className = method.DeclaringType.FullName + $"::{method.Name}()" ?? method.DeclaringType.Name + $"::{method.Name}()";
+                        string className;
+                        if (method.IsStatic)
+                        {
+                            className = method.DeclaringType.FullName + $".{method.Name}()";
+                        }
+                        else
+                            className = method.DeclaringType.FullName + $"::{method.Name}()";
 
-                    message = Regex.Replace(message, @"_Patch\d+", "");
-                    return $"[{className}] {message}";
+                        message = PatchSuffixRegex.Replace(message, string.Empty);
+                        return $"[{className}] {message}";
+                    }
                 }
             }
+            catch
+            {
+                // Never let logging itself throw. Fall through to plain message.
+            }
 
-            message = Regex.Replace(message, @"_Patch\d+", "");
+            message = PatchSuffixRegex.Replace(message, string.Empty);
             return $"[Unknown] {message}";
         }
     }

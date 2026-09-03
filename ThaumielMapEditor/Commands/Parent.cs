@@ -53,15 +53,20 @@ namespace ThaumielMapEditor.Commands
             {
                 if (arguments.Count == 0)
                 {
-                    response = $"Thaumiel Map Editor v{Main.Instance.Version} by Mr. Baguetter\n\nAvailable commands:";
+                    System.Text.StringBuilder sb = new();
+                    sb.AppendLine($"Thaumiel Map Editor v{Main.Instance.Version} by Mr. Baguetter");
+                    sb.AppendLine();
+                    sb.Append("Available commands:");
                     foreach (ISubCommand command in Subcommands)
-                        response += $"\n- tme {command.Name}{(command.VisibleArgs != string.Empty ? $" {command.VisibleArgs}" : "")} - {command.Description}";
+                        sb.Append($"\n- tme {command.Name}{(command.VisibleArgs != string.Empty ? $" {command.VisibleArgs}" : "")} - {command.Description}");
 
+                    response = sb.ToString();
                     return true;
                 }
 
-                ISubCommand cmd = Subcommands.FirstOrDefault(cmd => cmd.Name == arguments.At(0));
-                cmd ??= Subcommands.FirstOrDefault(cmd => cmd.Aliases.Contains(arguments.At(0)));
+                string invoked = arguments.At(0);
+                ISubCommand? cmd = Subcommands.FirstOrDefault(c => string.Equals(c.Name, invoked, StringComparison.OrdinalIgnoreCase));
+                cmd ??= Subcommands.FirstOrDefault(c => c.Aliases.Any(a => string.Equals(a, invoked, StringComparison.OrdinalIgnoreCase)));
 
                 if (cmd == null)
                 {
@@ -71,11 +76,11 @@ namespace ThaumielMapEditor.Commands
 
                 if (!sender.HasPermissions(cmd.RequiredPermission))
                 {
-                    response = $"You don't have permission to access that command! Requited permission: {cmd.RequiredPermission}";
+                    response = $"You don't have permission to access that command! Required permission: {cmd.RequiredPermission}";
                     return false;
                 }
 
-                if (arguments.Count < cmd.RequiredArgsCount)
+                if (arguments.Count < cmd.RequiredArgsCount + 1)
                 {
                     response = $"Wrong usage! Correct usage: tme {cmd.Name} {cmd.VisibleArgs}";
                     return false;

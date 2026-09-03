@@ -34,8 +34,9 @@ namespace ThaumielMapEditor.API.Components.Tools
             get;
             set
             {
-                Rigidbody?.mass = value;
-                field = value;
+                float clamped = Mathf.Max(0.01f, value);
+                Rigidbody?.mass = clamped;
+                field = clamped;
             }
         }
 

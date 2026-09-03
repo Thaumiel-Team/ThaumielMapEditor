@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Text;
+using System.Linq;
 using CommandSystem;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Attributes;
@@ -35,7 +35,12 @@ namespace ThaumielMapEditor.Commands.Admin
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            StringBuilder sb = new();
+            if (arguments.Count < 1)
+            {
+                response = $"Wrong usage! Correct usage: tme {Name} {VisibleArgs}";
+                return false;
+            }
+
             MapData map = new();
             if (!Player.TryGet(sender, out var player))
             {
@@ -49,16 +54,24 @@ namespace ThaumielMapEditor.Commands.Admin
                 return false;
             }
 
+            string fileName = arguments.At(0);
+            string safeName = string.Concat(fileName.Split(System.IO.Path.GetInvalidFileNameChars()));
+            if (string.IsNullOrWhiteSpace(safeName) || safeName.Contains(".."))
+            {
+                response = "Invalid map name. Avoid path separators, '..'.";
+                return false;
+            }
+
             map.Room = player.Room;
-            map.FileName = arguments.At(0);
-            foreach (SchematicData schematic in Loader.SpawnedSchematics)
+            map.FileName = safeName;
+            foreach (SchematicData schematic in Loader.SpawnedSchematics.ToArray())
             {
                 Vector3 pos = player.Room.LocalPosition(schematic.Position);
                 map.Schematics.Add(new() { LocalPosition = pos, SchematicName = schematic.FileName});
             }
 
             Loader.SaveMap(map);
-            response = $"Saved map {arguments.At(0)}.";
+            response = $"Saved map {safeName}.";
             return true;
         }
     }

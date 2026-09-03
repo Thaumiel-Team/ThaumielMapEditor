@@ -35,10 +35,12 @@ namespace ThaumielMapEditor.API.Components
         /// </summary>
         public Dictionary<Pickup, float> PickupCooldowns = [];
 
-        private float _globalCooldownEnd;
+        private float _globalPlayerCooldownEnd;
+        private float _globalPickupCooldownEnd;
 
         private readonly HashSet<Player> _playersInside = [];
         private readonly HashSet<Pickup> _pickupsInside = [];
+        private readonly HashSet<Projectile> _projectilesInside = [];
 
         /// <summary>
         /// Minimum forced cooldown duration to prevent teleport loops, in seconds.
@@ -48,28 +50,24 @@ namespace ThaumielMapEditor.API.Components
         public void Init(TeleporterObject teleporter)
         {
             if (Teleporter != null)
+            {
+                LogManager.Warn($"TeleporterHandler re-init ignored for '{teleporter.Id}'.");
                 return;
+            }
 
             Teleporter = teleporter;
-            OnPlayerEntered += OnPlayerEnter;
-            OnPickupEntered += OnPickupEnter;
-            OnProjectileEntered += OnProjectileEnter;
-            OnPlayerExited += OnPlayerExit;
-            OnPickupExited += OnPickupExit;
-            OnProjectileExited += OnProjectileExit;
         }
 
         private void OnDestroy()
         {
-            OnPlayerEntered -= OnPlayerEnter;
-            OnPickupEntered -= OnPickupEnter;
-            OnProjectileEntered -= OnProjectileEnter;
-            OnPlayerExited -= OnPlayerExit;
-            OnPickupExited -= OnPickupExit;
-            OnProjectileExited -= OnProjectileExit;
+            PlayerCooldowns.Clear();
+            PickupCooldowns.Clear();
+            _playersInside.Clear();
+            _pickupsInside.Clear();
+            _projectilesInside.Clear();
         }
 
-        private void OnPlayerEnter(Player player, Collider collider)
+        public override void OnPlayerEntered(Player player)
         {
             if (Teleporter == null)
                 return;
@@ -98,14 +96,22 @@ namespace ThaumielMapEditor.API.Components
             }
 
             ApplyCooldown(player);
-            target.TeleporterHandler.ForceCooldown(player, GetForcedCooldownDuration());
+            if (target.TeleporterHandler != null)
+            {
+                target.TeleporterHandler.ForceCooldown(player, GetForcedCooldownDuration());
+            }
+            else
+                LogManager.Warn($"Teleporter target '{target.Id}' has no handler; skipping forced cooldown.");
 
             player.Position = target.Position;
             LogManager.Debug($"Player {player.Nickname} teleported from {Teleporter.Id} to {target.Id}");
         }
 
-        private void OnPickupEnter(Pickup pickup, Collider collider)
+        public override void OnPickupEntered(Pickup pickup)
         {
+            if (pickup is Projectile proj)
+                OnProjectileEntered(proj);
+
             if (Teleporter == null)
                 return;
 
@@ -127,13 +133,18 @@ namespace ThaumielMapEditor.API.Components
             }
 
             ApplyPickupCooldown(pickup);
-            target.TeleporterHandler.ForceCooldown(pickup, GetForcedCooldownDuration());
+            if (target.TeleporterHandler != null)
+            {
+                target.TeleporterHandler.ForceCooldown(pickup, GetForcedCooldownDuration());
+            }
+            else
+                LogManager.Warn($"Teleporter target '{target.Id}' has no handler; skipping forced cooldown.");
 
             pickup.Position = target.Position;
             LogManager.Debug($"Pickup {pickup.Type} teleported from {Teleporter.Id} to {target.Id}");
         }
 
-        private void OnProjectileEnter(Projectile projectile, Collider collider)
+        public void OnProjectileEntered(Projectile projectile)
         {
             if (Teleporter == null)
                 return;
@@ -144,37 +155,45 @@ namespace ThaumielMapEditor.API.Components
             if (IsOnCooldown(projectile))
                 return;
 
-            if (!_pickupsInside.Add(projectile))
+            if (!_projectilesInside.Add(projectile))
                 return;
 
             TeleporterObject? target = FindTargetTeleporter();
             if (target == null)
             {
                 LogManager.Warn($"Teleporter {Teleporter.Id} could not find target teleporter.");
-                _pickupsInside.Remove(projectile);
+                _projectilesInside.Remove(projectile);
                 return;
             }
 
             ApplyPickupCooldown(projectile);
-            target.TeleporterHandler.ForceCooldown(projectile, GetForcedCooldownDuration());
+            if (target.TeleporterHandler != null)
+            {
+                target.TeleporterHandler.ForceCooldown(projectile, GetForcedCooldownDuration());
+            }
+            else
+                LogManager.Warn($"Teleporter target '{target.Id}' has no handler; skipping forced cooldown.");
 
             projectile.Position = target.Position;
             LogManager.Debug($"Projectile {projectile.Type} teleported from {Teleporter.Id} to {target.Id}");
         }
 
-        private void OnPlayerExit(Player player, Collider collider)
+        public override void OnPlayerExited(Player player)
         {
             _playersInside.Remove(player);
         }
 
-        private void OnPickupExit(Pickup pickup, Collider collider)
+        public override void OnPickupExited(Pickup pickup)
         {
+            if (pickup is Projectile proj)
+                OnProjectileExited(proj);
+
             _pickupsInside.Remove(pickup);
         }
 
-        private void OnProjectileExit(Projectile projectile, Collider collider)
+        public void OnProjectileExited(Projectile projectile)
         {
-            _pickupsInside.Remove(projectile);
+            _projectilesInside.Remove(projectile);
         }
 
         [Obsolete("Use ForceCooldown instead. This will be removed in release.")]
@@ -246,7 +265,7 @@ namespace ThaumielMapEditor.API.Components
                 return false;
             }
 
-            return Time.time < _globalCooldownEnd;
+            return Time.time < _globalPlayerCooldownEnd;
         }
 
         private bool IsOnCooldown(Pickup pickup)
@@ -273,7 +292,7 @@ namespace ThaumielMapEditor.API.Components
                 return false;
             }
 
-            return Time.time < _globalCooldownEnd;
+            return Time.time < _globalPickupCooldownEnd;
         }
 
         private void ApplyCooldown(Player player)
@@ -285,10 +304,12 @@ namespace ThaumielMapEditor.API.Components
 
             if (Teleporter.PerPlayerCooldown)
             {
-                PlayerCooldowns[player] = Time.time + duration;
+                float expiry = Time.time + duration;
+                if (!PlayerCooldowns.TryGetValue(player, out float existing) || existing < expiry)
+                    PlayerCooldowns[player] = expiry;
             }
             else
-                _globalCooldownEnd = Time.time + duration;
+                _globalPlayerCooldownEnd = Time.time + duration;
         }
 
         private void ApplyPickupCooldown(Pickup pickup)
@@ -300,10 +321,12 @@ namespace ThaumielMapEditor.API.Components
 
             if (Teleporter.PerPlayerCooldown)
             {
-                PickupCooldowns[pickup] = Time.time + duration;
+                float expiry = Time.time + duration;
+                if (!PickupCooldowns.TryGetValue(pickup, out float existing) || existing < expiry)
+                    PickupCooldowns[pickup] = expiry;
             }
             else
-                _globalCooldownEnd = Time.time + duration;
+                _globalPickupCooldownEnd = Time.time + duration;
         }
 
         public bool HasFlagFast(TeleporterFlags flag)

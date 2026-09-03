@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CommandSystem;
 using LabApi.Features.Wrappers;
 using MEC;
@@ -36,13 +37,16 @@ namespace ThaumielMapEditor.Commands.Admin
                 return false;
             }
 
-            if (GrabPlayers.ContainsKey(player))
+            lock (GrabPlayers)
             {
-                Timing.KillCoroutines(GrabPlayers[player]);
-                GrabPlayers.Remove(player);
+                if (GrabPlayers.ContainsKey(player))
+                {
+                    Timing.KillCoroutines(GrabPlayers[player]);
+                    GrabPlayers.Remove(player);
 
-                response = $"Ungrabbed";
-                return true;
+                    response = $"Ungrabbed";
+                    return true;
+                }
             }
 
             if (arguments.Count == 0 || !uint.TryParse(arguments.At(0), out var id))
@@ -57,40 +61,78 @@ namespace ThaumielMapEditor.Commands.Admin
                 return false;
             }
 
-    		GrabPlayers.Add(player, Timing.RunCoroutine(GrabCoroutine(player, schematic)));
+            lock (GrabPlayers)
+            {
+                if (GrabPlayers.ContainsKey(player))
+                {
+                    response = "Already grabbing a schematic.";
+                    return false;
+                }
+
+                GrabPlayers.Add(player, Timing.RunCoroutine(GrabCoroutine(player, schematic)));
+            }
+
             response = $"Grabbed schematic with ID: {id}";
             return true;
         }
 
 	    private static readonly Dictionary<Player, CoroutineHandle> GrabPlayers = [];
+        private static readonly object GrabLock = new();
+
+        public static void ReleasePlayer(Player player)
+        {
+            lock (GrabLock)
+            {
+                lock (GrabPlayers)
+                {
+                    if (GrabPlayers.TryGetValue(player, out CoroutineHandle handle))
+                    {
+                        Timing.KillCoroutines(handle);
+                        GrabPlayers.Remove(player);
+                    }
+                }
+            }
+        }
 
         public IEnumerator<float> GrabCoroutine(Player player, SchematicData schematic)
         {
+            if (player.Camera == null)
+                yield break;
+
             Vector3 pos = player.Camera.position;
             float multiplier = Vector3.Distance(pos, schematic.Position);
             Vector3 prevPos = pos + (player.Camera.forward * multiplier);
 
             while (true)
             {
-                yield return Timing.WaitForSeconds(0.1f);
+                yield return Timing.WaitForSeconds(0.25f);
 
-                if (schematic == null || schematic.Primitive == null || schematic.Primitive.IsDestroyed || !player.IsAlive)
+                if (schematic.Primitive == null || schematic.Primitive.IsDestroyed || !player.IsAlive || player.IsDestroyed || player.Camera == null)
                     break;
                 
-                Vector3 newPos = schematic.Position = player.Camera.position + (player.Camera.forward * multiplier);
+                Vector3 newPos = player.Camera.position + (player.Camera.forward * multiplier);
+                schematic.Position = newPos;
 
-                if (prevPos == newPos)
+                if (Vector3.Distance(prevPos, newPos) < 0.01f)
 				    continue;
 
                 prevPos = newPos;
 
-                foreach (ServerObject serverObject in schematic.SpawnedServerObjects)
+                foreach (ServerObject serverObject in schematic.SpawnedServerObjects.ToArray())
                 {
-                    serverObject.UpdateObject(schematic, true);
+                    if (serverObject.Object == null)
+                        continue;
+
+                    serverObject.UpdateObject(schematic, false);
                 }
+
+                SyncManager.FlushServer();
             }
 
-    		GrabPlayers.Remove(player);
+    		lock (GrabPlayers)
+            {
+                GrabPlayers.Remove(player);
+            }
         }
     }
 }

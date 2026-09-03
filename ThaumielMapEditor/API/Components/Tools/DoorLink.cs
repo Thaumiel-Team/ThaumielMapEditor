@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
@@ -24,6 +25,7 @@ namespace ThaumielMapEditor.API.Components.Tools
 
         private DoorObject? door;
         private bool lastKnownState;
+        private bool _propagating;
 
         [YamlMember(Alias = "GroupId")]
         public string GroupId { get; set; } = string.Empty;
@@ -69,6 +71,9 @@ namespace ThaumielMapEditor.API.Components.Tools
 
         private void PropagateToGroup()
         {
+            if (_propagating)
+                return;
+
             if (door == null)
             {
                 Unregister();
@@ -84,35 +89,42 @@ namespace ThaumielMapEditor.API.Components.Tools
             if (!Groups.TryGetValue(GroupId, out List<DoorLink>? group))
                 return;
 
-            for (int i = group.Count - 1; i >= 0; i--)
+            DoorLink[] snapshot = group.ToArray();
+            _propagating = true;
+            try
             {
-                DoorLink link = group[i];
-
-                if (link == this)
-                    continue;
-
-                if (link.door == null)
+                foreach (DoorLink link in snapshot)
                 {
-                    link.Unregister();
-                    continue;
-                }
+                    if (link == this)
+                        continue;
 
-                try
-                {
+                    if (link.door == null)
+                    {
+                        link.Unregister();
+                        continue;
+                    }
+
                     link.door.IsOpen = state;
                     link.lastKnownState = state;
                 }
-                catch (Exception ex)
-                {
-                    LogManager.Warn($"DoorLink error while syncing door '{link.door.Name}': {ex.Message}");
-                }
+            }
+            finally
+            {
+                _propagating = false;
             }
         }
 
         public void Unregister()
         {
-            if (door?.Base != null)
-                door.Base.OnStateChanged -= PropagateToGroup;
+            try
+            {
+                if (door?.Base != null)
+                    door.Base.OnStateChanged -= PropagateToGroup;
+            }
+            catch
+            {
+                // Base may already be destroyed subscription dies with it.
+            }
 
             ActiveLinks.Remove(this);
             if (Groups.TryGetValue(GroupId, out List<DoorLink>? group))
@@ -128,6 +140,29 @@ namespace ThaumielMapEditor.API.Components.Tools
                     LogManager.Debug($"DoorLink unregistered door '{door?.Name ?? "Unknown"}' from group '{GroupId}'.");
                 }
             }
+
+            door = null;
+        }
+
+        internal static void ClearAll()
+        {
+            foreach (DoorLink link in ActiveLinks.ToArray())
+            {
+                try
+                {
+                    if (link.door?.Base != null)
+                        link.door.Base.OnStateChanged -= link.PropagateToGroup;
+                }
+                catch
+                {
+                    // Ignore destroy races during cleanup.
+                }
+
+                link.door = null;
+            }
+
+            ActiveLinks.Clear();
+            Groups.Clear();
         }
     }
 }

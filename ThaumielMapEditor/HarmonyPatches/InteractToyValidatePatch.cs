@@ -27,6 +27,9 @@ namespace ThaumielMapEditor.HarmonyPatches
         [HarmonyPrefix]
         public static bool SearchingPrefix(InteractableToySearchCompletor __instance, ref bool __result)
         {
+            if (__instance == null || __instance._target == null)
+                return true;
+
             if (!InteractionObject.TryGetInteractionObject(__instance._target, out var interactionobj))
             {
                 LogManager.Debug($"Failed to get interaction object for {__instance._target.name}.");
@@ -34,6 +37,9 @@ namespace ThaumielMapEditor.HarmonyPatches
             }
 
             Player player = Player.Get(__instance.Hub);
+            if (player.IsDestroyed)
+                return true;
+
             if (interactionobj.Permissions == DoorPermissionFlags.None || player.IsBypassEnabled)
             {
                 LogManager.Debug($"Allowed player to interact with {interactionobj.Name}. Had keycard permissions.");
@@ -71,6 +77,9 @@ namespace ThaumielMapEditor.HarmonyPatches
         [HarmonyPrefix]
         public static bool InteractingPrefix(InvisibleInteractableToy __instance, ReferenceHub ply, byte colliderId)
         {
+            if (__instance == null || ply == null)
+                return true;
+
             if (!InteractionObject.TryGetInteractionObject(__instance, out var interactionobj))
             {
                 LogManager.Debug($"Failed to get interaction object for {__instance.name}.");
@@ -78,6 +87,9 @@ namespace ThaumielMapEditor.HarmonyPatches
             }
 
             Player player = Player.Get(ply);
+            if (player.IsDestroyed)
+                return true;
+
             if (interactionobj.Permissions == DoorPermissionFlags.None || player.IsBypassEnabled)
             {
                 LogManager.Debug($"Allowed player to interact with {interactionobj.Name}. Had keycard permissions.");

@@ -10,6 +10,7 @@ using LabApi.Features.Wrappers;
 using MEC;
 using SecretLabNAudio.Core;
 using SecretLabNAudio.Core.Extensions;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -86,20 +87,50 @@ namespace ThaumielMapEditor.API.Components.Tools
             InteractionObject.OnInteracted -= Interacted;
             InteractionObject.OnSearched -= Interacted;
             InteractToyValidatePatch.OnDenied -= Denied;
-            if (!OnInteracted.Blocky.IsEmpty())
+            if (OnInteracted.Blocky is { Count: > 0 })
             {
                 foreach (BlockyPayload blocky in OnInteracted.Blocky)
                 {
-                    Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    if (blocky == null)
+                        continue;
+
+                    try
+                    {
+                        Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"InteractableTrigger OnInteracted cleanup failed: {ex.Message}");
+                    }
                 }
             }
 
-            if (!OnInteractionDenied.Blocky.IsEmpty())
+            if (OnInteractionDenied.Blocky is { Count: > 0 })
             {
                 foreach (BlockyPayload blocky in OnInteractionDenied.Blocky)
                 {
-                    Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    if (blocky == null)
+                        continue;
+
+                    try
+                    {
+                        Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"InteractableTrigger OnDenied cleanup failed: {ex.Message}");
+                    }
                 }
+            }
+
+            try
+            {
+                if (Interactable != null && Schematic != null)
+                    Interactable.DestroyObject(Schematic);
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"Failed to destroy ghost interactable: {ex.Message}");
             }
 
             base.OnDestroy();
@@ -271,23 +302,47 @@ namespace ThaumielMapEditor.API.Components.Tools
 
         private void HandleAudio(InteractableClasses classes, Player player)
         {
+            string? audioPath = Main.Instance?.Config?.AudioPath;
             foreach (PlayAudio play in classes.PlayAudio)
             {
+                if (string.IsNullOrEmpty(play.Path))
+                    continue;
+
+                if (play.Path.Contains(".."))
+                {
+                    LogManager.Warn($"Blocked audio path traversal attempt: '{play.Path}'.");
+                    continue;
+                }
+
                 AudioPlayer audioPlayer = AudioPlayer.CreateDefault(parent: transform);
                 audioPlayer.WithMinDistance(play.MinDistance);
                 audioPlayer.WithMaxDistance(play.MaxDistance);
                 audioPlayer.WithSpatial(play.IsSpatial);
-                if (IsLocalFile(play.Path))
+                try
                 {
-                    audioPlayer.UseFile(Path.Combine(Main.Instance.Config?.AudioPath, play.Path), volume: play.Volume);
+                    if (IsLocalFile(play.Path) && !string.IsNullOrEmpty(audioPath))
+                    {
+                        audioPlayer.UseFile(Path.Combine(audioPath, play.Path), volume: play.Volume);
+                    }
+                    else if (!IsLocalFile(play.Path))
+                    {
+                        audioPlayer.UseFile(play.Path, volume: play.Volume);
+                    }
+                    else
+                        LogManager.Warn($"AudioPath is not configured; skipping local audio '{play.Path}'.");
                 }
-                else
-                    audioPlayer.UseFile(play.Path, volume: play.Volume);   
+                catch (Exception ex)
+                {
+                    LogManager.Error($"Failed to play audio '{play.Path}': {ex.Message}");
+                }
             }
         }
 
         public void DrawLines()
         {
+            if (Interactable?.Base?._collider == null)
+                return;
+
             DrawableLines.GenerateBounds(Interactable.Base._collider.bounds);
         }
     }

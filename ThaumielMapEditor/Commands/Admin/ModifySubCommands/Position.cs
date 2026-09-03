@@ -6,6 +6,8 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Globalization;
+using System.Linq;
 using System.Text;
 using CommandSystem;
 using ThaumielMapEditor.API.Blocks;
@@ -28,6 +30,12 @@ namespace ThaumielMapEditor.Commands.Admin.ModifySubCommands
 
         public override bool SubCommandExecute(ArraySegment<string> arguments, ICommandSender sender, SchematicData data, StringBuilder sb, out string response)
         {
+            if (arguments.Count < 1)
+            {
+                response = $"Wrong usage! Correct usage: tme modify position {VisibleArgs}";
+                return false;
+            }
+
             string subCommand = arguments.At(0).ToLower();
             switch (subCommand)
             {
@@ -39,19 +47,25 @@ namespace ThaumielMapEditor.Commands.Admin.ModifySubCommands
                     break;
 
                 case "set":
-                    if (!float.TryParse(arguments.At(1), out float x))
+                    if (arguments.Count < 4)
+                    {
+                        response = $"Wrong usage! Correct usage: tme modify position set <X> <Y> <Z>";
+                        return false;
+                    }
+
+                    if (!float.TryParse(arguments.At(1), NumberStyles.Float, CultureInfo.InvariantCulture, out float x) || float.IsNaN(x) || float.IsInfinity(x))
                     {
                         response = "Failed to parse X coordinate. Make sure its a number.";
                         return false;
                     }
 
-                    if (!float.TryParse(arguments.At(2), out float y))
+                    if (!float.TryParse(arguments.At(2), NumberStyles.Float, CultureInfo.InvariantCulture, out float y) || float.IsNaN(y) || float.IsInfinity(y))
                     {
                         response = "Failed to parse Y coordinate. Make sure its a number.";
                         return false;
                     }
 
-                    if (!float.TryParse(arguments.At(3), out float z))
+                    if (!float.TryParse(arguments.At(3), NumberStyles.Float, CultureInfo.InvariantCulture, out float z) || float.IsNaN(z) || float.IsInfinity(z))
                     {
                         response = "Failed to parse Z coordinate. Make sure its a number.";
                         return false;
@@ -59,10 +73,12 @@ namespace ThaumielMapEditor.Commands.Admin.ModifySubCommands
 
                     data.Position = new(x, y, z);
 
-                    foreach (ServerObject serverObject in data.SpawnedServerObjects)
+                    foreach (ServerObject serverObject in data.SpawnedServerObjects.ToArray())
                     {
-                        serverObject.UpdateObject(data);
+                        serverObject.UpdateObject(data, false);
                     }
+
+                    SyncManager.FlushServer();
                     
                     sb.AppendLine($"Set Schematic Position:");
                     sb.AppendLine($"- X: {data.Position.x}");
