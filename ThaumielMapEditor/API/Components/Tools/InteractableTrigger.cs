@@ -18,7 +18,6 @@ using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Components.Tools.Helpers;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using ThaumielMapEditor.Commands;
@@ -27,6 +26,8 @@ using static AdminToys.InvisibleInteractableToy;
 using static ThaumielMapEditor.API.Components.Tools.Helpers.RunCommand;
 using LabWarhead = LabApi.Features.Wrappers.Warhead;
 using Warhead = ThaumielMapEditor.API.Components.Tools.Helpers.Warhead;
+using YamlDotNet.Serialization;
+using DrawableLine;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
@@ -34,18 +35,25 @@ namespace ThaumielMapEditor.API.Components.Tools
     {
         internal static readonly Dictionary<Player, HashSet<StatusEffectBase>> PlayerEffectCache = [];
 
-        public Vector3 Bounds;
+        [YamlMember(Alias = "Bounds")]
+        public Vector3 Bounds { get; set; }
 
-        public float InteractionTime;
+        [YamlMember(Alias = "InteractionTime")]
+        public float InteractionTime { get; set; }
 
-        public ColliderShape Shape;
+        [YamlMember(Alias = "Shape")]
+        public ColliderShape Shape { get; set; }
+
+        [YamlMember(Alias = "OnInteracted")]
+        public InteractableClasses OnInteracted { get; set; } = new();
+
+        [YamlMember(Alias = "OnInteractionDenied")]
+        public InteractableClasses OnInteractionDenied { get; set; } = new();
+
+        [YamlMember(Alias = "Permission")]
+        public Permission Permissions { get; set; } = new();
+
 #pragma warning disable CS8618
-        public InteractableClasses OnInteracted;
-
-        public InteractableClasses OnInteractionDenied;
-        
-        public Permission Permissions;
-
         public InteractionObject Interactable;
 #pragma warning restore CS8618
 
@@ -54,7 +62,6 @@ namespace ThaumielMapEditor.API.Components.Tools
         public override void Init(ServerObject obj, SchematicData schem, Dictionary<string, object> properties)
         {
             base.Init(obj, schem, properties);
-            ParseValues(properties);
             Interactable = new()
             {
                 Rotation = obj.Object!.transform.localRotation,
@@ -279,25 +286,9 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        public void ParseValues(Dictionary<string, object> properties)
+        public void DrawLines()
         {
-            if (properties.TryConvertValue<InteractableClasses>("OnInteracted", out var interacted))
-                OnInteracted = interacted;
-
-            if (properties.TryConvertValue<InteractableClasses>("OnInteractionDenied", out var denied))
-                OnInteractionDenied = denied;
-
-            if (properties.TryConvertValue<ColliderShape>("Shape", out var shape))
-                Shape = shape;
-
-            if (properties.TryConvertValue<Permission>("Permission", out var perms))
-                Permissions = perms;
-
-            if (properties.TryConvertValue<float>("InteractionTime", out var time))
-                InteractionTime = time;
-
-            if (properties.TryConvertValue<Vector3>("Bounds", out var bounds))
-                Bounds = bounds;
+            DrawableLines.GenerateBounds(Interactable.Base._collider.bounds);
         }
     }
 }

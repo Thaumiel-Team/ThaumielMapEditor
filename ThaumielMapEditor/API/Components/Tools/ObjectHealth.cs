@@ -18,6 +18,8 @@ using PlayerRoles.PlayableScps.Scp939;
 using InventorySystem.Items.Scp1509;
 using PlayerRoles.PlayableScps.Scp1507;
 using System.Linq;
+using ThaumielMapEditor.API.Serialization;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
@@ -39,11 +41,13 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// <summary>
         /// Gets the <see cref="DestroyState"/> that the <see cref="ObjectHealth"/> instance will use when destroyed.
         /// </summary>
-        public DestroyState State { get; private set; } = DestroyState.Destroy;
+        [YamlMember(Alias = "State")]
+        public DestroyState State { get; set; } = DestroyState.Destroy;
 
         /// <summary>
         /// Gets or sets the max health that the <see cref="ObjectHealth"/> instance has.
         /// </summary>
+        [YamlMember(Alias = "MaxHealth")]
         public float HealthMax { get; set; } = 100f;
 
         private bool _destroyed;
@@ -77,16 +81,19 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// <summary>
         /// Gets or sets the allowed <see cref="DamageType"/>s that the <see cref="ObjectHealth"/> instance can be damaged by.
         /// </summary>
-        public List<DamageType> AllowedDamage = [];
+        [YamlMember(Alias = "AllowedDamage")]
+        public List<DamageType> AllowedDamage { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the amount of time in seconds that the <see cref="ObjectHealth"/> instance will have untill it despawns after being destroyed.
         /// </summary>
+        [YamlMember(Alias = "Despawn")]
         public float DespawnTime { get; set; } = 5f;
 
         /// <summary>
         /// Gets or sets the animation name that the <see cref="ObjectHealth"/> instance will play if the <see cref="State"/> is <see cref="DestroyState.Animate"/>.
         /// </summary>
+        [YamlMember(Alias = "StateName")]
         public string StateName { get; set; } = string.Empty;
 
         /// <summary>
@@ -108,45 +115,8 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// <inheritdoc/>
         public override void Init(ServerObject obj, SchematicData schem, Dictionary<string, object> properties)
         {
-            Object = obj;
-            Schematic = schem;
-
-            if (!properties.TryConvertValue<DestroyState>("State", out var state))
-            {
-                LogManager.Warn("Failed to parse State");
-            }
-
-            if (!properties.TryConvertValue<float>("MaxHealth", out var max))
-            {
-                LogManager.Warn("Failed to parse MaxHealth");
-            }
-
-            if (!properties.TryConvertValue<List<DamageType>>("AllowedDamage", out var allowed))
-            {
-                LogManager.Warn("Failed to parse AllowedDamage");
-            }
-
-            if (!properties.TryConvertValue<float>("Despawn", out var despawn))
-            {
-                LogManager.Warn("Failed to parse Despawn");
-            }
-
-            switch (state)
-            {
-                case DestroyState.Animate:
-                    if (properties.TryConvertValue<string>("StateName", out var name))
-                    {
-                        StateName = name;
-                    }
-
-                    break;
-            }
-
-            State = state;
-            HealthMax = max;
-            AllowedDamage = allowed;
-            DespawnTime = despawn;
-            Health = max;
+            base.Init(obj, schem, properties);
+            Health = HealthMax;
         }
 
         /// <summary>
@@ -174,9 +144,7 @@ namespace ThaumielMapEditor.API.Components.Tools
                     rigidbody.isKinematic = false;
                     rigidbody.collisionDetectionMode = CollisionDetectionMode.Continuous;
                     if (Force != Vector3.zero)
-                    {
                         rigidbody.AddForce(Force, ForceMode.Impulse);
-                    }
 
                     Timing.CallDelayed(DespawnTime, () => Object?.DestroyObject(Schematic!));
                     break;

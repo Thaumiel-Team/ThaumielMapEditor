@@ -15,7 +15,6 @@ using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Components.Tools.Helpers;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.Commands;
 using UnityEngine;
@@ -26,6 +25,8 @@ using CustomPlayerEffects;
 using MEC;
 using System.Linq;
 using ThaumielMapEditor.API.Serialization;
+using YamlDotNet.Serialization;
+using DrawableLine;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
@@ -33,15 +34,19 @@ namespace ThaumielMapEditor.API.Components.Tools
     {
         internal static Dictionary<Player, HashSet<StatusEffectBase>> PlayerEffectCache = [];
         
-        public Vector3 Bounds;
+        [YamlMember(Alias = "Bounds")]
+        public Vector3 Bounds { get; set; }
+
+        [YamlMember(Alias = "OnEntered")]
+        public ColliderClasses OnEntered { get; set; } = new();
+
+        [YamlMember(Alias = "OnExited")]
+        public ColliderClasses OnExited { get; set; } = new();
+
+        [YamlMember(Alias = "Permission")]
+        public Permission Permissions { get; set; } = new();
 
 #pragma warning disable CS8618
-        public ColliderClasses OnEntered;
-
-        public ColliderClasses OnExited;
-
-        public Permission Permissions;
-
         public GameObject ColliderObject;
 
         public Collider Collider;
@@ -52,7 +57,6 @@ namespace ThaumielMapEditor.API.Components.Tools
         public override void Init(ServerObject obj, SchematicData schem, Dictionary<string, object> properties)
         {
             base.Init(obj, schem, properties);
-            ParseValues(properties);
             ColliderObject = new($"{Object!.Object!.name} - ColliderObject");
             ColliderObject.transform.SetParent(Object.Object.transform);
             Collider = ColliderObject.AddComponent<BoxCollider>();
@@ -78,21 +82,6 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
 
             base.OnDestroy();
-        }
-
-        public void ParseValues(Dictionary<string, object> properties)
-        {
-            if (properties.TryConvertValue<ColliderClasses>("OnEntered", out var entered))
-                OnEntered = entered;
-
-            if (properties.TryConvertValue<ColliderClasses>("OnExited", out var exit))
-                OnExited = exit;
-
-            if (properties.TryConvertValue<Permission>("Permission", out var perms))
-                Permissions = perms;
-
-            if (properties.TryConvertValue<Vector3>("Bounds", out var bounds))
-                Bounds = bounds;
         }
 
         private void OnTriggerEnter(Collider other)
@@ -288,6 +277,11 @@ namespace ThaumielMapEditor.API.Components.Tools
                 else
                     audioPlayer.UseFile(play.Path, volume: play.Volume);
             }
+        }
+
+        public void DrawLines()
+        {
+            DrawableLines.GenerateBounds(Collider.bounds);
         }
     }
 }

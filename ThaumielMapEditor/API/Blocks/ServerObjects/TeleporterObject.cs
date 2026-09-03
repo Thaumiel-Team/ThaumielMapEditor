@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using DrawableLine;
 using PlayerRoles;
 using ThaumielMapEditor.API.Components;
 using ThaumielMapEditor.API.Data;
@@ -99,6 +100,14 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
                 UnityEngine.Object.Destroy(TeleporterHandler.gameObject);
 
             base.DestroyObject(schematic);
+        }
+
+        public void DrawLines()
+        {
+            if (TeleporterHandler.Collider == null)
+                return;
+
+            DrawableLines.GenerateBounds(TeleporterHandler.Collider.bounds);
         }
     }
 }

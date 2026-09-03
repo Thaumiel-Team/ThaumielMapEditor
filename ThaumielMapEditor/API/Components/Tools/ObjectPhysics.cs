@@ -9,9 +9,8 @@ using System.Collections.Generic;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
-using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
@@ -29,6 +28,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// <summary>
         /// Gets or sets the mass for the <see cref="Rigidbody"/>.
         /// </summary>
+        [YamlMember(Alias = "Weight")]
         public float Weight
         {
             get;
@@ -42,6 +42,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// <summary>
         /// Gets or sets the drag for the <see cref="Rigidbody"/>.
         /// </summary>
+        [YamlMember(Alias = "Drag")]
         public float Drag
         {
             get;
@@ -55,6 +56,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// <summary>
         /// Gets or sets the rotation resistance for the <see cref="Rigidbody"/>.
         /// </summary>
+        [YamlMember(Alias = "AngularDrag")]
         public float AngularDrag
         {
             get;
@@ -68,6 +70,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// <summary>
         /// Gets or sets the <see cref="CollisionDetectionMode"/> for the <see cref="Rigidbody"/>.
         /// </summary>
+        [YamlMember(Alias = "CollisionMode")]
         public CollisionDetectionMode CollisionMode
         {
             get;
@@ -81,6 +84,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// <summary>
         /// Gets or sets whether the <see cref="Rigidbody"/> applies physics or not
         /// </summary>
+        [YamlMember(Alias = "Enabled")]
         public bool Enabled
         {
             get;
@@ -94,40 +98,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// <inheritdoc/>
         public override void Init(ServerObject obj, SchematicData schem, Dictionary<string, object> properties)
         {
-            Object = obj;
-            Schematic = schem;
-
-            if (!properties.TryConvertValue<float>("Weight", out var weight))
-            {
-                LogManager.Warn("Failed to parse Weight");
-            }
-
-            if (!properties.TryConvertValue<bool>("Enabled", out var enabled))
-            {
-                LogManager.Warn("Failed to parse Enabled");
-            }
-
-            if (!properties.TryConvertValue<float>("Drag", out var drag))
-            {
-                LogManager.Warn("Failed to parse Drag");
-            }
-
-            if (!properties.TryConvertValue<float>("AngularDrag", out var angularDrag))
-            {
-                LogManager.Warn("Failed to parse AngularDrag");
-            }
-
-            if (!properties.TryConvertValue<CollisionDetectionMode>("CollisionMode", out var collisionMode))
-            {
-                LogManager.Warn("Failed to parse CollisionMode");
-            }
-
-            Weight = weight;
-            Enabled = enabled;
-            Drag = drag;
-            AngularDrag = angularDrag;
-            CollisionMode = collisionMode;
-
+            base.Init(obj, schem, properties);
             SetupRigidbody();
         }
 

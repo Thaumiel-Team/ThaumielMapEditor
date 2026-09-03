@@ -22,6 +22,7 @@ using System.Linq;
 using ThaumielMapEditor.Events.EventArgs.Handlers;
 using PlayerRoles;
 using System.Collections.Generic;
+using DrawableLine;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
@@ -200,5 +201,10 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
         public static bool TryGetInteractionObject(InvisibleInteractableToy toy, out InteractionObject interactionobj)
             => InteractionCache.TryGetValue(toy, out interactionobj!);
+
+        public void DrawLines()
+        {
+            DrawableLines.GenerateBounds(Base._collider.bounds);
+        }
     }
 }

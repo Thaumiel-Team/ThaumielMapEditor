@@ -12,7 +12,9 @@ using System.Text.Json;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
+using ThaumielMapEditor.API.Extensions;
 using UnityEngine;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
@@ -22,17 +24,20 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// Gets the <see cref="ServerObject"/> for this <see cref="ToolBase"/> instance.
         /// Null until <see cref="Init(ServerObject, SchematicData, Dictionary{string, object})"/> is called.
         /// </summary>
+        [YamlIgnore]
         public ServerObject? Object { get; internal set; }
 
         /// <summary>
         /// Gets the <see cref="ServerObject"/> for this <see cref="ToolBase"/> instance.
         /// Null until <see cref="Init(ServerObject, SchematicData, Dictionary{string, object})"/> is called.
         /// </summary>
+        [YamlIgnore]
         public SchematicData? Schematic { get; internal set; }
 
         /// <summary>
         /// The <see cref="ToolType"/> this <see cref="ToolBase"/> instance uses. 
         /// </summary>
+        [YamlIgnore]
         public virtual ToolType Type { get; }
 
         /// <summary>
@@ -45,6 +50,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         {
             Object = obj;
             Schematic = schem;
+            properties.PopulateFrom(this);
         }
 
         protected virtual void OnDestroy()

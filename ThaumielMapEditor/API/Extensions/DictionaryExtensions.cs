@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Extensions
 {
@@ -299,6 +300,30 @@ namespace ThaumielMapEditor.API.Extensions
             return list;
         }
 
+        public static void PopulateFrom<T>(this Dictionary<string, object> dict, T target)
+        {
+            PropertyInfo[] properties = GetCachedProperties(target!.GetType());
+
+            foreach (PropertyInfo prop in properties)
+            {
+                if (!prop.CanWrite || prop.GetCustomAttribute<YamlIgnoreAttribute>() != null)
+                    continue;
+
+                string key = GetYamlAlias(prop) ?? prop.Name;
+                if (!dict.TryGetValue(key, out object? propValue))
+                    continue;
+
+                try
+                {
+                    prop.SetValue(target, ConvertFromDictionary(propValue, prop.PropertyType));
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Warn($"Failed to set property '{prop.Name}' on {target.GetType().Name}: {ex.Message}");
+                }
+            }
+        }
+
         private static object ConvertDictionaryToObject(Dictionary<string, object> dict, Type targetType)
         {
             object obj = Activator.CreateInstance(targetType)!;
@@ -306,10 +331,11 @@ namespace ThaumielMapEditor.API.Extensions
 
             foreach (PropertyInfo prop in properties)
             {
-                if (!prop.CanWrite)
+                if (!prop.CanWrite || prop.GetCustomAttribute<YamlIgnoreAttribute>() != null)
                     continue;
 
-                if (!dict.TryGetValue(prop.Name, out object? propValue))
+                string key = GetYamlAlias(prop) ?? prop.Name;
+                if (!dict.TryGetValue(key, out object? propValue))
                     continue;
 
                 try
@@ -324,6 +350,9 @@ namespace ThaumielMapEditor.API.Extensions
 
             return obj;
         }
+
+        private static string? GetYamlAlias(PropertyInfo prop)
+            => prop.GetCustomAttribute<YamlMemberAttribute>()?.Alias;
 
         private static PropertyInfo[] GetCachedProperties(Type type)
         {

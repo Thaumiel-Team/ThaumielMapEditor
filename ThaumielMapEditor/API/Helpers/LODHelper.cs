@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
+using DrawableLine;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Components;
 using ThaumielMapEditor.API.Data;
@@ -20,6 +21,17 @@ namespace ThaumielMapEditor.API.Helpers
         /// Gets or sets the <see cref="Player"/>s that are in a <see cref="LODZone"/>
         /// </summary>
         public static Dictionary<Player, HashSet<LODZone>> PlayersInLODZones { get; set; } = [];
+
+        public static void DrawLines(SchematicData schematic)
+        {
+            if (schematic.LODZones.IsEmpty())
+                return;
+
+            foreach (LODData data in schematic.LODZones)
+            {
+                DrawableLines.GenerateBounds(new (schematic.Position, data.Bounds));
+            }
+        }
 
         /// <summary>
         /// 

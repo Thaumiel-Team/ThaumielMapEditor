@@ -12,6 +12,7 @@ using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
@@ -24,7 +25,8 @@ namespace ThaumielMapEditor.API.Components.Tools
         private DoorObject? door;
         private bool lastKnownState;
 
-        public string GroupId { get; private set; } = string.Empty;
+        [YamlMember(Alias = "GroupId")]
+        public string GroupId { get; set; } = string.Empty;
 
         public override ToolType Type => ToolType.Doorlink;
 
@@ -38,14 +40,13 @@ namespace ThaumielMapEditor.API.Components.Tools
                 return;
             }
 
-            if (!properties.TryGetValue("GroupId", out object? groupIdRaw) || groupIdRaw is not string groupId || string.IsNullOrEmpty(groupId))
+            if (string.IsNullOrEmpty(GroupId))
             {
                 LogManager.Warn($"DoorLink on '{obj.Name}' in '{schem.FileName}' is missing a valid GroupId property. Skipping.");
                 return;
             }
 
             door = doorObj;
-            GroupId = groupId;
             lastKnownState = doorObj.IsOpen;
 
             if (!Groups.TryGetValue(GroupId, out List<DoorLink>? group))

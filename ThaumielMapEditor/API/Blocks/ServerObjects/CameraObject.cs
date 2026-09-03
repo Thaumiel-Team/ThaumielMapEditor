@@ -35,7 +35,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// The camera prefab type (mapped to a specific prefab via <see cref="GetCameraPrefab"/>).
         /// </summary>
         [YamlMember(Alias = "CameraType")]
-        public CameraType Type { get; internal set; }
+        public CameraType Type { get; set; }
 
         /// <summary>
         /// Display label for the camera. Setting this property updates the networked label on
@@ -164,7 +164,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// <inheritdoc/>
         public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
         {
-            Scp079CameraToy camera = UnityEngine.Object.Instantiate(GetCameraPrefab(GetValue<CameraType>(serializable, "CameraType")));
+            Scp079CameraToy camera = UnityEngine.Object.Instantiate(GetCameraPrefab(Type));
             NetworkServer.UnSpawn(camera.gameObject);
             Base = camera;
             Object = camera.gameObject;

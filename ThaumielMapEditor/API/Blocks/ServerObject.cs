@@ -182,7 +182,7 @@ namespace ThaumielMapEditor.API.Blocks
 
 
         /// <summary>
-        /// Gets or sets the sync interval of the <see cref="ClientObject"/>.
+        /// Gets or sets the sync interval of the <see cref="ServerObject"/>.
         /// </summary>
         public byte SyncInterval
         {
