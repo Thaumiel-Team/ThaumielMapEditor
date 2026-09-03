@@ -1168,7 +1168,7 @@ namespace ThaumielMapEditor.API.Helpers
         {
             try
             {
-                if (TryLoadAnimatorController(schematic.FileName, serializable.AnimatorName, out RuntimeAnimatorController controller, out AssetBundle? bundle))
+                if (TryLoadAnimatorController(schematic.FileName, serializable.AnimatorName, out RuntimeAnimatorController controller, out AssetBundle? bundle) && match.Object != null)
                 {
                     Animator animator = match.Object.GetComponent<Animator>() ?? match.Object.AddComponent<Animator>();
                     animator.runtimeAnimatorController = controller;
