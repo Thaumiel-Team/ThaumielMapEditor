@@ -39,12 +39,6 @@ namespace ThaumielMapEditor.Commands.Admin
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            if (arguments.Count < 1)
-            {
-                response = $"Wrong usage! Correct usage: tme {Name} {VisibleArgs}";
-                return false;
-            }
-
             if (!Loader.LoadedSchematics.TryGetValue(arguments.At(0), out SerializableSchematic schematic))
             {
                 response = $"Schematic '{arguments.At(0)}' not found.";

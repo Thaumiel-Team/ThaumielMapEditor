@@ -29,9 +29,9 @@ namespace ThaumielMapEditor
         public override string Name => "Thaumiel Map Editor";
         public override string Description => ":3";
         public override string Author => "Mr. Baguetter";
-        public override Version Version => new(0, 8, 0);
-        public override Version RequiredApiVersion => LabApiProperties.CurrentVersion;
-        public override LoadPriority Priority => LoadPriority.Medium;
+        public override Version Version { get; } = new(0, 8, 0);
+        public override Version RequiredApiVersion { get; } = LabApiProperties.CurrentVersion;
+        public override LoadPriority Priority { get; } = LoadPriority.Medium;
         public string HarmonyId { get; private set; } = string.Empty;
 
 #pragma warning disable CS8618
