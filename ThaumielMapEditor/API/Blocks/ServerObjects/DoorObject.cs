@@ -59,10 +59,14 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             get;
             set
             {
-                if (field == value || Base == null)
+                if (field == value)
                     return;
 
                 field = value;
+
+                if (Base == null)
+                    return;
+
                 NetworkServer.Destroy(Object);
                 SpawnObject();
             }

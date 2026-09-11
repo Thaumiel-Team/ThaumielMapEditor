@@ -170,6 +170,8 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             Object = camera.gameObject;
             SetWorldTransform(schematic);
             NetworkServer.Spawn(camera.gameObject);
+            NetId = camera.netId;
+            base.SpawnObject(schematic, serializable);
         }
     }
 }

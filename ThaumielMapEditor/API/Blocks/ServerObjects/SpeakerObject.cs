@@ -196,12 +196,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             };
 
             Player = AudioPlayer.Create(1, settings);
-            if (IsLocalFile(Path))
+            if (!string.IsNullOrEmpty(Path))
             {
-                Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop, Volume / 100);
+                if (IsLocalFile(Path))
+                {
+                    Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop, Volume / 100);
+                }
+                else
+                    Player.UseFile(Path, Loop, Volume / 100);
             }
-            else
-                Player.UseFile(Path, Loop, Volume / 100);
 
             base.SpawnObject(schematic, serializable);
             SetWorldTransform(schematic);
@@ -218,12 +221,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             };
 
             Player = AudioPlayer.Create(1, settings);
-            if (IsLocalFile(Path))
+            if (!string.IsNullOrEmpty(Path))
             {
-                Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop, Volume / 100);
+                if (IsLocalFile(Path))
+                {
+                    Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop, Volume / 100);
+                }
+                else
+                    Player.UseFile(Path, Loop, Volume / 100);
             }
-            else
-                Player.UseFile(Path, Loop, Volume / 100);
 
             SetWorldTransform(schematic);
         }

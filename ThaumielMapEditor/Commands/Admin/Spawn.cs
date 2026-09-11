@@ -12,6 +12,7 @@ using CommandSystem;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Data;
+using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Interfaces;
 using ThaumielMapEditor.API.Serialization;
@@ -39,9 +40,11 @@ namespace ThaumielMapEditor.Commands.Admin
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            if (!Loader.LoadedSchematics.TryGetValue(arguments.At(0), out SerializableSchematic schematic))
+            SerializableSchematic? schematic = null;
+
+            if (!Loader.LoadedMaps.TryGetValue(arguments.At(0), out SerializableMap? map) && !Loader.LoadedSchematics.TryGetValue(arguments.At(0), out schematic))
             {
-                response = $"Schematic '{arguments.At(0)}' not found.";
+                response = $"Schematic or Map '{arguments.At(0)}' not found.";
                 return false;
             }
 
@@ -89,14 +92,33 @@ namespace ThaumielMapEditor.Commands.Admin
                 return false;
             }
 
-            SchematicData data = Loader.SpawnSchematic(schematic, position);
             StringBuilder sb = new();
-            sb.AppendLine();
-            sb.AppendLine($"Spawning schematic '{schematic.FileName}'...");
-            sb.AppendLine($"- Id: {data.Id}");
-            sb.AppendLine($"- Position: {position}");
-            sb.AppendLine($"- Scale: {schematic.Scale}");
-            sb.AppendLine($"- Objects queued: {schematic.Objects.Count + schematic.ServerSideObjects.Count}");
+
+            if (map != null)
+            {
+                MapData? data = Loader.SpawnMap(map);
+                if (data == null)
+                {
+                    response = $"Failed to spawn map '{map.FileName}'.";
+                    return false;
+                }
+
+                sb.AppendLine();
+                sb.AppendLine($"Spawning schematic '{data.FileName}'...");
+                sb.AppendLine($"- Id: {data.Id}");
+                sb.AppendLine($"- Position: {data.Room?.WorldPosition(data.Position)}");
+                sb.AppendLine($"- Room: {data.Room}");
+            }
+            else if (schematic != null)
+            {
+                SchematicData data = Loader.SpawnSchematic(schematic, position);
+                sb.AppendLine();
+                sb.AppendLine($"Spawning schematic '{schematic.FileName}'...");
+                sb.AppendLine($"- Id: {data.Id}");
+                sb.AppendLine($"- Position: {position}");
+                sb.AppendLine($"- Scale: {schematic.Scale}");
+                sb.AppendLine($"- Objects queued: {schematic.Objects.Count + schematic.ServerSideObjects.Count}");
+            }
 
             response = sb.ToString();
             return true;
