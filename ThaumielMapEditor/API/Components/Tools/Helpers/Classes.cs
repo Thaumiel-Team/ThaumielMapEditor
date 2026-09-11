@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="InteractableClasses.cs" company="Thaumiel Team">
+// <copyright file="Classes.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
@@ -11,8 +11,14 @@ using ThaumielMapEditor.API.Serialization;
 
 namespace ThaumielMapEditor.API.Components.Tools.Helpers
 {
+    [Obsolete("Use Classes instead. Will be removed in 1.0.0")]
+    public class ColliderClasses : Classes;
+
+    [Obsolete("Use Classes instead. Will be removed in 1.0.0")]
+    public class InteractableClasses : Classes;
+
     [Serializable]
-    public class InteractableClasses
+    public class Classes
     {
         public List<PlayAudio> PlayAudio { get; set; } = [];
         public List<RunCommand> RunCommand { get; set; } = [];

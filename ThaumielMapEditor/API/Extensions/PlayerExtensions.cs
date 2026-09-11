@@ -7,7 +7,10 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using CustomPlayerEffects;
 using LabApi.Features.Wrappers;
 using LabApiExtensions.Extensions;
 using LabApiExtensions.FakeExtension;
@@ -18,6 +21,62 @@ namespace ThaumielMapEditor.API.Extensions
 {
     public static class PlayerExtensions
     {
+        internal static Dictionary<Player, HashSet<StatusEffectBase>> EffectCache = [];
+
+        public static void AddEffectCache(this Player player, StatusEffectBase effect)
+        {
+            if (!EffectCache.ContainsKey(player))
+                EffectCache[player] = [];
+
+            if (effect.IsEnabled)
+                EffectCache[player].Add(effect);
+        }
+
+        public static bool RemoveEffectCache(this Player player, StatusEffectBase effect)
+        {
+            if (!EffectCache.ContainsKey(player))
+            {
+                EffectCache[player] = [];
+                return false;
+            }
+
+            if (EffectCache.TryGetValue(player, out var effects) && effects.Contains(effect))
+            {
+                EffectCache[player].Remove(effect);
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool TryGetFromEffectCache(this Player player, StatusEffectBase effect, out StatusEffectBase? outeffect)
+        {
+            outeffect = player.GetFromEffectCache(effect);
+            return outeffect != null;
+        }
+
+        public static bool TryGetFromEffectCache(this Player player, string name, out StatusEffectBase? outeffect)
+        {
+            outeffect = player.GetFromEffectCache(name);
+            return outeffect != null;
+        }
+
+        public static StatusEffectBase? GetFromEffectCache(this Player player, StatusEffectBase effect)
+        {
+            if (!EffectCache.TryGetValue(player, out var effects))
+                return null;
+
+            return effects.FirstOrDefault(e => e == effect);    
+        }
+
+        public static StatusEffectBase? GetFromEffectCache(this Player player, string name)
+        {
+            if (!EffectCache.TryGetValue(player, out var effects))
+                return null;
+
+            return effects.FirstOrDefault(e => e.name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        }
+
         private static readonly ConcurrentDictionary<(Type Type, string FunctionName), CachedRpc> RpcCache = new();
 
         private static CachedRpc? GetCachedRpc(Type type, string functionName)

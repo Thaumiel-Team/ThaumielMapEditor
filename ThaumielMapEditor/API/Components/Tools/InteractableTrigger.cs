@@ -29,13 +29,12 @@ using LabWarhead = LabApi.Features.Wrappers.Warhead;
 using Warhead = ThaumielMapEditor.API.Components.Tools.Helpers.Warhead;
 using YamlDotNet.Serialization;
 using DrawableLine;
+using ThaumielMapEditor.API.Extensions;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
     public class InteractableTrigger : ToolBase
     {
-        internal static readonly Dictionary<Player, HashSet<StatusEffectBase>> PlayerEffectCache = [];
-
         [YamlMember(Alias = "Bounds")]
         public Vector3 Bounds { get; set; }
 
@@ -46,10 +45,10 @@ namespace ThaumielMapEditor.API.Components.Tools
         public ColliderShape Shape { get; set; }
 
         [YamlMember(Alias = "OnInteracted")]
-        public InteractableClasses OnInteracted { get; set; } = new();
+        public Classes OnInteracted { get; set; } = new();
 
         [YamlMember(Alias = "OnInteractionDenied")]
-        public InteractableClasses OnInteractionDenied { get; set; } = new();
+        public Classes OnInteractionDenied { get; set; } = new();
 
         [YamlMember(Alias = "Permission")]
         public Permission Permissions { get; set; } = new();
@@ -164,7 +163,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             HandleBlocks(OnInteracted, player, EventType.OnInteraction);
         }
 
-        private void HandleBlocks(InteractableClasses classes, Player player, EventType eventType)
+        private void HandleBlocks(Classes classes, Player player, EventType eventType)
         {
             foreach (BlockyPayload blocky in classes.Blocky)
             {
@@ -173,7 +172,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleCassie(InteractableClasses classes, Player player)
+        private void HandleCassie(Classes classes, Player player)
         {
             foreach (SendCassieMessage message in classes.SendCassieMessage)
             {
@@ -182,7 +181,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleWarhead(InteractableClasses classes, Player player)
+        private void HandleWarhead(Classes classes, Player player)
         {
             foreach (Warhead warhead in classes.Warhead)
             {
@@ -219,7 +218,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleAnimation(InteractableClasses classes, Player player)
+        private void HandleAnimation(Classes classes, Player player)
         {
             foreach (PlayAnimation play in classes.PlayAnimation)
             {
@@ -227,11 +226,8 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleEffect(InteractableClasses classes, Player player)
+        private void HandleEffect(Classes classes, Player player)
         {
-            if (!PlayerEffectCache.ContainsKey(player))
-                PlayerEffectCache[player] = [];
-
             foreach (GiveEffect give in classes.GiveEffect)
             {
                 if (!player.TryGetEffect(give.Effect.ToString(), out var effectBase))
@@ -240,9 +236,7 @@ namespace ThaumielMapEditor.API.Components.Tools
                     continue;
                 }
 
-                if (effectBase.IsEnabled)
-                    PlayerEffectCache[player].Add(effectBase);
-
+                player.AddEffectCache(effectBase);
                 player.EnableEffect(effectBase, (byte)give.Intensity, give.Duration, true);
             }
 
@@ -255,21 +249,17 @@ namespace ThaumielMapEditor.API.Components.Tools
                 }
 
                 player.DisableEffect(effectBase);
-                if (PlayerEffectCache.TryGetValue(player, out var effects))
+                if (player.TryGetFromEffectCache(effectBase, out var effect) && effect != null)
                 {
                     Timing.CallDelayed(Timing.WaitForOneFrame, () =>
                     {
-                        StatusEffectBase? status = effects.FirstOrDefault(e => e == effectBase);
-                        if (status == null)
-                            return;
-                        
-                        player.EnableEffect(status, status._intensity, status._duration);
+                        player.EnableEffect(effect, effect._intensity, effect._duration);
                     });
                 }
             }
         }
 
-        private void HandleCommand(InteractableClasses classes, Player player)
+        private void HandleCommand(Classes classes, Player player)
         {
             foreach (RunCommand command in classes.RunCommand)
             {
@@ -300,7 +290,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleAudio(InteractableClasses classes, Player player)
+        private void HandleAudio(Classes classes, Player player)
         {
             string? audioPath = Main.Instance?.Config?.AudioPath;
             foreach (PlayAudio play in classes.PlayAudio)

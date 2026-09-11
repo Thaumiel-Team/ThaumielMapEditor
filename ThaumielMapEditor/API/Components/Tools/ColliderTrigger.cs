@@ -22,27 +22,25 @@ using UnityEngine;
 using static ThaumielMapEditor.API.Components.Tools.Helpers.RunCommand;
 using Warhead = ThaumielMapEditor.API.Components.Tools.Helpers.Warhead;
 using LabWarhead = LabApi.Features.Wrappers.Warhead;
-using CustomPlayerEffects;
 using MEC;
-using System.Linq;
 using ThaumielMapEditor.API.Serialization;
 using YamlDotNet.Serialization;
 using DrawableLine;
+using LabApi.Features.Permissions;
+using ThaumielMapEditor.API.Extensions;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
     public class ColliderTrigger : ToolBase
     {
-        internal static Dictionary<Player, HashSet<StatusEffectBase>> PlayerEffectCache = [];
-
         [YamlMember(Alias = "Bounds")]
         public Vector3 Bounds { get; set; }
 
         [YamlMember(Alias = "OnEntered")]
-        public ColliderClasses OnEntered { get; set; } = new();
+        public Classes OnEntered { get; set; } = new();
 
         [YamlMember(Alias = "OnExited")]
-        public ColliderClasses OnExited { get; set; } = new();
+        public Classes OnExited { get; set; } = new();
 
         [YamlMember(Alias = "Permission")]
         public Permission Permissions { get; set; } = new();
@@ -122,7 +120,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             if (!Player.TryGet(root, out var player))
                 return;
 
-            if (!Permissions.AllowedRoles.IsEmpty() && !Permissions.AllowedRoles.Contains(player.Role))
+            if ((!Permissions.AllowedRoles.IsEmpty() && !Permissions.AllowedRoles.Contains(player.Role)) || (!string.IsNullOrEmpty(Permissions.LabAPIPermission) && !player.HasPermissions([Permissions.LabAPIPermission])))
                 return;
 
             HandleEffect(OnEntered, player);
@@ -143,7 +141,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             if (!Player.TryGet(root, out var player))
                 return;
 
-            if (!Permissions.AllowedRoles.IsEmpty() && !Permissions.AllowedRoles.Contains(player.Role))
+            if ((!Permissions.AllowedRoles.IsEmpty() && !Permissions.AllowedRoles.Contains(player.Role)) || (!string.IsNullOrEmpty(Permissions.LabAPIPermission) && !player.HasPermissions([Permissions.LabAPIPermission])))
                 return;
 
             HandleEffect(OnExited, player);
@@ -155,7 +153,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             HandleBlocks(OnExited, player, EventType.OnTriggerExited);
         }
 
-        private void HandleBlocks(ColliderClasses classes, Player player, EventType eventType)
+        private void HandleBlocks(Classes classes, Player player, EventType eventType)
         {
             foreach (BlockyPayload blocky in classes.Blocky)
             {
@@ -164,7 +162,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleCassie(ColliderClasses classes, Player player)
+        private void HandleCassie(Classes classes, Player player)
         {
             foreach (SendCassieMessage message in classes.SendCassieMessage)
             {
@@ -173,7 +171,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleWarhead(ColliderClasses classes, Player player)
+        private void HandleWarhead(Classes classes, Player player)
         {
             foreach (Warhead warhead in classes.Warhead)
             {
@@ -210,7 +208,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleAnimation(ColliderClasses classes, Player player)
+        private void HandleAnimation(Classes classes, Player player)
         {
             foreach (PlayAnimation play in classes.PlayAnimation)
             {
@@ -218,11 +216,8 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleEffect(ColliderClasses classes, Player player)
+        private void HandleEffect(Classes classes, Player player)
         {
-            if (!PlayerEffectCache.ContainsKey(player))
-                PlayerEffectCache[player] = [];
-
             foreach (GiveEffect give in classes.GiveEffect)
             {
                 if (!player.TryGetEffect(give.Effect.ToString(), out var effectBase))
@@ -231,9 +226,7 @@ namespace ThaumielMapEditor.API.Components.Tools
                     continue;
                 }
 
-                if (effectBase.IsEnabled)
-                    PlayerEffectCache[player].Add(effectBase);
-
+                player.AddEffectCache(effectBase);
                 player.EnableEffect(effectBase, (byte)give.Intensity, give.Duration, true);
             }
 
@@ -246,21 +239,17 @@ namespace ThaumielMapEditor.API.Components.Tools
                 }
 
                 player.DisableEffect(effectBase);
-                if (PlayerEffectCache.TryGetValue(player, out var effects))
+                if (player.TryGetFromEffectCache(effectBase, out var effect) && effect != null)
                 {
                     Timing.CallDelayed(Timing.WaitForOneFrame, () =>
                     {
-                        StatusEffectBase? status = effects.FirstOrDefault(e => e == effectBase);
-                        if (status == null)
-                            return;
-                        
-                        player.EnableEffect(status, status._intensity, status._duration);
+                        player.EnableEffect(effect, effect._intensity, effect._duration);
                     });
                 }
             }
         }
 
-        private void HandleCommand(ColliderClasses classes, Player player)
+        private void HandleCommand(Classes classes, Player player)
         {
             foreach (RunCommand command in classes.RunCommand)
             {
@@ -291,7 +280,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleAudio(ColliderClasses classes, Player player)
+        private void HandleAudio(Classes classes, Player player)
         {
             string? audioPath = Main.Instance?.Config?.AudioPath;
             foreach (PlayAudio play in classes.PlayAudio)
