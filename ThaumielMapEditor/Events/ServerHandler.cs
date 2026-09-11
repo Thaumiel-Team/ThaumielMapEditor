@@ -9,13 +9,13 @@ using LabApi.Events.Arguments.ServerEvents;
 using LabApi.Events.Arguments.WarheadEvents;
 using LabApi.Events.Handlers;
 using PlayerRoles;
-using System.Collections.Generic;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
+using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Helpers.Networking;
 
@@ -101,6 +101,7 @@ namespace ThaumielMapEditor.Events
 
         private static void OnWaitingForPlayers()
         {
+            PlayerExtensions.EffectCache.Clear();
             PrefabHelper.RegisterPrefabs();
             Loader.Cleanup();
 

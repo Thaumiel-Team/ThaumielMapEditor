@@ -16,8 +16,8 @@ using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Components;
-using ThaumielMapEditor.API.Components.Tools;
 using ThaumielMapEditor.API.Data;
+using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.Commands.Admin;
 
@@ -29,7 +29,6 @@ namespace ThaumielMapEditor.Events
         public static void Register()
         {
             PlayerEvents.Joined += OnPlayerJoined;
-            PlayerEvents.ChangedSpectator += OnPlayerChangedSpectator;
             PlayerEvents.Spawned += PlayerSpawnPoint.OnPlayerSpawned;
             Scp079Events.ChangedCamera += OnScp079ChangedCamera;
             ReferenceHub.OnBeforePlayerDestroyed += OnPlayerLeft;
@@ -38,7 +37,6 @@ namespace ThaumielMapEditor.Events
         public static void Unregister()
         {
             PlayerEvents.Joined -= OnPlayerJoined;
-            PlayerEvents.ChangedSpectator -= OnPlayerChangedSpectator;
             PlayerEvents.Spawned -= PlayerSpawnPoint.OnPlayerSpawned;
             Scp079Events.ChangedCamera -= OnScp079ChangedCamera;
             ReferenceHub.OnBeforePlayerDestroyed -= OnPlayerLeft;
@@ -52,61 +50,6 @@ namespace ThaumielMapEditor.Events
             foreach (CullingObject cullingZone in CullingObject.AllInstances.ToArray())
             {
                 cullingZone.ToggleVisibility(ev.Player, cullingZone.IsInsideCollider(ev.Camera.Position));
-            }
-        }
-        
-        private static void OnPlayerChangedSpectator(PlayerChangedSpectatorEventArgs ev)
-        {
-            if (ev.OldTarget == ev.NewTarget)
-                return;
-
-            UpdateSpectatorLOD(ev.OldTarget, ev.Player, isNowVisible: false);
-            UpdateSpectatorLOD(ev.NewTarget, ev.Player, isNowVisible: true);
-
-            CullingObject[] snapshot = CullingObject.AllInstances.ToArray();
-            if (ev.OldTarget != null)
-            {
-                foreach (CullingObject cullingZone in snapshot)
-                {
-                    if (cullingZone.PlayersInside.Contains(ev.OldTarget))
-                    {
-                        cullingZone.ToggleVisibility(ev.Player, false);
-                    }
-                }
-            }
-
-            if (ev.NewTarget != null)
-            {
-                foreach (CullingObject cullingZone in snapshot)
-                {
-                    if (cullingZone.PlayersInside.Contains(ev.NewTarget))
-                        cullingZone.ToggleVisibility(ev.Player, true);
-                }
-            }
-        }
-
-        internal static void UpdateSpectatorLOD(Player target, Player spectator, bool isNowVisible)
-        {
-            if (target == null || !LODHelper.PlayersInLODZones.TryGetValue(target, out var zones))
-                return;
-
-            foreach (LODZone zone in zones)
-            {
-                if (!Loader.SchematicLODZones.TryGetValue(zone, out var schematic))
-                    continue;
-
-                foreach (PrimitiveObject primitive in schematic.GetClientObject<PrimitiveObject>())
-                {
-                    if (zone.PrimitivestoUnload.Contains(primitive.PrimitiveType))
-                    {
-                        if (isNowVisible)
-                        {
-                            primitive.ShowForPlayer(spectator);
-                        }
-                        else
-                            primitive.DespawnForPlayer(spectator);
-                    }
-                }
             }
         }
 
@@ -134,8 +77,7 @@ namespace ThaumielMapEditor.Events
             }
 
             CullingObject.RemovePlayer(player);
-            InteractableTrigger.PlayerEffectCache.Remove(player);
-            ColliderTrigger.PlayerEffectCache.Remove(player);
+            PlayerExtensions.EffectCache.Remove(player);
             LODHelper.PlayersInLODZones.Remove(player);
             Grab.ReleasePlayer(player);
         }
@@ -148,9 +90,9 @@ namespace ThaumielMapEditor.Events
                 return;
             }
 
-            string name = ev.Player.DisplayName;
-            Player joining = ev.Player;
-            Timing.RunCoroutine(SyncPlayerWhenReady(joining, name));
+            Timing.RunCoroutine(SyncPlayerWhenReady(ev.Player, ev.Player.DisplayName));
+            if (!ev.Player.IsDestroyed && ev.Player.GameObject != null)
+                ev.Player.GameObject.AddComponent<CullingUpdater>().Init(ev.Player);
         }
 
         private static IEnumerator<float> SyncPlayerWhenReady(Player player, string name)
