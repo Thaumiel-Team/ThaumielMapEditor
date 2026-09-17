@@ -13,10 +13,10 @@ using Mirror;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Helpers;
-using UnityEngine;
 
 namespace ThaumielMapEditor.API.Components
 {
+    [GitBookPage("Components/CullingObject")]
     public class CullingObject : TriggerHandler
     {
         public static readonly HashSet<CullingObject> AllInstances = [];

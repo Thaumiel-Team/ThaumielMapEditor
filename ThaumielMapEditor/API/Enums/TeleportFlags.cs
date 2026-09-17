@@ -10,6 +10,7 @@ using System;
 namespace ThaumielMapEditor.API.Enums
 {
     [Flags]
+    [GitBookPage("Enums/Flags/TeleporterFlags")]
     public enum TeleporterFlags
     {
         None = 0,

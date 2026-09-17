@@ -14,6 +14,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Components
 {
+    [GitBookPage("Components/LODZone")]
     public class LODZone : TriggerHandler
     {
         /// <summary>

@@ -17,6 +17,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/PlayerSpawnPoint")]
     public class PlayerSpawnPoint : ServerObject
     {
         public static List<PlayerSpawnPoint> Instances { get; private set; } = [];

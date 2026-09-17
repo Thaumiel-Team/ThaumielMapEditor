@@ -5,7 +5,6 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using CustomPlayerEffects;
 using LabApi.Features.Wrappers;
 using MEC;
 using SecretLabNAudio.Core;
@@ -13,7 +12,6 @@ using SecretLabNAudio.Core.Extensions;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Components.Tools.Helpers;
@@ -33,6 +31,7 @@ using ThaumielMapEditor.API.Extensions;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
+    [GitBookPage("Components/Tools/InteractableTrigger")]
     public class InteractableTrigger : ToolBase
     {
         [YamlMember(Alias = "Bounds")]
@@ -49,6 +48,12 @@ namespace ThaumielMapEditor.API.Components.Tools
 
         [YamlMember(Alias = "OnInteractionDenied")]
         public Classes OnInteractionDenied { get; set; } = new();
+
+        [YamlMember(Alias = "OnSpawned")]
+        public Classes OnSpawned { get; set; } = new();
+
+        [YamlMember(Alias = "OnDestroyed")]
+        public Classes OnDestroyed { get; set; } = new();
 
         [YamlMember(Alias = "Permission")]
         public Permission Permissions { get; set; } = new();
@@ -79,6 +84,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             InteractionObject.OnInteracted += Interacted;
             InteractionObject.OnSearched += Interacted;
             InteractToyValidatePatch.OnDenied += Denied;
+            ExecuteLifecycleBlocks(OnSpawned, EventType.OnSpawned, "spawn");
         }
 
         protected override void OnDestroy()
@@ -121,6 +127,9 @@ namespace ThaumielMapEditor.API.Components.Tools
                     }
                 }
             }
+
+            ExecuteLifecycleBlocks(OnSpawned, EventType.OnDestroyed, "OnSpawned cleanup");
+            ExecuteLifecycleBlocks(OnDestroyed, EventType.OnDestroyed, "OnDestroyed cleanup");
 
             try
             {
@@ -169,6 +178,27 @@ namespace ThaumielMapEditor.API.Components.Tools
             {
                 List<object> blocks = ArgumentsParser.Load(blocky);
                 Schematic?.Executor?.Execute(blocks, player, eventType);
+            }
+        }
+
+        private void ExecuteLifecycleBlocks(Classes classes, EventType eventType, string context)
+        {
+            if (classes?.Blocky is not { Count: > 0 })
+                return;
+
+            foreach (BlockyPayload blocky in classes.Blocky)
+            {
+                if (blocky == null)
+                    continue;
+
+                try
+                {
+                    Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, eventType);
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Error($"InteractableTrigger {context} failed: {ex.Message}");
+                }
             }
         }
 

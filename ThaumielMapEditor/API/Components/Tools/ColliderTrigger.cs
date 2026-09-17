@@ -31,6 +31,7 @@ using ThaumielMapEditor.API.Extensions;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
+    [GitBookPage("Components/Tools/ColliderTrigger")]
     public class ColliderTrigger : ToolBase
     {
         [YamlMember(Alias = "Bounds")]
@@ -41,6 +42,12 @@ namespace ThaumielMapEditor.API.Components.Tools
 
         [YamlMember(Alias = "OnExited")]
         public Classes OnExited { get; set; } = new();
+
+        [YamlMember(Alias = "OnSpawned")]
+        public Classes OnSpawned { get; set; } = new();
+
+        [YamlMember(Alias = "OnDestroyed")]
+        public Classes OnDestroyed { get; set; } = new();
 
         [YamlMember(Alias = "Permission")]
         public Permission Permissions { get; set; } = new();
@@ -65,6 +72,7 @@ namespace ThaumielMapEditor.API.Components.Tools
                 box.size = Bounds;
 
             Collider = box;
+            ExecuteLifecycleBlocks(OnSpawned, EventType.OnSpawned, "spawn");
         }
 
         protected override void OnDestroy()
@@ -104,6 +112,9 @@ namespace ThaumielMapEditor.API.Components.Tools
                     }
                 }
             }
+
+            ExecuteLifecycleBlocks(OnSpawned, EventType.OnDestroyed, "OnSpawned cleanup");
+            ExecuteLifecycleBlocks(OnDestroyed, EventType.OnDestroyed, "OnDestroyed cleanup");
 
             if (ColliderObject != null)
                 Destroy(ColliderObject);
@@ -159,6 +170,27 @@ namespace ThaumielMapEditor.API.Components.Tools
             {
                 List<object> blocks = ArgumentsParser.Load(blocky);
                 Schematic?.Executor?.Execute(blocks, player, eventType);
+            }
+        }
+
+        private void ExecuteLifecycleBlocks(Classes classes, EventType eventType, string context)
+        {
+            if (classes?.Blocky is not { Count: > 0 })
+                return;
+
+            foreach (BlockyPayload blocky in classes.Blocky)
+            {
+                if (blocky == null)
+                    continue;
+
+                try
+                {
+                    Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, eventType);
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Error($"ColliderTrigger {context} failed: {ex.Message}");
+                }
             }
         }
 

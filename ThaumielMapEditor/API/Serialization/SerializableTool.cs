@@ -9,6 +9,7 @@ using System.Collections.Generic;
 
 namespace ThaumielMapEditor.API.Serialization
 {
+    [GitBookPage("Serialization/SerializableTool")]
     public class SerializableTool
     {
         public string ToolName { get; set; } = string.Empty;

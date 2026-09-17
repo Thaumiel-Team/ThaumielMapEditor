@@ -14,6 +14,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
+    [GitBookPage("Components/Tools/ObjectPhysics")]
     public class ObjectPhysics : ToolBase
     {
         /// <inheritdoc/>

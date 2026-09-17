@@ -14,6 +14,7 @@ namespace ThaumielMapEditor.API.Serialization
     /// This class is used to read object data from yaml
     /// </summary>
 
+    [GitBookPage("Serialization/SerializableObject")]
     public class SerializableObject
     {
         /// <summary>

@@ -368,6 +368,7 @@ ThaumielMapEditor/Dependencies/
 !syncversion.py
 !parsecommands.py
 !addcopyright.py
+!GitbookDocGen.py
 *.dll
 *.xml
 *.json
@@ -376,3 +377,5 @@ ThaumielMapEditor/Dependencies/
 !Commands.md
 !Dependencies.md
 !README.md
+!ThaumielMapEditor.ToolGun\Dependencies\CustomItemsAPI.dll
+!ThaumielMapEditor.ToolGun\Dependencies\ASS-LabAPI.dll

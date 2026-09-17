@@ -16,6 +16,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Helpers
 {
+    [GitBookPage("LODHelper")]
     public class LODHelper
     {
         /// <summary>

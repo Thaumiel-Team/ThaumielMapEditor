@@ -15,7 +15,7 @@ using ThaumielMapEditor.API.Interfaces;
 
 namespace ThaumielMapEditor.Commands.Admin
 {
-    public class Coroutines : ISubCommand
+    public class Coroutines : SubCommand
     {
         public override string Name => "coroutines";
 

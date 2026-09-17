@@ -19,6 +19,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/WorkstationObject")]
     public class WorkstationObject : ServerObject
     {
         [YamlIgnore]
@@ -41,7 +42,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Gets or sets whether players can use this <see cref="WorkstationObject"/> instance.
         /// </summary>
         [YamlMember(Alias = "AllowInteractions")]
-        public bool AllowInteractions { get; set; }
+        public bool AllowInteractions
+        {
+            get;
+            set
+            {
+                Base?.NetworkStatus = (byte)(value ? 0 : 4);
+                field = value;
+            }
+        }
 
         /// <inheritdoc/>
         public override ObjectType ObjectType { get; set; } = ObjectType.Workstation;

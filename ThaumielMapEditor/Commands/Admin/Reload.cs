@@ -15,7 +15,7 @@ namespace ThaumielMapEditor.Commands.Admin
 {
 #pragma warning disable CS1591
     [DoNotParse]
-    public class Reload : ISubCommand
+    public class Reload : SubCommand
     {
         public override string Name => "reload";
 

@@ -21,6 +21,7 @@ using MEC;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
 {
+    [GitBookPage("Blocks/Server/LockerObject")]
     public class LockerObject : ServerObject
     {
         private static readonly ItemType[] AllItemTypes = (ItemType[])Enum.GetValues(typeof(ItemType));

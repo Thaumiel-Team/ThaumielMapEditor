@@ -12,6 +12,7 @@ using LabApi.Loader.Features.Paths;
 
 namespace ThaumielMapEditor.API.Helpers
 {
+    [GitBookPage("FileManager")]
     public class FileManager
     {
         /// <summary>

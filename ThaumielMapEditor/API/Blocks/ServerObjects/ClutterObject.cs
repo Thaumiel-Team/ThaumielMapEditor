@@ -17,6 +17,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/ClutterObject")]
     public class ClutterObject : ServerObject
     {
         public override ObjectType ObjectType { get; set; } = ObjectType.Clutter;

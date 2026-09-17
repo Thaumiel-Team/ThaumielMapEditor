@@ -16,6 +16,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Components
 {
+    [GitBookPage("Components/CullingUpdater")]
     public class CullingUpdater : MonoBehaviour
     {
         private static int _phaseCounter;

@@ -12,6 +12,7 @@ namespace ThaumielMapEditor.API.Serialization
     /// <summary>
     /// This class is used to read schematic data from yaml
     /// </summary>
+    [GitBookPage("Serialization/SerializableSchematic")]
     public class SerializableSchematic
     {
         /// <summary>

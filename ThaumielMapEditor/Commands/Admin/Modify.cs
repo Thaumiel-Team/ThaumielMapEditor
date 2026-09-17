@@ -19,7 +19,7 @@ using ThaumielMapEditor.Commands.Admin.ModifySubCommands;
 
 namespace ThaumielMapEditor.Commands.Admin
 {
-    public class Modify : ISubCommand
+    public class Modify : SubCommand
     {
         public Modify() => PopulateSubCommands();
 
@@ -56,7 +56,7 @@ namespace ThaumielMapEditor.Commands.Admin
             }
 
             string invoked = arguments.At(0);
-            ISubCommand? cmd = SubCommands.FirstOrDefault(c => string.Equals(c.Name, invoked, StringComparison.OrdinalIgnoreCase)) ?? SubCommands.FirstOrDefault(c => c.Aliases.Any(a => string.Equals(a, invoked, StringComparison.OrdinalIgnoreCase)));
+            SubCommand? cmd = SubCommands.FirstOrDefault(c => string.Equals(c.Name, invoked, StringComparison.OrdinalIgnoreCase)) ?? SubCommands.FirstOrDefault(c => c.Aliases.Any(a => string.Equals(a, invoked, StringComparison.OrdinalIgnoreCase)));
             if (cmd == null)
             {
                 response = $"SubCommand not found! Valid SubCommands: {string.Join("\n", SubCommands)} - {SubCommands.Count}";

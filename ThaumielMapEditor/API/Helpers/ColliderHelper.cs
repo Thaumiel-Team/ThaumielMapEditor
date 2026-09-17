@@ -15,6 +15,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Helpers
 {
+    [GitBookPage("ColliderHelper")]
     public static class ColliderHelper
     {
         /// <summary>

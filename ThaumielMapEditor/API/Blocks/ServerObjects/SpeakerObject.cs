@@ -17,6 +17,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/SpeakerObject")]
     public class SpeakerObject : ServerObject
     {
         /// <summary>
@@ -200,10 +201,10 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             {
                 if (IsLocalFile(Path))
                 {
-                    Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop, Volume / 100);
+                    Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop);
                 }
                 else
-                    Player.UseFile(Path, Loop, Volume / 100);
+                    Player.UseFile(Path, Loop);
             }
 
             base.SpawnObject(schematic, serializable);
@@ -225,10 +226,10 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             {
                 if (IsLocalFile(Path))
                 {
-                    Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop, Volume / 100);
+                    Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop);
                 }
                 else
-                    Player.UseFile(Path, Loop, Volume / 100);
+                    Player.UseFile(Path, Loop);
             }
 
             SetWorldTransform(schematic);

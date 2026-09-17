@@ -19,6 +19,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
+    [GitBookPage("Blocks/Client/ClientObject")]
     public abstract class ClientObject
     {
         internal SyncFlags SyncFlags { get; private set; } = SyncFlags.None;
@@ -429,6 +430,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 return;
 
             player.Connection.Send(new ObjectHideMessage { netId = NetId });
+            SpawnedPlayers.Remove(player);
         }
 
         /// <summary>
@@ -477,6 +479,116 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
+        /// Syncs pending changes for the specified <see cref="Player"/> without resending a spawn message.
+        /// </summary>
+        /// <remarks>
+        /// Falls back to <see cref="SpawnForPlayer(Player)"/> if this object was not spawned for the player yet.
+        /// </remarks>
+        /// <param name="player">The <see cref="Player"/> to sync to.</param>
+        public void SyncForPlayer(Player player)
+        {
+            if (player.IsHost)
+                return;
+
+            if (!IsSpawnedForPlayer(player))
+            {
+                SpawnForPlayer(player);
+                return;
+            }
+
+            SendDeltaUpdate(player, SyncFlags);
+        }
+
+        /// <summary>
+        /// Sends the given <paramref name="flags"/> as a Mirror <c>EntityStateMessage</c>
+        /// </summary>
+        /// <param name="player">The <see cref="Player"/> to send the message to. Must already have this object spawned.</param>
+        /// <param name="flags">The changes to include in the message.</param>
+        public void SendDeltaUpdate(Player player, SyncFlags flags)
+        {
+            if (player.IsHost)
+                return;
+
+            if (player.Connection == null || !player.Connection.isReady)
+                return;
+
+            if (flags.HasFlagFast(SyncFlags.Parent))
+                player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, ParentNetId);
+
+            ulong baseMask = 0UL;
+            if (flags.HasFlagFast(SyncFlags.Position))
+                baseMask |= 1UL;
+
+            if (flags.HasFlagFast(SyncFlags.Rotation))
+                baseMask |= 2UL;
+
+            if (flags.HasFlagFast(SyncFlags.Scale))
+                baseMask |= 4UL;
+
+            if (flags.HasFlagFast(SyncFlags.MovementSmoothing))
+                baseMask |= 8UL;
+
+            if (flags.HasFlagFast(SyncFlags.IsStatic))
+                baseMask |= 16UL;
+
+            ulong combinedMask = baseMask | GetDerivedDirtyBits(flags);
+            if (combinedMask == 0UL)
+                return;
+
+            using NetworkWriterPooled writer = NetworkWriterPool.Get();
+
+            writer.WriteByte(1);
+
+            int sizePos = writer.Position;
+            writer.WriteByte(0);
+            int dataStart = writer.Position;
+
+            writer.WriteULong(0UL);
+
+            writer.WriteULong(combinedMask);
+            if (flags.HasFlagFast(SyncFlags.Position))
+                writer.WriteVector3(Position);
+                
+            if (flags.HasFlagFast(SyncFlags.Rotation))
+                writer.WriteQuaternion(Rotation);
+
+            if (flags.HasFlagFast(SyncFlags.Scale))
+                writer.WriteVector3(Scale);
+
+            if (flags.HasFlagFast(SyncFlags.MovementSmoothing))
+                writer.WriteByte(MovementSmoothing);
+
+            if (flags.HasFlagFast(SyncFlags.IsStatic))
+                writer.WriteBool(IsStatic);
+
+            writer.WriteULong(combinedMask);
+            WriteDerivedSyncVars(writer, flags);
+
+            int dataEnd = writer.Position;
+            writer.Position = sizePos;
+            writer.WriteByte((byte)(dataEnd - dataStart));
+            writer.Position = dataEnd;
+
+            player.Connection.Send(new EntityStateMessage { netId = NetId, payload = writer.ToArraySegment() });
+        }
+
+        /// <summary>
+        /// Gets the derived dirty bits for the given <paramref name="flags"/>.
+        /// </summary>
+        /// <param name="flags">The changes to map to dirty bits.</param>
+        /// <returns>The derived dirty bit mask.</returns>
+        protected virtual ulong GetDerivedDirtyBits(SyncFlags flags) => 0UL;
+
+        /// <summary>
+        /// Writes derived SyncVar values in ascending dirty bit order.
+        /// </summary>
+        /// <param name="writer">The <see cref="NetworkWriter"/> to write to.</param>
+        /// <param name="flags">The changes to write.</param>
+        protected virtual void WriteDerivedSyncVars(NetworkWriter writer, SyncFlags flags)
+        {
+        }
+
+        /// <summary>
         /// Syncs the server values to all <see cref="Player"/>s this <see cref="ClientObject"/> is spawned for
         /// </summary>
         public void SyncToPlayers()
@@ -490,7 +602,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     continue;
 
                 LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
-                SpawnForPlayer(player);
+                SyncForPlayer(player);
             }
 
             ClearDirtyFlags();
@@ -509,7 +621,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 return;
 
             LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
-            SpawnForPlayer(player);
+            SyncForPlayer(player);
             ClearDirtyFlags();
         }
 
@@ -531,7 +643,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     continue;
 
                 LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
-                SpawnForPlayer(player);
+                SyncForPlayer(player);
             }
 
             ClearDirtyFlags();
@@ -542,16 +654,17 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             if (!Spawned || SyncFlags == SyncFlags.None)
                 return;
 
+            SyncFlags flags = SyncFlags;
             foreach (Player player in SpawnedPlayers)
             {
                 if (player.IsHost)
                     continue;
 
-                SpawnForPlayer(player);
+                SyncForPlayer(player);
             }
             
             ClearDirtyFlags();
-            LogManager.Debug($"Batched sync completed for object {NetId} ({SyncFlags})");
+            LogManager.Debug($"Batched sync completed for object {NetId} ({flags})");
         }
 
         /// <summary>

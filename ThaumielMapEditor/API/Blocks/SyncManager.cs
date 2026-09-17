@@ -12,10 +12,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
 
 namespace ThaumielMapEditor.API.Blocks
 {
+    [GitBookPage("Blocks/SyncManager")]
     public static class SyncManager
     {
         private static readonly HashSet<ClientObject> PendingClientSyncs = [];
@@ -29,6 +31,11 @@ namespace ThaumielMapEditor.API.Blocks
         private const int MaxFlushIterations = 16;
         private const int MaxSyncRetries = 3;
         private static readonly Dictionary<ServerObject, int> ServerRetryCounts = [];
+
+        extension(SyncFlags flags)
+        {
+            public bool HasFlagFast(SyncFlags flag) => (flags & flag) != 0;
+        }
 
         /// <summary>
         /// Registers a <see cref="ClientObject"/> to be synced at the end of the current frame.
@@ -222,6 +229,7 @@ namespace ThaumielMapEditor.API.Blocks
             }
 
             Dictionary<Player, List<ClientObject>> playerBatches = [];
+            HashSet<ClientObject> needsRetry = [];
 
             foreach (ClientObject obj in snapshot)
             {
@@ -233,6 +241,12 @@ namespace ThaumielMapEditor.API.Blocks
                 {
                     if (player == null || player.IsHost || player.IsDestroyed)
                         continue;
+
+                    if (player.Connection == null || !player.Connection.isReady)
+                    {
+                        needsRetry.Add(obj);
+                        continue;
+                    }
 
                     if (!playerBatches.TryGetValue(player, out var list))
                     {
@@ -251,7 +265,7 @@ namespace ThaumielMapEditor.API.Blocks
                 {
                     try
                     {
-                        obj.SpawnForPlayer(kvp.Key);
+                        obj.SyncForPlayer(kvp.Key);
                     }
                     catch (Exception ex)
                     {
@@ -264,15 +278,18 @@ namespace ThaumielMapEditor.API.Blocks
 
             foreach (ClientObject obj in snapshot)
             {
-                if (!failed.Contains(obj))
+                if (!failed.Contains(obj) && !needsRetry.Contains(obj))
                     obj.ClearDirtyFlags();
             }
 
-            if (failed.Count > 0)
+            if (failed.Count > 0 || needsRetry.Count > 0)
             {
                 lock (ClientLock)
                 {
                     foreach (ClientObject obj in failed)
+                        PendingClientSyncs.Add(obj);
+
+                    foreach (ClientObject obj in needsRetry)
                         PendingClientSyncs.Add(obj);
                 }
             }

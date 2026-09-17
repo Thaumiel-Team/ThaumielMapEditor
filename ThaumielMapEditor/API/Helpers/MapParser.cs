@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Data;
 using Random = UnityEngine.Random;
 
@@ -16,6 +17,7 @@ namespace ThaumielMapEditor.API.Helpers
     [Obsolete($"{nameof(MapLoader)} has been renamed to {nameof(MapParser)}. Please update your code to use {nameof(MapParser)} instead. This will be removed in version 1.0.0")]
     public class MapLoader : MapParser;
 
+    [GitBookPage("MapParser")]
     public class MapParser
     {
         private const string LoadIfPrefix = "LoadIf::";

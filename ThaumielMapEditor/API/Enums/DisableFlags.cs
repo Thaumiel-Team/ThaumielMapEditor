@@ -10,6 +10,7 @@ using System;
 namespace ThaumielMapEditor.API.Enums
 {
     [Flags]
+    [GitBookPage("Enums/Flags/DisableFlags")]
     public enum DisableFlags
     {
         None = 0,

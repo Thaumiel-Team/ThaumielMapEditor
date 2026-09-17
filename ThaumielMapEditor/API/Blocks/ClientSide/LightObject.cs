@@ -13,6 +13,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
+    [GitBookPage("Blocks/Client/LightObject")]
     public class LightObject : ClientObject
     {
         /// <summary>
@@ -188,6 +189,69 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             writer.WriteInt((int)Shape);
             writer.WriteFloat(SpotAngle);
             writer.WriteFloat(InnerSpotAngle);
+        }
+
+        protected override ulong GetDerivedDirtyBits(SyncFlags flags)
+        {
+            ulong mask = 0UL;
+            if (flags.HasFlagFast(SyncFlags.LightIntensity))
+                mask |= 0x20UL;
+
+            if (flags.HasFlagFast(SyncFlags.LightRange))
+                mask |= 0x40UL;
+
+            if (flags.HasFlagFast(SyncFlags.LightColor))
+                mask |= 0x80UL;
+
+            if (flags.HasFlagFast(SyncFlags.Shadows))
+                mask |= 0x100UL;
+
+            if (flags.HasFlagFast(SyncFlags.ShadowStrength))
+                mask |= 0x200UL;
+
+            if (flags.HasFlagFast(SyncFlags.LightType))
+                mask |= 0x400UL;
+
+            if (flags.HasFlagFast(SyncFlags.LightShape))
+                mask |= 0x800UL;
+
+            if (flags.HasFlagFast(SyncFlags.SpotAngle))
+                mask |= 0x1000UL;
+
+            if (flags.HasFlagFast(SyncFlags.InnerSpotAngle))
+                mask |= 0x2000UL;
+
+            return mask;
+        }
+
+        protected override void WriteDerivedSyncVars(NetworkWriter writer, SyncFlags flags)
+        {
+            if (flags.HasFlagFast(SyncFlags.LightIntensity))
+                writer.WriteFloat(Intensity);
+                
+            if (flags.HasFlagFast(SyncFlags.LightRange))
+                writer.WriteFloat(Range);
+
+            if (flags.HasFlagFast(SyncFlags.LightColor))
+                writer.WriteColor(Color);
+
+            if (flags.HasFlagFast(SyncFlags.Shadows))
+                writer.WriteInt((int)Shadows);
+
+            if (flags.HasFlagFast(SyncFlags.ShadowStrength))
+                writer.WriteFloat(ShadowStrength);
+
+            if (flags.HasFlagFast(SyncFlags.LightType))
+                writer.WriteInt((int)Type);
+
+            if (flags.HasFlagFast(SyncFlags.LightShape))
+                writer.WriteInt((int)Shape);
+
+            if (flags.HasFlagFast(SyncFlags.SpotAngle))
+                writer.WriteFloat(SpotAngle);
+                
+            if (flags.HasFlagFast(SyncFlags.InnerSpotAngle))
+                writer.WriteFloat(InnerSpotAngle);
         }
     }
 }

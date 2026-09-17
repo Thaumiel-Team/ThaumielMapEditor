@@ -20,7 +20,7 @@ using ThaumielMapEditor.API.Interfaces;
 namespace ThaumielMapEditor.Commands.Admin
 {
     [DoNotParse]
-    public class Debug : ISubCommand
+    public class Debug : SubCommand
     {
         public override string Name => "debug";
         public override string VisibleArgs => "";

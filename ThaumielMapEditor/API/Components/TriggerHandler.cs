@@ -12,6 +12,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Components
 {
+    [GitBookPage("Components/TriggerHandler")]
     public class TriggerHandler : MonoBehaviour
     {
         /// <summary>

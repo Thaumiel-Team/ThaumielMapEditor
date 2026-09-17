@@ -10,6 +10,7 @@ namespace ThaumielMapEditor.API.Enums
     /// <summary>
     /// Defines the types of objects that can be loaded.
     /// </summary>
+    [GitBookPage("Enums/ObjectType")]
     public enum ObjectType
     {
         None = 0,

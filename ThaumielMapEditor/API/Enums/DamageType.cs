@@ -7,6 +7,7 @@
 
 namespace ThaumielMapEditor.API.Enums
 {
+    [GitBookPage("Enums/DamageType")]
     public enum DamageType
     {
         Shot,

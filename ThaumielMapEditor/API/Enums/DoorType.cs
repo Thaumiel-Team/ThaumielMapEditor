@@ -12,6 +12,7 @@ namespace ThaumielMapEditor.API.Enums
     /// <summary>
     /// Defines the types that <see cref="DoorObject"/> can use.
     /// </summary>
+    [GitBookPage("Enums/DoorType")]
     public enum DoorType
     {
         /// <summary>

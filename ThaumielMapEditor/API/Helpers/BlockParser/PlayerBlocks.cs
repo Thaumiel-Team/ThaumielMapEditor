@@ -103,12 +103,16 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
     public class PlayerGetByColliderBlock : BlockBase
     {
+        public object? Collider { get; set; }
+
         public override object ReturnExecute(object obj)
         {
-            if (obj is Player player)
+            object? target = Collider is BlockBase block ? block.ReturnExecute() : Collider ?? obj;
+
+            if (target is Player player)
                 return player;
 
-            if (obj is ServerObject serverObject && serverObject.Object != null)
+            if (target is ServerObject serverObject && serverObject.Object != null)
             {
                 Collider collider = serverObject.Object.GetComponent<Collider>();
                 if (collider != null)
@@ -338,6 +342,55 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         {
             player.SendBroadcast(Message, Duration);
             LogManager.Debug($"Sent broadcast to player '{player.DisplayName}': '{Message}' (Duration: {Duration}s).");
+        }
+    }
+
+    public class PlayerGivePlayerEffectBlock : BlockBase
+    {
+        public string Effect { get; set; } = string.Empty;
+        public byte Intensity { get; set; } = 1;
+        public float Duration { get; set; } = 5f;
+        public bool AddDuration { get; set; }
+
+        public override void Execute(Player player)
+        {
+            if (string.IsNullOrEmpty(Effect))
+            {
+                LogManager.Warn("Effect name is empty.");
+                return;
+            }
+
+            if (!player.TryGetEffect(Effect, out var effectBase))
+            {
+                LogManager.Warn($"Unknown effect '{Effect}'.");
+                return;
+            }
+
+            LogManager.Debug($"Giving effect '{Effect}' intensity={Intensity} duration={Duration} addDuration={AddDuration} to '{player.DisplayName}'.");
+            player.EnableEffect(effectBase, Intensity, Duration, AddDuration);
+        }
+    }
+
+    public class PlayerRemovePlayerEffectBlock : BlockBase
+    {
+        public string Effect { get; set; } = string.Empty;
+
+        public override void Execute(Player player)
+        {
+            if (string.IsNullOrEmpty(Effect))
+            {
+                LogManager.Warn("Effect name is empty.");
+                return;
+            }
+
+            if (!player.TryGetEffect(Effect, out var effectBase))
+            {
+                LogManager.Warn($"Unknown effect '{Effect}'.");
+                return;
+            }
+
+            LogManager.Debug($"Removing effect '{Effect}' from '{player.DisplayName}'.");
+            player.DisableEffect(effectBase);
         }
     }
 }

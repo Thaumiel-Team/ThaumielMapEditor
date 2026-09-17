@@ -12,6 +12,7 @@ namespace ThaumielMapEditor.API.Enums
     /// <summary>
     /// Defines the types of <see cref="Collider"/> as a enum.
     /// </summary>
+    [GitBookPage("Enums/ColliderType")]
     public enum ColliderType
     {
         /// <summary>

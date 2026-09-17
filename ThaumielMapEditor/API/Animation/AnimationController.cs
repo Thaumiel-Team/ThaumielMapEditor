@@ -12,6 +12,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Animation
 {
+    [GitBookPage("Animation/AnimationController")]
     public class AnimationController
     {
         internal static readonly Dictionary<SchematicData, AnimationController> Dictionary = [];

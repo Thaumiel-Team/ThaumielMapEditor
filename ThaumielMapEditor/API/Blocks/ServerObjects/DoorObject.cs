@@ -21,6 +21,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/DoorObject")]
     public class DoorObject : ServerObject
     {
         /// <summary>

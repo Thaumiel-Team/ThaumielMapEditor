@@ -15,6 +15,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/CapybaraObject")]
     public class CapybaraObjectServer : ServerObject
     {
 #pragma warning disable CS8618

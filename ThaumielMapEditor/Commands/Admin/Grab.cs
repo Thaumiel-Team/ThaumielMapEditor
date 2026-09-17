@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CommandSystem;
 using LabApi.Features.Wrappers;
 using MEC;
@@ -21,7 +20,7 @@ namespace ThaumielMapEditor.Commands.Admin
 {
 #pragma warning disable CS1591
     [DoNotParse]
-    public class Grab : ISubCommand
+    public class Grab : SubCommand
     {
         public override string Name => "grab";
         public override string VisibleArgs => "<Schematic ID>";

@@ -7,6 +7,7 @@
 
 namespace ThaumielMapEditor.API.Enums
 {
+    [GitBookPage("Enums/ToolType")]
     public enum ToolType
     {
         Custom = 0, // Todo: setup custom.

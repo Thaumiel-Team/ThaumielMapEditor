@@ -9,20 +9,17 @@ using System.Collections.Generic;
 using MEC;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
-using ThaumielMapEditor.API.Helpers;
-using ThaumielMapEditor.API.Extensions;
 using UnityEngine;
 using ThaumielMapEditor.API.Enums;
 using PlayerStatsSystem;
 using PlayerRoles.PlayableScps.Scp939;
 using InventorySystem.Items.Scp1509;
 using PlayerRoles.PlayableScps.Scp1507;
-using System.Linq;
-using ThaumielMapEditor.API.Serialization;
 using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
+    [GitBookPage("Components/Tools/ObjectHealth")]
     public class ObjectHealth : ToolBase, IDestructible
     {
         /// <summary>

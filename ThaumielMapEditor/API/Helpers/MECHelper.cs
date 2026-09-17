@@ -10,10 +10,9 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using MEC;
 using System.Linq;
-using ThaumielMapEditor.API.Attributes;
-
 namespace ThaumielMapEditor.API.Helpers
 {
+    [GitBookPage("MECHelper")]
     public class MECHelper
     {
         internal static readonly Dictionary<string, CoroutineHandle> handles = [];

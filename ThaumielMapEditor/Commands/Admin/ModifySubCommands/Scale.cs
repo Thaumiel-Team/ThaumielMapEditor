@@ -7,7 +7,6 @@
 
 using System;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using CommandSystem;
 using ThaumielMapEditor.API.Blocks;
@@ -16,7 +15,7 @@ using ThaumielMapEditor.API.Interfaces;
 
 namespace ThaumielMapEditor.Commands.Admin.ModifySubCommands
 {
-    public class Scale : ISubCommand
+    public class Scale : SubCommand
     {
         public override string Name => "scale";
 

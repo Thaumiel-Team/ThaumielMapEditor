@@ -13,6 +13,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
+    [GitBookPage("Blocks/Client/TextObject")]
     public class TextObject : ClientObject
     {
         /// <summary>
@@ -69,6 +70,27 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         {
             payloadWriter.WriteUInt(0);
             payloadWriter.WriteUInt(0);
+        }
+
+        protected override ulong GetDerivedDirtyBits(SyncFlags flags)
+        {
+            ulong mask = 0UL;
+            if (flags.HasFlagFast(SyncFlags.DisplaySize))
+                mask |= 0x20UL;
+
+            if (flags.HasFlagFast(SyncFlags.TextFormat))
+                mask |= 0x40UL;
+
+            return mask;
+        }
+
+        protected override void WriteDerivedSyncVars(NetworkWriter writer, SyncFlags flags)
+        {
+            if (flags.HasFlagFast(SyncFlags.DisplaySize))
+                writer.WriteVector2(DisplaySize);
+
+            if (flags.HasFlagFast(SyncFlags.TextFormat))
+                writer.WriteString(Text);
         }
     }
 }

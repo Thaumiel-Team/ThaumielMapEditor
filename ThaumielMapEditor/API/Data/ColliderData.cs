@@ -13,6 +13,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Data
 {
+    [GitBookPage("Data/PrefabCollidersData")]
     public class PrefabCollidersData
     {
 #pragma warning disable CS8618

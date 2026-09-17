@@ -19,7 +19,7 @@ namespace ThaumielMapEditor.Commands.Admin
 {
 #pragma warning disable CS1591
     [DoNotParse]
-    public class Save : ISubCommand
+    public class Save : SubCommand
     {
         public override string Name => "save";
 

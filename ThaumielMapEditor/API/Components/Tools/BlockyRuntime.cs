@@ -16,6 +16,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
+    [GitBookPage("Components/Tools/BlockyRuntime")]
     public class BlockyRuntime : ToolBase
     {
         public override ToolType Type => ToolType.BlockyRuntime;

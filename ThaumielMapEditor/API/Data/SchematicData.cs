@@ -29,6 +29,7 @@ namespace ThaumielMapEditor.API.Data
     /// </summary>
     public class SchematicObject : SchematicData;
 
+    [GitBookPage("Data/SchematicData")]
     public class SchematicData
     {
         /// <summary>

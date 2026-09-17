@@ -9,6 +9,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Data
 {
+    [GitBookPage("Data/MapSchematicData")]
     public class MapSchematicData
     {
         /// <summary>

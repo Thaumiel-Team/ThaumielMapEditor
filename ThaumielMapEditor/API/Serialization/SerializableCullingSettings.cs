@@ -10,6 +10,7 @@ using System;
 namespace ThaumielMapEditor.API.Serialization
 {
     [Serializable]
+    [GitBookPage("Serialization/CullingSettings")]
     public class SerializableCullingSettings
     {
         public Vector3 Bounds { get; set; }

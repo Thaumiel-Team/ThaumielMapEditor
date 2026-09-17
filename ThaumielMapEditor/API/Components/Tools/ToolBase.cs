@@ -20,6 +20,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
+    [GitBookPage("Components/Tools/ToolBase")]
     public class ToolBase : MonoBehaviour
     {
         /// <summary>

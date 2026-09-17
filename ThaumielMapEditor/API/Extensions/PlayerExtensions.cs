@@ -15,10 +15,12 @@ using LabApi.Features.Wrappers;
 using LabApiExtensions.Extensions;
 using LabApiExtensions.FakeExtension;
 using Mirror;
+using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Struct;
 
 namespace ThaumielMapEditor.API.Extensions
 {
+    [GitBookPage("Extensions/Player")]
     public static class PlayerExtensions
     {
         internal static Dictionary<Player, HashSet<StatusEffectBase>> EffectCache = [];

@@ -16,6 +16,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
+    [GitBookPage("Blocks/Client/CapybaraObject")]
     public class CapybaraObject : ClientObject
     {
         public string Name { get; set; } = string.Empty;
@@ -88,6 +89,21 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
 
             ObjectHandler.OnClientObjectSpawned(new(this, player));
             SpawnedPlayers.Add(player);
+        }
+
+        protected override ulong GetDerivedDirtyBits(SyncFlags flags)
+        {
+            ulong mask = 0UL;
+            if (flags.HasFlagFast(SyncFlags.Collisions))
+                mask |= 0x20UL;
+
+            return mask;
+        }
+
+        protected override void WriteDerivedSyncVars(NetworkWriter writer, SyncFlags flags)
+        {
+            if (flags.HasFlagFast(SyncFlags.Collisions))
+                writer.WriteBool(CollisionsEnabled);
         }
     }
 }

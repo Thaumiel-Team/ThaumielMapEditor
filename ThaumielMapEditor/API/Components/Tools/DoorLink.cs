@@ -5,9 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
@@ -17,6 +15,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
+    [GitBookPage("Components/Tools/DoorLink")]
     public class DoorLink : ToolBase
     {
         private static readonly Dictionary<string, List<DoorLink>> Groups = [];

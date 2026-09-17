@@ -15,6 +15,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
+    [GitBookPage("Blocks/Client/TextObject")]
     public class PrimitiveObject : ClientObject
     {
         public string Name { get; set; } = string.Empty;
@@ -70,6 +71,33 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             payloadWriter.WriteInt((int)PrimitiveType);
             payloadWriter.WriteColor(Color);
             payloadWriter.WriteByte((byte)PrimitiveFlags);
+        }
+
+        protected override ulong GetDerivedDirtyBits(SyncFlags flags)
+        {
+            ulong mask = 0UL;
+            if (flags.HasFlagFast(SyncFlags.PrimitiveType))
+                mask |= 0x20UL;
+
+            if (flags.HasFlagFast(SyncFlags.Color))
+                mask |= 0x40UL;
+
+            if (flags.HasFlagFast(SyncFlags.PrimitiveFlags))
+                mask |= 0x80UL;
+
+            return mask;
+        }
+
+        protected override void WriteDerivedSyncVars(NetworkWriter writer, SyncFlags flags)
+        {
+            if (flags.HasFlagFast(SyncFlags.PrimitiveType))
+                writer.WriteInt((int)PrimitiveType);
+
+            if (flags.HasFlagFast(SyncFlags.Color))
+                writer.WriteColor(Color);
+
+            if (flags.HasFlagFast(SyncFlags.PrimitiveFlags))
+                writer.WriteByte((byte)PrimitiveFlags);
         }
     }
 }

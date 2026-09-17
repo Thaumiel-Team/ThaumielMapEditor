@@ -22,7 +22,7 @@ namespace ThaumielMapEditor.Commands.Admin
 {
 #pragma warning disable CS1591
     [DoNotParse]
-    public class Spawn : ISubCommand
+    public class Spawn : SubCommand
     {
         public static readonly CachedLayerMask RayMask = new("Default", "Door", "CCTV");
 

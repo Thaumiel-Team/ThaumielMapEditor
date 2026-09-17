@@ -10,7 +10,6 @@ using HarmonyLib;
 using LabApi.Features.Wrappers;
 using LabApi.Loader.Features.Yaml.CustomConverters;
 using MapGeneration;
-using MEC;
 using Mirror;
 using System;
 using System.Collections.Generic;
@@ -18,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ThaumielMapEditor.API.Animation;
+using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
@@ -42,6 +42,7 @@ namespace ThaumielMapEditor.API.Helpers
     [Obsolete($"{nameof(SchematicLoader)} has been renamed to {nameof(Loader)}. Please update your code to use {nameof(Loader)} instead. This will be removed in version 1.0.0")]
     public class SchematicLoader : Loader;
 
+    [GitBookPage("Loader")]
     public class Loader
     {
         /// <summary>
@@ -970,6 +971,248 @@ namespace ThaumielMapEditor.API.Helpers
 
             SpawnSchematic(schematic, schematicData, position, rotation, scale);
             return schematicData;
+        }
+
+        /// <summary>
+        /// Indicates whether the given <see cref="ObjectType"/> meaningfully uses scale.
+        /// Types that return <see langword="false"/> ignore the scale argument in <c>SpawnSingleObject</c>.
+        /// </summary>
+        /// <param name="type">The object type to check.</param>
+        /// <returns><see langword="true"/> if scale affects the spawned object.</returns>
+        public static bool SupportsScale(ObjectType type) => type switch
+        {
+            ObjectType.Primitive or ObjectType.Light or ObjectType.TextToy or ObjectType.Capybara or ObjectType.GameObject or ObjectType.Interactable or ObjectType.Teleporter or ObjectType.Waypoint or ObjectType.RagdollSpawner => true,
+            _ => false,
+        };
+
+        /// <summary>
+        /// Indicates whether the given <see cref="ObjectType"/> has both clientside and serverside implementations.
+        /// </summary>
+        /// <param name="type">The object type to check.</param>
+        /// <returns><see langword="true"/> if <paramref name="type"/> can be spawned with either side.</returns>
+        public static bool IsDualType(ObjectType type) => type switch
+        {
+            ObjectType.Primitive or ObjectType.Light or ObjectType.TextToy or ObjectType.Capybara or ObjectType.GameObject => true,
+            _ => false,
+        };
+
+        /// <summary>
+        /// Spawns a single object without requiring a schematic file.
+        /// </summary>
+        /// <remarks>
+        /// The object is wrapped in a single object schematic internally so lifecycle keeps working. The schematic root is placed at <paramref name="position"/>/<paramref name="rotation"/> and the object itself is spawned at local origin with <paramref name="scale"/>.
+        /// </remarks>
+        /// <param name="type">The type of object to spawn. <see cref="ObjectType.None"/> and <see cref="ObjectType.Schematic"/> are not supported.</param>
+        /// <param name="position">The world position at which to place the object.</param>
+        /// <param name="rotation">The world rotation to apply to the object.</param>
+        /// <param name="scale">The scale to apply. Only used when <see cref="SupportsScale"/> returns <see langword="true"/> for <paramref name="type"/>; otherwise <see cref="Vector3.one"/> is used.</param>
+        /// <param name="values">Optional extra object properties (e.g. DoorType, PrimitiveType, ItemToSpawn). Keys are case insensitive.</param>
+        /// <param name="serverSide">For dualtypes (<see cref="IsDualType"/>), spawns the serverside variant when <see langword="true"/>.</param>
+        /// <param name="name">Optional object name. Defaults to <c>Single_{type}</c>.</param>
+        /// <param name="isStatic">Whether the spawned object is static.</param>
+        /// <param name="movementSmoothing">The movement smoothing for clientside objects.</param>
+        /// <param name="tools">Optional tools to attach to the object.</param>
+        /// <returns>A <see cref="SchematicData"/> containing the single spawned object, or <see langword="null"/> when validation fails.</returns>
+        public static SchematicData? SpawnSingleObject(ObjectType type, Vector3 position, Quaternion rotation, Vector3? scale = null, Dictionary<string, object>? values = null, bool serverSide = false, string? name = null, bool isStatic = false, byte movementSmoothing = 0, List<SerializableTool>? tools = null)
+        {
+            if (type is ObjectType.None or ObjectType.Schematic)
+            {
+                LogManager.Warn($"Cannot spawn single object of type '{type}'. Use '{nameof(SpawnSchematic)}' for schematics.");
+                return null;
+            }
+
+            Vector3 finalScale = scale ?? Vector3.one;
+            if (finalScale == default)
+                finalScale = Vector3.one;
+
+            if (!SupportsScale(type))
+                finalScale = Vector3.one;
+
+            if (finalScale.x == 0f || finalScale.y == 0f || finalScale.z == 0f || float.IsNaN(finalScale.x) || float.IsNaN(finalScale.y) || float.IsNaN(finalScale.z) || float.IsInfinity(finalScale.x) || float.IsInfinity(finalScale.y) || float.IsInfinity(finalScale.z))
+            {
+                LogManager.Warn($"Invalid scale '{finalScale}' for single object '{type}'. Falling back to Vector3.one.");
+                finalScale = Vector3.one;
+            }
+
+            Dictionary<string, object> finalValues = values != null ? new Dictionary<string, object>(values, StringComparer.OrdinalIgnoreCase) : new(StringComparer.OrdinalIgnoreCase);
+            ApplySingleObjectDefaults(type, finalValues);
+
+            if (!ValidateSingleObjectValues(type, finalValues))
+                return null;
+
+            SerializableObject obj = new()
+            {
+                ObjectId = 0,
+                ParentId = -1,
+                Name = string.IsNullOrWhiteSpace(name) ? $"Single_{type}" : name!,
+                Position = Vector3.zero,
+                Rotation = Quaternion.identity,
+                Scale = finalScale,
+                IsStatic = isStatic,
+                MovementSmoothing = movementSmoothing,
+                ObjectType = type,
+                Values = finalValues,
+                Tools = tools ?? [],
+            };
+
+            SerializableSchematic schematic = new()
+            {
+                FileName = $"Single_{type}",
+                RootObjectId = -1,
+                Rotation = Quaternion.identity,
+                Scale = Vector3.one,
+            };
+
+            if (serverSide)
+            {
+                schematic.ServerSideObjects.Add(obj);
+            }
+            else
+                schematic.Objects.Add(obj);
+
+            return SpawnSchematic(schematic, position, rotation);
+        }
+
+        /// <summary>
+        /// Spawns a single object without requiring a schematic file, using euler angles for rotation.
+        /// </summary>
+        /// <param name="type">The type of object to spawn.</param>
+        /// <param name="position">The world position at which to place the object.</param>
+        /// <param name="rotationEuler">The world rotation in euler angles (degrees).</param>
+        /// <param name="scale">The scale to apply. Only used for scalable types.</param>
+        /// <param name="values">Optional extra object properties.</param>
+        /// <param name="serverSide">Spawns the serverside variant for dual types.</param>
+        /// <param name="name">Optional object name.</param>
+        /// <param name="isStatic">Whether the spawned object is static.</param>
+        /// <param name="movementSmoothing">The movement smoothing for clientside objects.</param>
+        /// <param name="tools">Optional tools to attach.</param>
+        /// <returns>A <see cref="SchematicData"/> containing the single spawned object, or <see langword="null"/> when validation fails.</returns>
+        public static SchematicData? SpawnSingleObject(ObjectType type, Vector3 position, Vector3 rotationEuler, Vector3? scale = null, Dictionary<string, object>? values = null, bool serverSide = false, string? name = null, bool isStatic = false, byte movementSmoothing = 0, List<SerializableTool>? tools = null)
+            => SpawnSingleObject(type, position, Quaternion.Euler(rotationEuler), scale, values, serverSide, name, isStatic, movementSmoothing, tools);
+
+        private static void ApplySingleObjectDefaults(ObjectType type, Dictionary<string, object> values)
+        {
+            switch (type)
+            {
+                case ObjectType.Primitive:
+                    EnsureValue(values, "PrimitiveType", PrimitiveType.Cube);
+                    EnsureValue(values, "PrimitiveFlags", PrimitiveFlags.Visible | PrimitiveFlags.Collidable);
+                    EnsureValue(values, "Color", Color.white);
+                    break;
+
+                case ObjectType.TextToy:
+                    EnsureValue(values, "Text", string.Empty);
+                    EnsureValue(values, "DisplaySize", AdminToys.TextToy.DefaultDisplaySize);
+                    break;
+
+                case ObjectType.Waypoint:
+                    EnsureValue(values, "BoundsSize", Vector3.one);
+                    break;
+
+                case ObjectType.Pickup:
+                    EnsureValue(values, "SpawnPercentage", 100f);
+                    break;
+
+                case ObjectType.RagdollSpawner:
+                    EnsureValue(values, "Chance", 100f);
+                    break;
+
+                case ObjectType.Teleporter:
+                    if (!HasValueKey(values, "Id"))
+                        values["Id"] = Guid.NewGuid();
+
+                    break;
+            }
+        }
+
+        private static bool ValidateSingleObjectValues(ObjectType type, Dictionary<string, object> values)
+        {
+            switch (type)
+            {
+                case ObjectType.Door:
+                    if (!TryGetEnumValue(values, "DoorType", out DoorType doorType) || !Enum.IsDefined(typeof(DoorType), doorType) || doorType == 0)
+                    {
+                        LogManager.Warn($"Cannot spawn single Door without a valid 'DoorType' (Lcz, Hcz, Ez, Gate, BulkHead). Example: DoorType=Hcz.");
+                        return false;
+                    }
+
+                    break;
+
+                case ObjectType.Locker:
+                    if (!TryGetEnumValue(values, "LockerType", out LockerType lockerType) || lockerType == LockerType.None)
+                    {
+                        LogManager.Warn($"Cannot spawn single Locker without a valid 'LockerType' (e.g. Misc, Medkit, RifleRack). Example: LockerType=Misc.");
+                        return false;
+                    }
+
+                    break;
+
+                case ObjectType.Pickup:
+                    if (!HasValueKey(values, "ItemToSpawn"))
+                    {
+                        LogManager.Warn($"Cannot spawn single Pickup without 'ItemToSpawn'. Example: ItemToSpawn=GunCOM15.");
+                        return false;
+                    }
+
+                    break;
+
+                case ObjectType.Clutter:
+                    if (!HasValueKey(values, "ClutterType"))
+                        values["ClutterType"] = ClutterType.SimpleBoxes;
+                    break;
+            }
+
+            return true;
+        }
+
+        private static bool HasValueKey(Dictionary<string, object> values, string key)
+        {
+            foreach (string existing in values.Keys)
+            {
+                if (string.Equals(existing, key, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static void EnsureValue(Dictionary<string, object> values, string key, object defaultValue)
+        {
+            if (!HasValueKey(values, key))
+                values[key] = defaultValue;
+        }
+
+        private static bool TryGetEnumValue<T>(Dictionary<string, object> values, string key, out T result) where T : struct
+        {
+            result = default;
+
+            foreach (KeyValuePair<string, object> kvp in values)
+            {
+                if (!string.Equals(kvp.Key, key, StringComparison.OrdinalIgnoreCase) || kvp.Value == null)
+                    continue;
+
+                try
+                {
+                    if (kvp.Value is T direct)
+                    {
+                        result = direct;
+                        return true;
+                    }
+
+                    object? parsed = Enum.Parse(typeof(T), kvp.Value.ToString()!.Replace(" ", string.Empty), ignoreCase: true);
+                    if (parsed is T typed)
+                    {
+                        result = typed;
+                        return true;
+                    }
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+
+            return false;
         }
 
         private static void SpawnSchematic(SerializableSchematic schematic, SchematicData schematicData, Vector3 position, Quaternion rotation, Vector3 scale)

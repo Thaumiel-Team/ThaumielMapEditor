@@ -14,6 +14,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/PickupObject")]
     public class PickupObject : ServerObject
     {
         [YamlMember(Alias = "ItemToSpawn")]

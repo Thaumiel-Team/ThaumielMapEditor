@@ -17,6 +17,7 @@ using ThaumielMapEditor.API.Helpers.BlockParser;
 
 namespace ThaumielMapEditor.API.Helpers
 {
+    [GitBookPage("BlockExecutor")]
     public class BlockExecutor
     {
         public BlockExecutor(SchematicData schematic)

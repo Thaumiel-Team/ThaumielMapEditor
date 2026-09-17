@@ -16,6 +16,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Components
 {
+    [GitBookPage("Components/TeleporterHandler")]
     public class TeleporterHandler : TriggerHandler
     {
         /// <summary>

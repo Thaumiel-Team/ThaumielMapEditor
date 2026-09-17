@@ -14,7 +14,7 @@ using System.Text.RegularExpressions;
 
 namespace ThaumielMapEditor.API.Helpers
 {
-    internal class LogManager
+    public class LogManager
     {
         private const int MaxLogs = 10000;
         private static readonly object LogLock = new();

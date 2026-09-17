@@ -31,9 +31,6 @@ namespace ThaumielMapEditor.API.Helpers
 
         public static List<object> Load(BlockyPayload payload)
         {
-            if (payload.Language != "yaml")
-                return [];
-
             if (string.IsNullOrEmpty(payload.Code))
                 return [];
 
@@ -98,6 +95,9 @@ namespace ThaumielMapEditor.API.Helpers
             ["door_close"] = d => new CloseDoorBlock(),
             ["door_lock"] = d => new LockDoorBlock(),
             ["door_unlock"] = d => new UnlockDoorBlock(),
+            ["door_is_open"] = d => new DoorIsOpenBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_is_closed"] = d => new DoorIsClosedBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_is_opening"] = d => new DoorIsOpeningBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
 
             ["math_arithmetic"] = d => new MathArithmeticBlock
             {
@@ -193,8 +193,8 @@ namespace ThaumielMapEditor.API.Helpers
                 ElseStack = ParseStack(d, "ELSE")
             },
 
-            ["timing_wait_for_frames"] = d => new WaitForFrames { WaitTime = (uint)ParseFloat(d, "WaitTime") },
-            ["timing_wait_for_seconds"] = d => new WaitForSeconds { WaitTime = ParseFloat(d, "WaitTime") },
+            ["timing_wait_for_frames"] = d => new WaitForFrames { WaitTime = (uint)ParseFloatAny(d, 5f, "FRAMES", "WaitTime") },
+            ["timing_wait_for_seconds"] = d => new WaitForSeconds { WaitTime = ParseFloatAny(d, 5f, "SECONDS", "WaitTime") },
 
             ["timing_wait_until_true"] = d => new WaitUntilBlock
             {
@@ -289,61 +289,68 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["get_player_by_id"] = d => new PlayerGetByIdBlock
             {
-                PlayerId = (int)ParseFloat(d, "Player Id")
+                PlayerId = (int)ParseFloatAny(d, 0f, "PLAYER_ID", "Player Id")
             },
             ["get_player_by_userid"] = d => new PlayerGetByUserIdBlock
             {
-                UserId = GetString(d, "Player User Id")
+                UserId = GetStringAny(d, "USER_ID", "Player User Id")
             },
 
             ["set_player_role"] = d => new PlayerSetRoleBlock
             {
-                Role = Enum.TryParse(GetString(d, "New Role"), out RoleTypeId role) ? role : RoleTypeId.None,
-                KeepPosition = ParseBool(d, "Keep Position")
+                Role = Enum.TryParse(GetStringAny(d, "ROLE", "New Role"), out RoleTypeId role) ? role : RoleTypeId.None,
+                KeepPosition = ParseBoolAny(d, "KEEP_POSITION", "Keep Position")
             },
 
             ["give_player_item"] = d => new PlayerGiveItemBlock
             {
-                Item = Enum.TryParse(GetString(d, "New Item"), out ItemType item) ? item : ItemType.None,
-                Amount = (int)ParseFloat(d, "Amount", 1f),
-                DropIfFull = ParseBool(d, "Drop if full")
+                Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType item) ? item : ItemType.None,
+                Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
+                DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
+            },
+
+            ["give_player_items"] = d => new PlayerGiveItemBlock
+            {
+                Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType stackedItem) ? stackedItem : ItemType.None,
+                Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
+                DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
             },
 
             ["remove_player_item"] = d => new PlayerRemoveItemBlock
             {
-                Item = Enum.TryParse(GetString(d, "Removed Item"), out ItemType ri) ? ri : ItemType.None
+                Item = Enum.TryParse(GetStringAny(d, "ITEM", "Removed Item"), out ItemType ri) ? ri : ItemType.None
             },
 
-            ["set_player_health"] = d => new PlayerSetHealthBlock 
-            { 
-                HealthType = "health", 
-                Value = ParseFloat(d, "Health") 
+            ["set_player_health"] = d => new PlayerSetHealthBlock
+            {
+                HealthType = "health",
+                Value = ParseFloatAny(d, 0f, "HEALTH", "Health")
             },
             ["set_player_max_health"] = d => new PlayerSetHealthBlock
             {
                 HealthType = "max_health",
-                Value = ParseFloat(d, "Max Health")
+                Value = ParseFloatAny(d, 0f, "MAX_HEALTH", "Max Health")
             },
-            ["set_player_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "artificial_health", Value = ParseFloat(d, "Artificial Health") },
-            ["set_player_max_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "max_artificial_health", Value = ParseFloat(d, "Max Artificial Health") },
-            ["set_player_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield", Value = ParseFloat(d, "Hume shield") },
-            ["set_player_max_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "max_hume_shield", Value = ParseFloat(d, "Max Hume Shield") },
-            ["set_player_hume_shield_regen_rate"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_rate", Value = ParseFloat(d, "Hume Shield Regen Rate") },
-            ["set_player_hume_shield_regen_cooldown"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_cooldown", Value = ParseFloat(d, "Hume Shield Regen Cooldown") },
+            ["set_player_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "artificial_health", Value = ParseFloatAny(d, 0f, "ARTIFICIAL_HEALTH", "Artificial Health") },
+            ["set_player_max_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "max_artificial_health", Value = ParseFloatAny(d, 0f, "MAX_ARTIFICIAL_HEALTH", "Max Artificial Health") },
+            ["set_player_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield", Value = ParseFloatAny(d, 0f, "HUME_SHIELD", "Hume shield") },
+            ["set_player_max_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "max_hume_shield", Value = ParseFloatAny(d, 0f, "MAX_HUME_SHIELD", "Max Hume Shield") },
+            ["set_player_hume_shield_regen_rate"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_rate", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_RATE", "Hume Shield Regen Rate") },
+            ["set_player_hume_shield_regen_cooldown"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_cooldown", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_COOLDOWN", "Hume Shield Regen Cooldown") },
 
-            ["set_player_group_name"] = d => new PlayerSetGroupBlock { GroupType = "name", Value = GetString(d, "Group Name") },
-            ["set_player_group_color"] = d => new PlayerSetGroupBlock { GroupType = "color", Value = GetString(d, "Group Color") },
+            ["set_player_group_name"] = d => new PlayerSetGroupBlock { GroupType = "name", Value = GetStringAny(d, "GROUP_NAME", "Group Name") },
+            ["set_player_group_color"] = d => new PlayerSetGroupBlock { GroupType = "color", Value = GetStringAny(d, "GROUP_COLOR", "Group Color") },
 
             ["send_player_broadcast"] = d => new PlayerSendBroadcastBlock
             {
-                Message = GetString(d, "Broadcast Message"),
-                Duration = (ushort)ParseFloat(d, "Duration", 5f)
+                Message = GetStringAny(d, "MESSAGE", "Broadcast Message"),
+                Duration = (ushort)ParseFloatAny(d, 5f, "DURATION", "Duration")
             },
 
             ["send_player_hint"] = d => new PlayerSendHintBlock
             {
-                Message = GetString(d, "Hint Message"),
-                Duration = (ushort)ParseFloat(d, "Duration", 5f)
+                Message = GetStringAny(d, "MESSAGE", "Hint Message"),
+                Duration = (ushort)ParseFloatAny(d, 5f, "DURATION", "Duration")
             },
 
             ["set_player_scale"] = d => new PlayerSetScaleBlock
@@ -359,8 +366,8 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["texttoy_set_display_size"] = d => new TextToySetDisplaySizeBlock
             {
-                X = ParseFloat(d, "x", 1f),
-                Y = ParseFloat(d, "y", 1f)
+                X = ParseFloatAny(d, 1f, "width", "x"),
+                Y = ParseFloatAny(d, 1f, "height", "y")
             },
 
             ["waypoint_create"] = d => new WaypointCreateBlock { Name = GetString(d, "name") },
@@ -376,7 +383,7 @@ namespace ThaumielMapEditor.API.Helpers
             },
 
             ["speaker_create"] = d => new SpeakerCreateBlock { Name = GetString(d, "name") },
-            ["get_speaker_property"] = d => new SpeakerGetPropertyBlock { Property = GetString(d, "Property") },
+            ["get_speaker_property"] = d => new SpeakerGetPropertyBlock { Property = GetString(d, "Property"), Speaker = ParseValue(d.GetValueOrDefault("Speaker")) },
             ["speaker_set_volume"] = d => new SpeakerSetVolumeBlock { Volume = ParseFloat(d, "volume", 100f) },
             ["speaker_set_is_spatial"] = d => new SpeakerSetIsSpatialBlock { IsSpatial = ParseBool(d, "isSpatial") },
             ["speaker_set_min_distance"] = d => new SpeakerSetMinDistanceBlock { MinDistance = ParseFloat(d, "minDistance", 1f) },
@@ -405,19 +412,20 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["get_door_property"] = d => new DoorGetPropertyBlock
             {
-                Property = GetString(d, "Property")
+                Property = GetString(d, "Property"),
+                Door = ParseValue(d.GetValueOrDefault("Door"))
             },
 
             ["run_method"] = d => new RunMethodBlock
             {
-                FullMethodName = GetString(d, "Full Method Name (namespace + method)"),
+                FullMethodName = GetStringAny(d, "METHOD", "Full Method Name (namespace + method)"),
                 Args = ParseMethodArgs(d, "Argument", 4)
             },
 
             ["run_method_instance"] = d => new RunMethodInstanceBlock
             {
-                Instance = ParseValue(d.GetValueOrDefault("Instance")),
-                MethodName = GetString(d, "Full Method Name (namespace + method)"),
+                Instance = ParseValue(d.GetValueOrDefault("INSTANCE") ?? d.GetValueOrDefault("Instance")),
+                MethodName = GetStringAny(d, "METHOD", "Full Method Name (namespace + method)"),
                 Args = ParseMethodArgs(d, "Argument", 4)
             },
 
@@ -461,6 +469,19 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 Effect = Enum.TryParse(GetString(d, "effect"), out EffectType ret) ? ret : default,
                 Intensity = (byte)ParseFloat(d, "intensity", 1f)
+            },
+
+            ["give_player_effect"] = d => new PlayerGivePlayerEffectBlock
+            {
+                Effect = GetStringAny(d, "effect", "Effect"),
+                Intensity = (byte)ParseFloatAny(d, 1f, "intensity", "Intensity"),
+                Duration = ParseFloatAny(d, 5f, "duration", "Duration"),
+                AddDuration = ParseBoolAny(d, "addDuration", "Add Duration")
+            },
+
+            ["remove_player_effect"] = d => new PlayerRemovePlayerEffectBlock
+            {
+                Effect = GetStringAny(d, "effect", "Effect")
             },
 
             ["give_item"] = d => new ActionGiveItemBlock
@@ -611,14 +632,17 @@ namespace ThaumielMapEditor.API.Helpers
             ["foreach_loop"] = d => new ForeachBlock
             {
                 VarName = GetString(d, "VAR"),
-                ListInput = ParseValue(d.GetValueOrDefault("LIST")), 
+                ListInput = ParseValue(d.GetValueOrDefault("LIST")),
                 Stack = ParseStack(d, "DO")
             },
 
             ["list_first"] = d => new ListFirstBlock { List = ParseValue(d.GetValueOrDefault("LIST")) },
             ["list_last"] = d => new ListLastBlock { List = ParseValue(d.GetValueOrDefault("LIST")) },
 
-            ["get_player_by_collider"] = d => new PlayerGetByColliderBlock(),
+            ["get_player_by_collider"] = d => new PlayerGetByColliderBlock
+            {
+                Collider = ParseValue(d.GetValueOrDefault("Collider"))
+            },
 
             ["string_contains"] = d => new StringContainsBlock { STR = ParseValue(d.GetValueOrDefault("STR")), VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
             ["string_starts_with"] = d => new StringStartsWithBlock { STR = ParseValue(d.GetValueOrDefault("STR")), VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
@@ -917,7 +941,16 @@ namespace ThaumielMapEditor.API.Helpers
 
             for (int i = 0; i < count; i++)
             {
-                args[i] = d.TryGetValue($"{prefix} {i + 1}", out object? arg) ? arg : null;
+                if (d.TryGetValue($"ARG{i + 1}", out object? modern))
+                {
+                    args[i] = modern;
+                }
+                else if (d.TryGetValue($"{prefix} {i + 1}", out object? legacy))
+                {
+                    args[i] = legacy;
+                }
+                else
+                    args[i] = null;
             }
 
             return args;
@@ -1073,6 +1106,39 @@ namespace ThaumielMapEditor.API.Helpers
 
         private static string GetString(Dictionary<string, object> dict, string key)
             => dict.TryGetValue(key, out var val) ? val as string ?? val?.ToString() ?? string.Empty : string.Empty;
+
+        private static string GetStringAny(Dictionary<string, object> dict, params string[] keys)
+        {
+            foreach (string key in keys)
+            {
+                if (dict.TryGetValue(key, out var val) && val != null)
+                    return val as string ?? val.ToString() ?? string.Empty;
+            }
+
+            return string.Empty;
+        }
+
+        private static float ParseFloatAny(Dictionary<string, object> dict, float defaultVal, params string[] keys)
+        {
+            foreach (string key in keys)
+            {
+                if (dict.ContainsKey(key))
+                    return ParseFloat(dict, key, defaultVal);
+            }
+
+            return defaultVal;
+        }
+
+        private static bool ParseBoolAny(Dictionary<string, object> dict, params string[] keys)
+        {
+            foreach (string key in keys)
+            {
+                if (dict.ContainsKey(key))
+                    return ParseBool(dict, key);
+            }
+
+            return false;
+        }
 
         private static List<Dictionary<string, object>> ParseStatementList(object stmtObj)
         {

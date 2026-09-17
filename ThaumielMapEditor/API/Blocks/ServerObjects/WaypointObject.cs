@@ -15,6 +15,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/WaypointObject")]
     public class WaypointObject : ServerObject
     {
         /// <summary>

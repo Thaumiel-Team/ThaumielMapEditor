@@ -19,7 +19,7 @@ namespace ThaumielMapEditor.Commands.Admin
 {
 #pragma warning disable CS1591
     [DoNotParse]
-    public class Destroy : ISubCommand
+    public class Destroy : SubCommand
     {
         public override string Name => "destroy";
 

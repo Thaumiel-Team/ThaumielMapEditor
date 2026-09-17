@@ -7,7 +7,6 @@
 
 using System;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using CommandSystem;
 using ThaumielMapEditor.API.Attributes;
@@ -19,7 +18,7 @@ namespace ThaumielMapEditor.Commands.Admin.ModifySubCommands
 {
 #pragma warning disable CS1591
     [DoNotParse]
-    public class Rotation : ISubCommand
+    public class Rotation : SubCommand
     {
         public override string Name => "rotate";
 

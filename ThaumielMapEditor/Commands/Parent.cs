@@ -37,6 +37,7 @@ namespace ThaumielMapEditor.Commands
             Subcommands.Add(new Spawned());
             Subcommands.Add(new Destroy());
             Subcommands.Add(new Spawn());
+            Subcommands.Add(new SpawnObject());
             Subcommands.Add(new List());
             Subcommands.Add(new Reload());
             Subcommands.Add(new Grab());
@@ -45,7 +46,7 @@ namespace ThaumielMapEditor.Commands
             Subcommands.Add(new Debug());
         }
 
-        private List<ISubCommand> Subcommands { get; } = [];
+        private List<SubCommand> Subcommands { get; } = [];
 
         protected override bool ExecuteParent(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
@@ -57,7 +58,7 @@ namespace ThaumielMapEditor.Commands
                     sb.AppendLine($"Thaumiel Map Editor v{Main.Instance.Version} by Mr. Baguetter");
                     sb.AppendLine();
                     sb.Append("Available commands:");
-                    foreach (ISubCommand command in Subcommands)
+                    foreach (SubCommand command in Subcommands)
                         sb.Append($"\n- tme {command.Name}{(command.VisibleArgs != string.Empty ? $" {command.VisibleArgs}" : "")} - {command.Description}");
 
                     response = sb.ToString();
@@ -65,7 +66,7 @@ namespace ThaumielMapEditor.Commands
                 }
 
                 string invoked = arguments.At(0);
-                ISubCommand? cmd = Subcommands.FirstOrDefault(c => string.Equals(c.Name, invoked, StringComparison.OrdinalIgnoreCase));
+                SubCommand? cmd = Subcommands.FirstOrDefault(c => string.Equals(c.Name, invoked, StringComparison.OrdinalIgnoreCase));
                 cmd ??= Subcommands.FirstOrDefault(c => c.Aliases.Any(a => string.Equals(a, invoked, StringComparison.OrdinalIgnoreCase)));
 
                 if (cmd == null)

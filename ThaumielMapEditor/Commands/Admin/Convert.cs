@@ -20,7 +20,7 @@ namespace ThaumielMapEditor.Commands.Admin
 {
 #pragma warning disable CS1591
     [DoNotParse]
-    public class Convert : ISubCommand
+    public class Convert : SubCommand
     {
         public override string Name => "convert";
         public override string VisibleArgs => "<Schematic Name>";

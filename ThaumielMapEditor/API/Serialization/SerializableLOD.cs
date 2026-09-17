@@ -10,6 +10,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Serialization
 {
+    [GitBookPage("Serialization/SerializableLOD")]
     public class SerializableLOD
     {
         public Vector3 Bounds { get; set; }

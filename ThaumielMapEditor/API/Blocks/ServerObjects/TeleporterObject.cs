@@ -18,6 +18,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/TeleporterObject")]
     public class TeleporterObject : ServerObject
     {
         private static readonly Dictionary<Guid, TeleporterObject> RegisteredTeleporters = [];

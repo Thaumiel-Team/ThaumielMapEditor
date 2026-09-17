@@ -33,18 +33,37 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             Position,
             Rotation,
             Scale,
+            ExactState,
         }
 
         public string Property { get; set; } = string.Empty;
 
+        public object? Door { get; set; }
+
+        public override object ReturnExecute()
+        {
+            return ResolveDoor() is DoorObject door ? GetProperty(door) : null!;
+        }
+
         public override object ReturnExecute(object obj)
         {
-            if (obj is not DoorObject door)
+            if (ResolveDoor(obj) is not DoorObject door)
                 return null!;
 
             if (string.IsNullOrEmpty(Property))
                 return null!;
 
+            return GetProperty(door);
+        }
+
+        private DoorObject? ResolveDoor(object? fallback = null)
+        {
+            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
+            return target as DoorObject;
+        }
+
+        private object GetProperty(DoorObject door)
+        {
             return Property switch
             {
                 "DoorType" => door.DoorType,
@@ -57,6 +76,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 "Position" => door.Position,
                 "Rotation" => door.Rotation,
                 "Scale" => door.Scale,
+                "ExactState" => door.Base != null ? door.Base.GetExactState() : 0f,
                 _ => LogUnknownProperty(Property)
             };
         }
@@ -170,6 +190,66 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 return;
 
             door.IsLocked = false;
+        }
+    }
+
+    public class DoorIsOpenBlock : BlockBase
+    {
+        public object? Door { get; set; }
+
+        public override object ReturnExecute()
+            => ResolveDoor()?.IsOpen ?? false;
+
+        public override object ReturnExecute(object obj)
+            => ResolveDoor(obj)?.IsOpen ?? false;
+
+        private DoorObject? ResolveDoor(object? fallback = null)
+        {
+            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
+            return target as DoorObject;
+        }
+    }
+
+    public class DoorIsClosedBlock : BlockBase
+    {
+        public object? Door { get; set; }
+
+        public override object ReturnExecute()
+            => ResolveDoor()?.IsOpen == false;
+
+        public override object ReturnExecute(object obj)
+            => ResolveDoor(obj)?.IsOpen == false;
+
+        private DoorObject? ResolveDoor(object? fallback = null)
+        {
+            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
+            return target as DoorObject;
+        }
+    }
+
+    public class DoorIsOpeningBlock : BlockBase
+    {
+        public object? Door { get; set; }
+
+        public override object ReturnExecute()
+            => IsMoving(ResolveDoor());
+
+        public override object ReturnExecute(object obj)
+            => IsMoving(ResolveDoor(obj));
+
+        private DoorObject? ResolveDoor(object? fallback = null)
+        {
+            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
+            return target as DoorObject;
+        }
+
+        private static bool IsMoving(DoorObject? door)
+        {
+            if (door?.Base == null)
+                return false;
+
+            float exact = door.Base.GetExactState();
+            return exact is > 0f and < 1f;
         }
     }
 }

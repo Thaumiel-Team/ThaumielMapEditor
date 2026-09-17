@@ -11,6 +11,7 @@ using LabApi.Features.Wrappers;
 
 namespace ThaumielMapEditor.API.Data
 {
+    [GitBookPage("Data/MapData")]
     public class MapData
     {
         /// <summary>

@@ -10,6 +10,7 @@ using System;
 namespace ThaumielMapEditor.API.Enums
 {
     [Flags]
+    [GitBookPage("Enums/Flags/SyncFlags")]
     public enum SyncFlags
     {
         None = 0,

@@ -12,12 +12,14 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
 using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Extensions
 {
+    [GitBookPage("Extensions/Dictionary")]
     public static class DictionaryExtensions
     {
         public static readonly ConditionalWeakTable<Type, PropertyInfo[]> PropertyCache = new();
@@ -174,12 +176,187 @@ namespace ThaumielMapEditor.API.Extensions
                     return true;
                 }
 
+                if (value is string str && TryParseVectorString(str, out Vector4 parsed))
+                {
+                    if (typeof(T) == typeof(Vector2))
+                    {
+                        result = (T)(object)new Vector2(parsed.x, parsed.y);
+                        return true;
+                    }
+
+                    if (typeof(T) == typeof(Vector3))
+                    {
+                        result = (T)(object)new Vector3(parsed.x, parsed.y, parsed.z);
+                        return true;
+                    }
+
+                    if (typeof(T) == typeof(Vector4))
+                    {
+                        result = (T)(object)parsed;
+                        return true;
+                    }
+                }
+
+                if (TryParseVectorComponents(value, out Vector4 components))
+                {
+                    if (typeof(T) == typeof(Vector2))
+                    {
+                        result = (T)(object)new Vector2(components.x, components.y);
+                        return true;
+                    }
+
+                    if (typeof(T) == typeof(Vector3))
+                    {
+                        result = (T)(object)new Vector3(components.x, components.y, components.z);
+                        return true;
+                    }
+
+                    if (typeof(T) == typeof(Vector4))
+                    {
+                        result = (T)(object)components;
+                        return true;
+                    }
+                }
+
                 return false;
             }
             catch
             {
                 return false;
             }
+        }
+
+        private static bool TryParseVectorComponents(object value, out Vector4 result)
+        {
+            result = default;
+
+            if (value is string)
+                return false;
+
+            Dictionary<string, object>? dict = value switch
+            {
+                Dictionary<string, object> typed => typed,
+                Dictionary<object, object> untyped => untyped.Where(kvp => kvp.Key != null).ToDictionary(kvp => kvp.Key.ToString()!, kvp => kvp.Value),
+                _ => null
+            };
+
+            if (dict != null)
+            {
+                int found = 0;
+                float x = 0f, y = 0f, z = 0f, w = 0f;
+
+                if (TryGetNamedFloat(dict, out x, "x")) found++;
+                if (TryGetNamedFloat(dict, out y, "y")) found++;
+                if (TryGetNamedFloat(dict, out z, "z")) found++;
+                if (TryGetNamedFloat(dict, out w, "w")) found++;
+
+                if (found < 2)
+                    return false;
+
+                result = new Vector4(x, y, z, w);
+                return true;
+            }
+
+            if (value is IEnumerable enumerable)
+            {
+                List<float> numbers = new(4);
+                foreach (object? element in enumerable)
+                {
+                    if (numbers.Count >= 4)
+                        break;
+
+                    if (!TryToSingle(element, out float num))
+                        return false;
+
+                    numbers.Add(num);
+                }
+
+                if (numbers.Count is < 2 or > 4)
+                    return false;
+
+                while (numbers.Count < 4)
+                    numbers.Add(0f);
+
+                result = new Vector4(numbers[0], numbers[1], numbers[2], numbers[3]);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetNamedFloat(Dictionary<string, object> dict, out float value, params string[] names)
+        {
+            foreach (KeyValuePair<string, object> kvp in dict)
+            {
+                if (kvp.Key == null)
+                    continue;
+
+                foreach (string name in names)
+                {
+                    if (string.Equals(kvp.Key, name, StringComparison.OrdinalIgnoreCase) && TryToSingle(kvp.Value, out value))
+                        return true;
+                }
+            }
+
+            value = 0f;
+            return false;
+        }
+
+        private static bool TryParseVectorString(string str, out Vector4 result)
+        {
+            result = default;
+
+            str = str.Trim().Trim('(', ')', '[', ']', '{', '}').Trim();
+            if (string.IsNullOrEmpty(str))
+                return false;
+
+            string[] parts = str.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length is < 2 or > 4)
+                return false;
+
+            float[] numbers = new float[parts.Length];
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (!float.TryParse(parts[i].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float num) || float.IsNaN(num) || float.IsInfinity(num))
+                    return false;
+
+                numbers[i] = num;
+            }
+
+            result = numbers.Length switch
+            {
+                2 => new Vector4(numbers[0], numbers[1], 0f, 0f),
+                3 => new Vector4(numbers[0], numbers[1], numbers[2], 0f),
+                4 => new Vector4(numbers[0], numbers[1], numbers[2], numbers[3]),
+                _ => default,
+            };
+
+            return numbers.Length is 2 or 3 or 4;
+        }
+
+        private static bool TryConvertToVectorByType(object value, Type targetType, out object? result)
+        {
+            result = null;
+
+            if (targetType == typeof(Vector2) && TryConvertToVector<Vector2>(value, out Vector2 v2))
+            {
+                result = v2;
+                return true;
+            }
+
+            if (targetType == typeof(Vector3) && TryConvertToVector<Vector3>(value, out Vector3 v3))
+            {
+                result = v3;
+                return true;
+            }
+
+            if (targetType == typeof(Vector4) && TryConvertToVector<Vector4>(value, out Vector4 v4))
+            {
+                result = v4;
+                return true;
+            }
+
+            return false;
         }
 
         private static bool TryConvertToList<T>(object value, out T result)
@@ -233,9 +410,21 @@ namespace ThaumielMapEditor.API.Extensions
         {
             color = default;
 
+            if (value is Color direct)
+            {
+                color = direct;
+                return true;
+            }
+
             if (value is string str)
             {
                 str = str.Trim();
+
+                if (NamedColors.TryGetValue(str, out Color named))
+                {
+                    color = named;
+                    return true;
+                }
 
                 if (str.StartsWith("#"))
                     return ColorUtility.TryParseHtmlString(str, out color);
@@ -264,13 +453,56 @@ namespace ThaumielMapEditor.API.Extensions
             if (colorDict is null)
                 return false;
 
-            colorDict.TryConvertValue("r", out float dr);
-            colorDict.TryConvertValue("g", out float dg);
-            colorDict.TryConvertValue("b", out float db);
-            float da = colorDict.TryConvertValue("a", out float da2) ? da2 : 1f;
+            TryGetNamedFloat(colorDict, out float dr, "r", "x");
+            TryGetNamedFloat(colorDict, out float dg, "g", "y");
+            TryGetNamedFloat(colorDict, out float db, "b", "z");
+            float da = TryGetNamedFloat(colorDict, out float parsedAlpha, "a", "w") ? parsedAlpha : 1f;
 
             color = new Color(dr, dg, db, da);
             return true;
+        }
+
+        private static readonly Dictionary<string, Color> NamedColors = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["black"] = Color.black,
+            ["blue"] = Color.blue,
+            ["cyan"] = Color.cyan,
+            ["gray"] = Color.gray,
+            ["grey"] = Color.grey,
+            ["green"] = Color.green,
+            ["magenta"] = Color.magenta,
+            ["red"] = Color.red,
+            ["white"] = Color.white,
+            ["yellow"] = Color.yellow,
+            ["clear"] = Color.clear,
+        };
+
+        private static bool TryToSingle(object? value, out float result)
+        {
+            result = 0f;
+
+            if (value == null)
+                return false;
+
+            try
+            {
+                if (value is string s)
+                {
+                    if (!float.TryParse(s.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out result))
+                        return false;
+                }
+                else
+                {
+                    result = Convert.ToSingle(value, CultureInfo.InvariantCulture);
+                }
+
+                return !float.IsNaN(result) && !float.IsInfinity(result);
+            }
+            catch
+            {
+                result = 0f;
+                return false;
+            }
         }
 
         private static object? ConvertFromDictionary(object? item, Type targetType)
@@ -280,6 +512,24 @@ namespace ThaumielMapEditor.API.Extensions
 
             if (targetType.IsInstanceOfType(item))
                 return item;
+
+            if (targetType == typeof(Color))
+            {
+                if (TryConvertToColor(item, out Color color))
+                    return color;
+
+                LogManager.Warn($"Could not convert '{item}' to Color. Using default (transparent black).");
+                return default(Color);
+            }
+
+            if (targetType == typeof(Vector2) || targetType == typeof(Vector3) || targetType == typeof(Vector4))
+            {
+                if (TryConvertToVectorByType(item, targetType, out object? vector) && vector != null)
+                    return vector;
+
+                LogManager.Warn($"Could not convert '{item}' to {targetType.Name}. Using default.");
+                return Activator.CreateInstance(targetType);
+            }
 
             if (targetType.IsEnum)
             {

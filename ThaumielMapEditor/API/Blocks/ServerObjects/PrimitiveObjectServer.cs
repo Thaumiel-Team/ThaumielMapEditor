@@ -16,6 +16,7 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/PrimitiveObject")]
     public class PrimitiveObjectServer : ServerObject
     {
         [YamlIgnore]

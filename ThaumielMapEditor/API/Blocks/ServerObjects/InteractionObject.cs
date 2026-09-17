@@ -9,16 +9,13 @@ using AdminToys;
 using Mirror;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using static AdminToys.InvisibleInteractableToy;
 using System;
 using LabApi.Features.Wrappers;
-using static ThaumielMapEditor.API.Extensions.PlayerExtensions;
 using YamlDotNet.Serialization;
 using Interactables.Interobjects.DoorUtils;
-using System.Linq;
 using ThaumielMapEditor.Events.EventArgs.Handlers;
 using PlayerRoles;
 using System.Collections.Generic;
@@ -26,6 +23,7 @@ using DrawableLine;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/InteractionObject")]
     public class InteractionObject : ServerObject
     {
         private static readonly Dictionary<InvisibleInteractableToy, InteractionObject> InteractionCache = [];

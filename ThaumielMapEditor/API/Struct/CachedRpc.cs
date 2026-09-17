@@ -9,6 +9,7 @@ using System.Reflection;
 
 namespace ThaumielMapEditor.API.Struct
 {
+    [GitBookPage("Struct/CachedRpc")]
     public readonly struct CachedRpc
     {
         public readonly MethodInfo Method;

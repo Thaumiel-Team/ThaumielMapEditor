@@ -21,6 +21,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks
 {
+    [GitBookPage("Components/Tools/ServerObject")]
     public class ServerObject
     {
         internal SyncFlags SyncFlags { get; private set; } = SyncFlags.None;

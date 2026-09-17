@@ -21,6 +21,7 @@ using CameraType = ThaumielMapEditor.API.Enums.CameraType;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/CameraObject")]
     public class CameraObject : ServerObject
     {
         /// <summary>
