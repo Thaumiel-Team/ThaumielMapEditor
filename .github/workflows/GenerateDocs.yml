@@ -5,10 +5,10 @@ on:
     branches:
       - master
   workflow_dispatch:
-  
+
 jobs:
   docs:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
