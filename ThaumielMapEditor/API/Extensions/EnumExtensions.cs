@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using ThaumielMapEditor.API.Attributes;
 
 namespace ThaumielMapEditor.API.Extensions
 {
@@ -41,8 +40,6 @@ namespace ThaumielMapEditor.API.Extensions
             int index = Array.IndexOf(values, current);
             if (index < 0)
             {
-                // Current is not a defined member (stale or combined value).
-                // Snap to the first valid value in the step direction.
                 if (direction > 0)
                 {
                     for (int i = 0; i < values.Length; i++)
@@ -78,7 +75,6 @@ namespace ThaumielMapEditor.API.Extensions
                     return values[index];
             }
 
-            // wrap is false and the edge was hit: clamp to the nearest valid value.
             if (direction > 0)
             {
                 for (int i = values.Length - 1; i >= 0; i--)

@@ -8,7 +8,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Data;
 using Random = UnityEngine.Random;
 
