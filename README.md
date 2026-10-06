@@ -26,20 +26,6 @@ Our docs are available at: https://thaumiel.gitbook.io/tme-docs/
             </a>
         </td>
         <td align="center" style="background-color: #1d1d1d; border-radius: 10px; padding: 10px; width: 100px;">
-            <a href="Localization/Spanish.md" 
-               style="display: block; width: 100%; height: 100%; text-align: center; text-decoration: none; color: #333; cursor: pointer;">
-                <img src="https://flagsapi.com/ES/flat/64.png" height=30><br>
-                <span style="color: #f0f0f0">Español</span>
-            </a>
-        </td>
-        <td align="center" style="background-color: #1d1d1d; border-radius: 10px; padding: 10px; width: 100px;">
-            <a href="Localization/French.md" 
-               style="display: block; width: 100%; height: 100%; text-align: center; text-decoration: none; color: #333; cursor: pointer;">
-                <img src="https://flagsapi.com/FR/flat/64.png" height=30><br>
-                <span style="color: #f0f0f0">Français</span>
-            </a>
-        </td>
-        <td align="center" style="background-color: #1d1d1d; border-radius: 10px; padding: 10px; width: 100px;">
             <a href="Localization/Portuguese-BR.md" 
                style="display: block; width: 100%; height: 100%; text-align: center; text-decoration: none; color: #333; cursor: pointer;">
                 <img src="https://flagsapi.com/BR/flat/64.png" height=30><br>
