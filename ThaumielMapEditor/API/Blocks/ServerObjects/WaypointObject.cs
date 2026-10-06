@@ -30,9 +30,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         public override ObjectType ObjectType { get; set; } = ObjectType.Waypoint;
 
         /// <summary>
-        /// Whether the waypoint's bounds are visualized in the editor/runtime.
-        /// Setting this property updates the underlying <see cref="WaypointToy.VisualizeBounds"/>
-        /// when the toy instance is available.
+        /// Whether the waypoint's bounds are visualized.
         /// </summary>
         [YamlMember(Alias = "VisualizeBounds")]
         public bool VisualizeBounds
@@ -50,10 +48,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         }
 
         /// <summary>
-        /// Priority value for the waypoint. Higher values can be used to influence
-        /// ordering or selection logic that consumes waypoint priorities.
-        /// Setting this property updates the underlying <see cref="WaypointToy.Priority"/>
-        /// when the toy instance is available.
+        /// Priority value for the waypoint.
         /// </summary>
         [YamlMember(Alias = "Priority")]
         public float Priority
@@ -72,8 +67,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
         /// <summary>
         /// Size of the waypoint bounds as a <see cref="Vector3"/>
-        /// Setting this property updates the underlying <see cref="WaypointToy.BoundsSize"/>
-        /// when the toy instance is available.
         /// </summary>
         [YamlMember(Alias = "BoundsSize")]
         public Vector3 BoundsSize

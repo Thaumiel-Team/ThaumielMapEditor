@@ -34,8 +34,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// The text format string used by the <see cref="TextToy"/> for rendering text.
         /// </summary>
         /// <remarks>
-        /// Setting this property updates the underlying <see cref="Base"/> instance's <c>TextFormat</c> if the
-        /// runtime object has already been created.
+        /// Setting this property updates the underlying <see cref="Base"/> instance's <c>TextFormat</c> if the object has already been created.
         /// </remarks>
         [YamlMember(Alias = "Text")]
         public string Text
@@ -55,8 +54,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// The display size (width, height) used by the <see cref="TextToy"/> when rendering text.
         /// </summary>
         /// <remarks>
-        /// Setting this property updates the underlying <see cref="Base"/> instance's <c>DisplaySize</c> if the
-        /// runtime object has already been created.
+        /// Setting this property updates the underlying <see cref="Base"/> instance's <c>DisplaySize</c> if the object has already been created.
         /// </remarks>
         [YamlMember(Alias = "DisplaySize")]
         public Vector2 DisplaySize

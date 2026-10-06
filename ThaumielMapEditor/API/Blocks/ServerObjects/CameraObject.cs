@@ -33,10 +33,27 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 #pragma warning restore CS8618
 
         /// <summary>
-        /// The camera prefab type (mapped to a specific prefab via <see cref="GetCameraPrefab"/>).
+        /// The camera prefab type.
+        /// Setting this on a spawned camera respawns it in place with the new prefab.
         /// </summary>
         [YamlMember(Alias = "CameraType")]
-        public CameraType Type { get; set; }
+        public CameraType Type
+        {
+            get;
+            set
+            {
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (Base == null || Object == null)
+                    return;
+
+                NetworkServer.Destroy(Object);
+                Respawn();
+            }
+        }
 
         /// <summary>
         /// Display label for the camera. Setting this property updates the networked label on
@@ -48,11 +65,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             get;
             set
             {
-                if (field == value || Base == null)
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (Base == null)
                     return;
 
                 Base.NetworkLabel = value;
-                field = value;
             }
         } = string.Empty;
 
@@ -66,11 +87,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             get;
             set
             {
-                if (field == value || Base == null)
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (Base == null || value == null)
                     return;
 
                 Base.NetworkRoom = value.Base;
-                field = value;
             }
         } = Room.Get(RoomName.Outside).First();
 
@@ -94,11 +119,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             get;
             set
             {
-                if (field == value || Base == null)
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (Base == null)
                     return;
 
                 Base.NetworkVerticalConstraint = value;
-                field = value;
             }
         }
 
@@ -112,11 +141,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             get;
             set
             {
-                if (field == value || Base == null)
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (Base == null)
                     return;
 
                 Base.NetworkHorizontalConstraint = value;
-                field = value;
             }
         }
         
@@ -130,11 +163,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             get;
             set
             {
-                if (field == value || Base == null)
+                if (field == value)
                     return;
-                
-                Base.NetworkZoomConstraint = value;
+
                 field = value;
+
+                if (Base == null)
+                    return;
+
+                Base.NetworkZoomConstraint = value;
             }
         }
 
@@ -170,9 +207,42 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             Base = camera;
             Object = camera.gameObject;
             SetWorldTransform(schematic);
+            Object.transform.localScale = Scale;
+            ApplyProperties(camera);
             NetworkServer.Spawn(camera.gameObject);
             NetId = camera.netId;
             base.SpawnObject(schematic, serializable);
+        }
+
+        /// <summary>
+        /// Respawns this camera in place with the current <see cref="Type"/> prefab,
+        /// </summary>
+        public void Respawn()
+        {
+            Scp079CameraToy camera = UnityEngine.Object.Instantiate(GetCameraPrefab(Type));
+            NetworkServer.UnSpawn(camera.gameObject);
+            Base = camera;
+            Object = camera.gameObject;
+            Object.transform.SetPositionAndRotation(Position, Rotation);
+            Object.transform.localScale = Scale;
+            ApplyProperties(camera);
+            NetworkServer.Spawn(camera.gameObject);
+            NetId = camera.netId;
+        }
+
+        /// <summary>
+        /// Applies all current property values to the given camera toy.
+        /// </summary>
+        /// <param name="camera">The <see cref="Scp079CameraToy"/> to apply properties to.</param>
+        public void ApplyProperties(Scp079CameraToy camera)
+        {
+            camera.NetworkLabel = Label;
+            if (Room != null)
+                camera.NetworkRoom = Room.Base;
+
+            camera.NetworkVerticalConstraint = VerticalConstraint;
+            camera.NetworkHorizontalConstraint = HorizontalConstraint;
+            camera.NetworkZoomConstraint = ZoomConstraint;
         }
     }
 }

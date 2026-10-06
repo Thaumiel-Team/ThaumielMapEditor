@@ -65,7 +65,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
                 field = value;
 
-                if (Base == null)
+                if (Base == null || Object == null)
                     return;
 
                 NetworkServer.Destroy(Object);
@@ -226,6 +226,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             Object = doorPrefab.gameObject;
             Base = doorPrefab;
             SetWorldTransform(schematic);
+            Base.transform.localScale = Scale;
             ApplyProperties(doorPrefab);
             NetworkServer.Spawn(Object);
             NetId = doorPrefab.netId;
@@ -253,6 +254,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             Object = doorPrefab.gameObject;
             Base = doorPrefab;
             SetWorldTransform(schematic);
+            Object.transform.localScale = Scale;
             ApplyProperties(doorPrefab);
             NetworkServer.Spawn(Object);
             NetId = doorPrefab.netId;
@@ -282,15 +284,14 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             Object = doorPrefab.gameObject;
             Base = doorPrefab;
             Base.gameObject.transform.SetPositionAndRotation(Position, Rotation);
+            Object.transform.localScale = Scale;
             ApplyProperties(Base);
             NetworkServer.Spawn(Object);
             NetId = doorPrefab.netId;
         }
 
         /// <summary>
-        /// Applies all current property values to the given door prefab <see cref="GameObject"/>.
-        /// This includes health, lock state, open state, and permissions.
-        /// Called internally during <see cref="SpawnObject(SchematicData, SerializableObject)"/>.
+        /// Applies all current property values to the given door prefab.
         /// </summary>
         /// <param name="door">The <see cref="DoorVariant"/> to apply properties to.</param>
         public void ApplyProperties(DoorVariant door)

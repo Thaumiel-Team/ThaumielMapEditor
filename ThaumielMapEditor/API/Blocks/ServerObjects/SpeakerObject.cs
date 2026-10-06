@@ -32,36 +32,30 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Gets or sets the volume of the speaker, expressed as a percentage between 0 and 100.
         /// </summary>
         /// <value>A <see cref="float"/> representing the volume percentage.</value>
-        private float _volume = 100f;
-
         [YamlMember(Alias = "Volume")]
         public float Volume
         {
-            get => _volume;
+            get;
             set
             {
-                _volume = value;
-                if (Player != null)
-                    Player.Speaker.Volume = value / 100;
+                field = value;
+                Player?.Speaker.Volume = value / 100;
             }
-        }
+        } = 100f;
 
         /// <summary>
         /// Gets or sets a value indicating whether the speaker uses spatial audio.
         /// When <see langword="true"/>, audio volume and panning are affected by the listener's position.
         /// </summary>
         /// <value><see langword="true"/> if spatial audio is enabled; otherwise, <see langword="false"/>.</value>
-        private bool _isSpatial;
-
         [YamlMember(Alias = "IsSpatial")]
         public bool IsSpatial
         {
-            get => _isSpatial;
+            get;
             set
             {
-                _isSpatial = value;
-                if (Player != null)
-                    Player.Speaker.IsSpatial = value;
+                field = value;
+                Player?.Speaker.IsSpatial = value;
             }
         }
 
@@ -70,42 +64,38 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Within this distance, audio plays at full volume.
         /// </summary>
         /// <value>A <see cref="float"/> representing the minimum distance in world units.</value>
-        private float _minDistance = 1f;
-
+        /// <remarks>
+        /// Only used if <see cref="IsSpatial"/> is true.
+        /// </remarks>
         [YamlMember(Alias = "MinDistance")]
         public float MinDistance
         {
-            get => _minDistance;
+            get;
             set
             {
-                _minDistance = value;
-                if (Player != null)
-                    Player.Speaker.MinDistance = value;
+                field = value;
+                Player?.Speaker.MinDistance = value;
             }
-        }
+        } = 1f;
 
         /// <summary>
         /// Gets or sets the maximum distance at which the speaker can be heard for spatial audio.
         /// Beyond this distance, audio is inaudible.
         /// </summary>
         /// <value>A <see cref="float"/> representing the maximum distance in world units.</value>
-        private float _maxDistance = 10f;
-
         [YamlMember(Alias = "MaxDistance")]
         public float MaxDistance
         {
-            get => _maxDistance;
+            get;
             set
             {
-                _maxDistance = value;
-                if (Player != null)
-                    Player.Speaker.MaxDistance = value;
+                field = value;
+                Player?.Speaker.MaxDistance = value;
             }
-        }
+        } = 10f;
 
         /// <summary>
         /// Gets or sets a value indicating whether the speaker loops its audio.
-        /// Setting this property updates the underlying <see cref="AudioPlayer"/> loop state.
         /// </summary>
         /// <value><see langword="true"/> if the audio should loop; otherwise, <see langword="false"/>.</value>
         [YamlMember(Alias = "Loop")]

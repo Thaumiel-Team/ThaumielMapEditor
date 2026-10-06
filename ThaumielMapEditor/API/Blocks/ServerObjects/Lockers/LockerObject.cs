@@ -44,9 +44,29 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
 
         /// <summary>
         /// The <see cref="LockerType"/> variant for this locker (e.g., Medkit, RifleRack, Misc).
+        /// Setting this on a spawned locker respawns it in place with the new prefab
         /// </summary>
         [YamlMember(Alias = "LockerType")]
-        public LockerType Type { get; private set; }
+        public LockerType Type
+        {
+            get;
+            set
+            {
+                if (field == value)
+                    return;
+
+                if (value == LockerType.None)
+                    return;
+
+                field = value;
+
+                if (Base == null || Object == null)
+                    return;
+
+                NetworkServer.Destroy(Object);
+                Respawn();
+            }
+        }
 
         /// <summary>
         /// Maps a <see cref="LockerType"/> value to the corresponding locker prefab from <see cref="PrefabHelper"/>.
@@ -91,6 +111,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
             Object = locker.gameObject;
             NetworkServer.UnSpawn(locker.gameObject);
             SetWorldTransform(schematic);
+            Object.transform.localScale = Scale;
             locker.gameObject.name += " [TME Locker]";
             if (locker.TryGetComponent<StructurePositionSync>(out var posSync))
             {
@@ -115,12 +136,57 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
         }
 
         /// <summary>
+        /// Respawns this locker in place with the current <see cref="Type"/> prefab.
+        /// Called automatically when <see cref="Type"/> changes on an already spawned locker.
+        /// </summary>
+        public void Respawn()
+        {
+            Locker? prefab = GetPrefabFromType(Type);
+            if (prefab is null)
+            {
+                LogManager.Warn($"Failed to get locker prefab for respawn (LockerType: {Type}).");
+                return;
+            }
+
+            GameObject lockerobj = UnityEngine.Object.Instantiate(prefab.gameObject);
+            if (!lockerobj.TryGetComponent<Locker>(out var locker))
+            {
+                LogManager.Warn($"Failed to get Locker component from prefab on respawn.");
+                UnityEngine.Object.Destroy(lockerobj);
+                return;
+            }
+
+            Base = locker;
+            Object = locker.gameObject;
+            NetworkServer.UnSpawn(locker.gameObject);
+            Object.transform.SetPositionAndRotation(Position, Rotation);
+            Object.transform.localScale = Scale;
+            locker.gameObject.name += " [TME Locker]";
+            if (locker.TryGetComponent<StructurePositionSync>(out var posSync))
+            {
+                posSync.Network_position = Position;
+                Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up);
+                posSync.Network_rotationY = (sbyte)Mathf.RoundToInt(Rotation.eulerAngles.y / 5.625f);
+            }
+
+            locker.ParentRoom = RoomExtensions.GetClosestRoomToPosition(Position)?.Base ?? null;
+            NetworkServer.Spawn(locker.gameObject);
+            NetId = locker.netId;
+            Timing.CallDelayed(Timing.WaitForOneFrame, () =>
+            {
+                if (Base == null)
+                    return;
+
+                LabLocker labLocker = LabLocker.Get(Base);
+                labLocker.ClearAllChambers();
+                labLocker.ClearLockerLoot();
+                Base._serverChambersFilled = true;
+                PopulateChambers();
+            });
+        }
+
+        /// <summary>
         /// Populates the runtime locker chambers based on the serialized <see cref="Chambers"/> data.
-        /// For each serialized chamber:
-        /// - Matches it to the corresponding runtime chamber by index.
-        /// - Applies required permissions.
-        /// - Iterates configured <see cref="ChamberData"/> entries and spawns items based on their spawn chance and amounts.
-        /// Ensures each serialized chamber only spawns once per population pass.
         /// </summary>
         public void PopulateChambers()
         {
@@ -148,6 +214,67 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Removes all items currently spawned in the locker chambers.
+        /// </summary>
+        public void ClearChambers()
+        {
+            if (Base == null)
+                return;
+
+            LabLocker labLocker = LabLocker.Get(Base);
+            labLocker.ClearAllChambers();
+            labLocker.ClearLockerLoot();
+        }
+
+        /// <summary>
+        /// Gets the number of runtime chambers on the spawned locker prefab, or 0 when not spawned.
+        /// </summary>
+        public int ChamberCount => Base?.Chambers?.Length ?? 0;
+
+        /// <summary>
+        /// Gets the serialized chamber definition for the given index, or <see langword="null"/> when not configured.
+        /// </summary>
+        public LockerChamber? GetChamber(int index)
+        {
+            foreach (LockerChamber chamber in Chambers)
+            {
+                if (chamber.Index == (uint)index)
+                    return chamber;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the serialized chamber definition for the given index, creating it with defaults when missing.
+        /// </summary>
+        public LockerChamber GetOrCreateChamber(int index)
+        {
+            LockerChamber? existing = GetChamber(index);
+            if (existing != null)
+                return existing;
+
+            LockerChamber created = new() { Index = (uint)index };
+            Chambers.Add(created);
+            return created;
+        }
+
+        /// <summary>
+        /// Removes the serialized chamber definition for the given index.
+        /// </summary>
+        /// <returns><see langword="true"/> when an entry was removed.</returns>
+        public bool RemoveChamber(int index) => Chambers.RemoveAll(c => c.Index == (uint)index) > 0;
+
+        /// <summary>
+        /// Clears runtime chambers and repopulates them from the serialized <see cref="Chambers"/> data.
+        /// </summary>
+        public void RefreshChambers()
+        {
+            ClearChambers();
+            PopulateChambers();
         }
     }
 }

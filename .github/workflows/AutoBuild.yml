@@ -40,12 +40,35 @@ jobs:
 
       - name: Build
         run: dotnet build ThaumielMapEditor/ThaumielMapEditor.csproj --configuration Release --output build "-p:SL_REFERENCES=${{ env.SL_REFERENCES }}"
+
+      - name: Build ToolGun
+        run: dotnet build ThaumielMapEditor.ToolGun/ThaumielMapEditor.ToolGun.csproj --configuration Release --output build-toolgun "-p:SL_REFERENCES=${{ env.SL_REFERENCES }}"
+
+      - name: Package ToolGun dependencies
+        run: |
+          mkdir -p toolgun-deps
+          SECRET_VERSION=$(grep 'PackageReference Include="SecretAPI"' ThaumielMapEditor.ToolGun/ThaumielMapEditor.ToolGun.csproj | sed -n 's/.*Version="\([^"]*\)".*/\1/p')
+          echo "SecretAPI version: $SECRET_VERSION"
+          curl -fsSL "https://www.nuget.org/api/v2/package/SecretAPI/${SECRET_VERSION}" -o "toolgun-deps/SecretAPI.nupkg"
+          unzip -j -o "toolgun-deps/SecretAPI.nupkg" "lib/net48/SecretAPI.dll" -d "toolgun-deps/"
+          rm "toolgun-deps/SecretAPI.nupkg"
+          cp "ThaumielMapEditor.ToolGun/Dependencies/CustomItemsAPI.dll" "toolgun-deps/CustomItemsAPI.dll"
+          zip -j Toolgun-Dependencies.zip toolgun-deps/CustomItemsAPI.dll toolgun-deps/SecretAPI.dll
+          unzip -l Toolgun-Dependencies.zip
         
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ThaumielMapEditor
-          path: build/
+          path: |
+            build/
+            build-toolgun/ThaumielMapEditor.ToolGun.dll
+
+      - name: Upload ToolGun dependencies artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Toolgun-Dependencies
+          path: Toolgun-Dependencies.zip
 
       - name: Extract version
         id: get_version
@@ -62,9 +85,14 @@ jobs:
           tag_name: ${{ steps.get_version.outputs.plugin_version }}
           name: "Build #${{ github.run_number }} — ${{ github.sha }}"
           body: |
+            > [!NOTE]
+            > The Assemblies in Toolgun-Dependencies.zip are plugins. Install them to LabAPI/plugins/...
+            
             Automated release for version ${{ steps.get_version.outputs.plugin_version }}.
           files: |
             build/ThaumielMapEditor.dll
+            build-toolgun/ThaumielMapEditor.ToolGun.dll
+            Toolgun-Dependencies.zip
           skip-if-release-exists: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

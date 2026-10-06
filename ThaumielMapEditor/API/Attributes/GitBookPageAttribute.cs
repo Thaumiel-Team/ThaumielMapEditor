@@ -5,16 +5,12 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 
 namespace ThaumielMapEditor.API.Attributes
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct | AttributeTargets.Enum)]
-    internal class GitBookPageAttribute : Attribute
+    public class GitBookPageAttribute : Attribute
     {
         public string Path { get; }
 

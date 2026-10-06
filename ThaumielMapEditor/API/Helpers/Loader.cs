@@ -1111,6 +1111,7 @@ namespace ThaumielMapEditor.API.Helpers
 
                 case ObjectType.Pickup:
                     EnsureValue(values, "SpawnPercentage", 100f);
+                    EnsureValue(values, "ItemToSpawn", ItemType.GunCOM15);
                     break;
 
                 case ObjectType.RagdollSpawner:
@@ -1121,6 +1122,14 @@ namespace ThaumielMapEditor.API.Helpers
                     if (!HasValueKey(values, "Id"))
                         values["Id"] = Guid.NewGuid();
 
+                    break;
+
+                case ObjectType.Door:
+                    EnsureValue(values, "DoorType", DoorType.Hcz);
+                    break;
+
+                case ObjectType.Locker:
+                    EnsureValue(values, "LockerType", LockerType.Misc);
                     break;
             }
         }

@@ -277,6 +277,7 @@ namespace ThaumielMapEditor.API.Blocks
         /// <param name="schematic">The schematic data instance from which the object will be removed.</param>
         public virtual void DestroyObject(SchematicData schematic)
         {
+            DrawableLinesHelper.StopDraw(this, null);
             OnObjectDestroying?.Invoke(this);
             ObjectHandler.OnServerObjectDestroyed(new(this));
             schematic.SpawnedServerObjects.Remove(this);

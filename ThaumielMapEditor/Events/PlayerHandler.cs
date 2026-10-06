@@ -80,6 +80,7 @@ namespace ThaumielMapEditor.Events
             PlayerExtensions.EffectCache.Remove(player);
             LODHelper.PlayersInLODZones.Remove(player);
             Grab.ReleasePlayer(player);
+            DrawableLinesHelper.StopDrawsForPlayer(player);
         }
 
         private static void OnPlayerJoined(PlayerJoinedEventArgs ev)

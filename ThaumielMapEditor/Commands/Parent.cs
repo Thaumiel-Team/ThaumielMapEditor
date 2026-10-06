@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using CommandSystem;
 using LabApi.Features.Permissions;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Interfaces;
 using ThaumielMapEditor.Commands.Admin;
@@ -44,6 +43,24 @@ namespace ThaumielMapEditor.Commands
             Subcommands.Add(new Admin.Convert());
             Subcommands.Add(new Coroutines());
             Subcommands.Add(new Debug());
+        }
+
+        public bool RegisterSubCommand(SubCommand command)
+        {
+            if (Subcommands.Any(c => c.GetType() == command.GetType()))
+                return false;
+
+            Subcommands.Add(command);
+            return true;
+        }
+
+        public bool UnregisterSubCommand<T>() where T : SubCommand
+        {
+            SubCommand? existing = Subcommands.FirstOrDefault(c => c is T);
+            if (existing == null)
+                return false;
+
+            return Subcommands.Remove(existing);
         }
 
         private List<SubCommand> Subcommands { get; } = [];

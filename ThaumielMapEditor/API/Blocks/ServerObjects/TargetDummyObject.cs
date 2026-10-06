@@ -30,7 +30,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
         /// <summary>
         /// The configured <see cref="TargetType"/> for this target.
-        /// Determined by parsing serialized data before spawning.
         /// </summary>
         [YamlMember(Alias = "TargetType")]
         public TargetType Type
@@ -42,6 +41,10 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
                     return;
 
                 field = value;
+
+                if (Base == null || Object == null)
+                    return;
+
                 NetworkServer.Destroy(Object);
                 SpawnObject();
             }
@@ -81,6 +84,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             Object = target.gameObject;
             Base = target;
             SetWorldTransform(schematic);
+            Object.transform.localScale = Scale;
             NetworkServer.Spawn(target.gameObject);
             NetId = target.netId;
 
@@ -98,6 +102,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             Object = target.gameObject;
             Base = target;
             Base.transform.SetPositionAndRotation(Position, Rotation);
+            Object.transform.localScale = Scale;
             NetworkServer.Spawn(target.gameObject);
             NetId = target.netId;
         }

@@ -22,7 +22,7 @@
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NAudio.Core" Version="2.2.1" />
     <PackageReference Include="SecretLabNAudio.Core" Version="2.1.0" />
-    <PackageReference Include="Lib.Harmony" Version="2.2.2" />
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
   </ItemGroup>
   <ItemGroup>
     <!--Dependencies-->

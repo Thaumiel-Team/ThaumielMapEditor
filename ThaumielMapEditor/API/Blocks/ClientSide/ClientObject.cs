@@ -267,6 +267,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <param name="player">The <see cref="Player"/> to destroy this object on.</param>
         public void DestroyForPlayer(Player player)
         {
+            DrawableLinesHelper.StopDraw(this, player);
             player.Connection.Send(new ObjectDestroyMessage { netId = NetId });
             SpawnedPlayers.Remove(player);
         }
@@ -276,6 +277,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// </summary>
         public void DestroyForAllPlayers()
         {
+            DrawableLinesHelper.StopDraw(this, null);
             foreach (Player player in Player.ReadyList)
             {
                 if (player.IsHost || player.IsDummy)
@@ -454,6 +456,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             if (player.IsHost)
                 return;
 
+            DrawableLinesHelper.StopDraw(this, player);
             ObjectHandler.OnClientObjectDestroyed(new (this, player));
             player.Connection.Send(new ObjectDestroyMessage { netId = NetId });
             SpawnedPlayers.Remove(player);
@@ -465,6 +468,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <returns>The number of players this object was despawned for.</returns>
         public uint DespawnForAllPlayers()
         {
+            DrawableLinesHelper.StopDraw(this, null);
             uint count = 0;
             foreach (Player player in Player.ReadyList)
             {

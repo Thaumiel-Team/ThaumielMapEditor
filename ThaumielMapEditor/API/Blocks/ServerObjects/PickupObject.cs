@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using LabApi.Features.Wrappers;
+using Mirror;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -18,16 +19,32 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
     public class PickupObject : ServerObject
     {
         [YamlMember(Alias = "ItemToSpawn")]
-        public ItemType ItemToSpawn { get; private set; }
+        public ItemType ItemToSpawn
+        {
+            get;
+            set
+            {
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (Object == null)
+                    return;
+
+                NetworkServer.Destroy(Object);
+                Respawn();
+            }
+        }
 
         [YamlMember(Alias = "SpawnPercentage")]
-        public float SpawnPercentage { get; private set; }
+        public float SpawnPercentage { get; set; }
 
         [YamlMember(Alias = "MaxAmount")]
-        public uint MaxAmount { get; private set; }
+        public uint MaxAmount { get; set; }
 
         [YamlMember(Alias = "IsInfinite")]
-        public bool IsInfinite { get; private set; }
+        public bool IsInfinite { get; set; }
 
         public override ObjectType ObjectType { get; set; } = ObjectType.Pickup;
 
@@ -46,12 +63,30 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
 
             Object = pickup.GameObject;
+            Object.transform.localScale = Scale;
 
             pickup.Spawn();
             NetId = pickup.Base.netId;
 
             LogManager.Debug($"Spawned pickup {ItemToSpawn} at {Position}");
             base.SpawnObject(schematic, serializable);
+        }
+
+        /// <summary>
+        /// Respawns this pickup in place with the current <see cref="ItemToSpawn"/>.
+        /// </summary>
+        public void Respawn()
+        {
+            Pickup? pickup = Pickup.Create(ItemToSpawn, Position, Rotation);
+            if (pickup == null)
+            {
+                LogManager.Warn($"Failed to respawn pickup of type {ItemToSpawn}.");
+                return;
+            }
+
+            Object = pickup.GameObject;
+            pickup.Spawn();
+            NetId = pickup.Base.netId;
         }
     }
 }

@@ -10,7 +10,6 @@ using AdminToys;
 using HarmonyLib;
 using Interactables.Interobjects.DoorUtils;
 using LabApi.Features.Wrappers;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Helpers;
 using static AdminToys.InvisibleInteractableToy;

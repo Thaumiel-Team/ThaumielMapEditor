@@ -71,6 +71,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
             workstationPrefab.NetworkStatus = (byte)(AllowInteractions ? 0 : 4);
             SetWorldTransform(schematic);
+            Object.transform.localScale = Scale;
 
             if (workstationPrefab.TryGetComponent(out StructurePositionSync structurePositionSync))
             {
