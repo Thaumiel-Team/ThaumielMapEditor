@@ -101,7 +101,11 @@ namespace ThaumielMapEditor.API.Helpers.Networking
             if (!Main.Instance.Config.AllowLocalAdminLogUpload || !GetLocalAdminConfig())
                 return "Disabled";
 
-            DirectoryInfo directory = new(Path.Combine(PathManager.SecretLab.ToString(), "LocalAdminLogs", Server.Port.ToString()));
+            string logDir = Path.Combine(PathManager.SecretLab.ToString(), "LocalAdminLogs", Server.Port.ToString());
+            if (!Directory.Exists(logDir))
+                return string.Empty;
+
+            DirectoryInfo directory = new(logDir);
             FileInfo latestFile = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).FirstOrDefault();
             return latestFile?.FullName ?? string.Empty;
         }
@@ -176,7 +180,6 @@ namespace ThaumielMapEditor.API.Helpers.Networking
             request.SetRequestHeader("Content-Type", "application/json");
 
             yield return Timing.WaitUntilDone(request.SendWebRequest());
-            request.Dispose();
         }
 
         private static IEnumerator<float> SendLogsCoroutine(Action<LogUploadResponse?> onComplete)
@@ -186,7 +189,7 @@ namespace ThaumielMapEditor.API.Helpers.Networking
                 Port = Server.Port,
                 LabApiVersion = LabApiProperties.CompiledVersion,
                 PluginVersion = Main.Instance.Version.ToString(),
-                LogData = string.Join("\n", LogManager.Logs.Select(l => $"[{l.LogTime}] [{l.LogLevel}] {l.Message}")),
+                LogData = string.Join("\n", LogManager.GetLogSnapshot().Select(l => $"[{l.LogTime}] [{l.LogLevel}] {l.Message}")),
                 LocalAdminLog = ProcessLocalAdminLogs()
             };
 
@@ -213,7 +216,6 @@ namespace ThaumielMapEditor.API.Helpers.Networking
             }
 
             onComplete?.Invoke(response);
-            request.Dispose();
         }
     }
 }

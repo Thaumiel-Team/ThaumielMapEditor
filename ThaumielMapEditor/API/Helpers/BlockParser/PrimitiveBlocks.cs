@@ -8,6 +8,7 @@
 using System;
 using AdminToys;
 using LabApi.Features.Wrappers;
+using Mirror;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
@@ -31,6 +32,18 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             else
             {
                 PrimitiveObject client = new();
+                client.Name = Name;
+                client.NetId = NetworkIdentity.GetNextNetworkId();
+                client.Schematic = schematic;
+
+                if (PrefabHelper.PrimitiveObject?.netIdentity != null)
+                {
+                    client.AssetId = PrefabHelper.PrimitiveObject.netIdentity.assetId;
+                }
+                else
+                    LogManager.Warn($"Spawning Blocky primitive '{Name}' without a registered primitive prefab; clients will not see it.");
+
+                schematic.SpawnedClientObjects.Add(client);
                 foreach (Player player in Player.ReadyList)
                 {
                     client.SpawnForPlayer(player);
@@ -51,7 +64,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not PrimitiveObject client || obj is not PrimitiveObjectServer server)
+            PrimitiveObject? client = obj as PrimitiveObject;
+            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            if (client is null && server is null)
                 return;
 
             Vector3 vector = new(X, Y, Z);
@@ -61,14 +76,17 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                     client?.Position = vector;
                     server?.Position = vector;
                     break;
+
                 case "rotation":
                     client?.Rotation = Quaternion.Euler(vector);
                     server?.Rotation = Quaternion.Euler(vector);
                     break;
+
                 case "scale":
                     client?.Scale = vector;
                     server?.Scale = vector;
                     break;
+
                 default:
                     LogManager.Warn($"Unknown vector target property: {TargetProperty}");
                     break;
@@ -85,7 +103,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not PrimitiveObject client || obj is not PrimitiveObjectServer server)
+            PrimitiveObject? client = obj as PrimitiveObject;
+            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            if (client is null && server is null)
                 return;
 
             Color color = new(R, G, B, A);
@@ -103,7 +123,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not PrimitiveObject client || obj is not PrimitiveObjectServer server)
+            PrimitiveObject? client = obj as PrimitiveObject;
+            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            if (client is null && server is null)
                 return;
 
             switch (SettingType)
@@ -133,6 +155,11 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 case "static":
                     server?.IsStatic = BoolValue;
                     client?.IsStatic = BoolValue;
+                    break;
+
+                case "smoothing":
+                    server?.MovementSmoothing = ByteValue;
+                    client?.MovementSmoothing = ByteValue;
                     break;
 
                 default:

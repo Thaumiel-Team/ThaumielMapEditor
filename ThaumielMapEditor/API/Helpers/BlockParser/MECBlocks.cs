@@ -59,7 +59,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
     public class WaitForSeconds : BlockBase
     {
-        public uint WaitTime { get; set; }
+        public float WaitTime { get; set; }
 
         public List<object?> Stack { get; set; } = [];
 

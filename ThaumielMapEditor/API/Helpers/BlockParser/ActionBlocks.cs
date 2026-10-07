@@ -210,13 +210,16 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         {
             for (int i = 0; i < Count; i++)
             {
-                Item? item = player.Items.Where(i => i.Type == Item).First();
+                Item? item = player.Items.FirstOrDefault(item => item.Type == Item);
                 if (item != null)
                 {
                     player.RemoveItem(item);
                 }
                 else
+                {
                     LogManager.Warn($"Player '{player.DisplayName}' does not have item '{Item}'.");
+                    break;
+                }
             }
         }
     }

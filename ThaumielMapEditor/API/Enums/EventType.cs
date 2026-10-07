@@ -7,6 +7,7 @@
 
 namespace ThaumielMapEditor.API.Enums
 {
+    [GitBookPage("Enums/EventType")]
     public enum EventType
     {
         OnSpawned,

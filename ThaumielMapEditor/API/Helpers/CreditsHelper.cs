@@ -41,14 +41,14 @@ namespace ThaumielMapEditor.API.Helpers
         
         internal static TagType SetTag(Player player)
         {
-            if (!Main.Instance.Config!.EnableCreditTags)
+            if (player.UserGroup != null)
+                return TagType.None;
+
+            if (!Main.Instance.Config.EnableCreditTags)
                 return TagType.None;
 
             if (!Credits.TryGetValue(ParseId(player), out var type))
-            {
-                LogManager.Debug($"Player {player.DisplayName} is not in the Credits dictionary.");
                 return TagType.None;
-            }
 
             switch (type)
             {

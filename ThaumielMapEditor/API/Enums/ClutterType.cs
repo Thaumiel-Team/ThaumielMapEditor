@@ -12,6 +12,7 @@ namespace ThaumielMapEditor.API.Enums
     /// <summary>
     /// Defines the types that <see cref="ClutterObject"/> can use.
     /// </summary>
+    [GitBookPage("Enums/ClutterType")]
     public enum ClutterType
     {
         SimpleBoxes = 0,

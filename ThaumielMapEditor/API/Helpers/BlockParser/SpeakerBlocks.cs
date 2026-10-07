@@ -171,14 +171,32 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Property { get; set; } = string.Empty;
 
+        public object? Speaker { get; set; }
+
+        public override object ReturnExecute()
+        {
+            return ResolveSpeaker() is SpeakerObject server ? GetProperty(server) : null!;
+        }
+
         public override object ReturnExecute(object obj)
         {
-            if (obj is not SpeakerObject server)
+            if (ResolveSpeaker(obj) is not SpeakerObject server)
             {
                 LogManager.Warn("obj is not a SpeakerObject.");
                 return null!;
             }
 
+            return GetProperty(server);
+        }
+
+        private SpeakerObject? ResolveSpeaker(object? fallback = null)
+        {
+            object? target = Speaker is BlockBase block ? block.ReturnExecute() : Speaker ?? fallback;
+            return target as SpeakerObject;
+        }
+
+        private object GetProperty(SpeakerObject server)
+        {
             return Property switch
             {
                 "Position" => server.Position,
@@ -192,6 +210,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 "Loop" => server.Loop,
                 "Id" => server.Id,
                 "Path" => server.Path,
+                "IsPlaying" => server.Player != null && server.Player.Speaker.IsPlaying,
                 _ => LogUnknownProperty(Property)
             };
         }

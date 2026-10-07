@@ -6,44 +6,51 @@
 // -----------------------------------------------------------------------
 
 using LabApi.Features.Wrappers;
+using Mirror;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/PickupObject")]
     public class PickupObject : ServerObject
     {
-        /// <summary>
-        /// The type of item that this pickup will spawn.
-        /// </summary>
-        public ItemType ItemToSpawn { get; private set; }
+        [YamlMember(Alias = "ItemToSpawn")]
+        public ItemType ItemToSpawn
+        {
+            get;
+            set
+            {
+                if (field == value)
+                    return;
 
-        /// <summary>
-        /// Chance (0-100) that this pickup will actually spawn when processed.
-        /// </summary>
-        public float SpawnPercentage { get; private set; }
+                field = value;
 
-        /// <summary>
-        /// Maximum stack/amount that the spawned pickup can contain.
-        /// </summary>
-        public uint MaxAmount { get; private set; }
+                if (Object == null)
+                    return;
 
-        /// <summary>
-        /// Whether this pickup should be treated as infinite (no depletion).
-        /// </summary>
-        public bool IsInfinite { get; private set; }
+                NetworkServer.Destroy(Object);
+                Respawn();
+            }
+        }
 
-        /// <inheritdoc/>
+        [YamlMember(Alias = "SpawnPercentage")]
+        public float SpawnPercentage { get; set; }
+
+        [YamlMember(Alias = "MaxAmount")]
+        public uint MaxAmount { get; set; }
+
+        [YamlMember(Alias = "IsInfinite")]
+        public bool IsInfinite { get; set; }
+
         public override ObjectType ObjectType { get; set; } = ObjectType.Pickup;
 
-        /// <inheritdoc/>
         public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
         {
             SetWorldTransform(schematic);
-            ParseValues(serializable);
             
             if (SpawnPercentage < 100f && UnityEngine.Random.Range(0f, 100f) > SpawnPercentage)
                 return;
@@ -56,52 +63,30 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
 
             Object = pickup.GameObject;
-            NetId = pickup.Base.netId;
+            Object.transform.localScale = Scale;
 
             pickup.Spawn();
+            NetId = pickup.Base.netId;
 
             LogManager.Debug($"Spawned pickup {ItemToSpawn} at {Position}");
             base.SpawnObject(schematic, serializable);
         }
 
         /// <summary>
-        /// Parse pickup-specific values from a <see cref="SerializableObject"/>.
-        /// Validates that the serializable is a pickup and extracts
+        /// Respawns this pickup in place with the current <see cref="ItemToSpawn"/>.
         /// </summary>
-        /// <param name="serializable">The serialized object to read values from.</param>
-        /// <returns>True if all required values were parsed successfully; otherwise false.</returns>
-        public void ParseValues(SerializableObject serializable)
+        public void Respawn()
         {
-            if (serializable.ObjectType != ObjectType.Pickup)
+            Pickup? pickup = Pickup.Create(ItemToSpawn, Position, Rotation);
+            if (pickup == null)
             {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Pickup");
+                LogManager.Warn($"Failed to respawn pickup of type {ItemToSpawn}.");
                 return;
             }
 
-            if (!serializable.Values.TryConvertValue<ItemType>("ItemToSpawn", out var item))
-            {
-                LogManager.Warn("Failed to parse ItemToSpawn");
-            }
-            
-            if (!serializable.Values.TryConvertValue<float>("SpawnPercentage", out var percentage))
-            {
-                LogManager.Warn("Failed to parse SpawnPercentage");
-            }
-            
-            if (!serializable.Values.TryConvertValue<uint>("MaxAmount", out var max))
-            {
-                LogManager.Warn("Failed to parse MaxAmount");
-            }
-            
-            if (!serializable.Values.TryConvertValue<bool>("IsInfinite", out var infinite))
-            {
-                LogManager.Warn("Failed to parse IsInfinite");
-            }
-
-            ItemToSpawn = item;
-            SpawnPercentage = percentage;
-            MaxAmount = max;
-            IsInfinite = infinite;
+            Object = pickup.GameObject;
+            pickup.Spawn();
+            NetId = pickup.Base.netId;
         }
     }
 }

@@ -15,14 +15,26 @@ namespace ThaumielMapEditor.HarmonyPatches
     [HarmonyPatch]
     public class AddLogPatch
     {
+        private static readonly Regex PatchSuffixRegex = new(@"_Patch\d+", RegexOptions.Compiled);
+
         [HarmonyPatch(typeof(ServerConsole), nameof(ServerConsole.AddLog))]
         public static void Postfix(string q, ConsoleColor color, bool hideFromOutputs)
         {
-            if (!q.Contains("ThaumielMapEditor") || !q.Contains("[ERROR]") || !Main.Instance.Config.AutomaticErrorUpload)
-                return;
+            try
+            {
+                if (string.IsNullOrEmpty(q) || !q.Contains("[ERROR]") || !q.Contains("ThaumielMapEditor"))
+                    return;
 
-            q = Regex.Replace(q, @"_Patch\d+", "");
-            LogsUploader.SendAutoRequest($"{q.Replace("MonoMod.Utils.DynamicMethodDefinition.", "")}");
+                if (!Main.Instance.Config.AutomaticErrorUpload)
+                    return;
+
+                q = PatchSuffixRegex.Replace(q, string.Empty);
+                LogsUploader.SendAutoRequest($"{q.Replace("MonoMod.Utils.DynamicMethodDefinition.", "")}");
+            }
+            catch
+            {
+                // Never throw.
+            }
         }
     }
 }

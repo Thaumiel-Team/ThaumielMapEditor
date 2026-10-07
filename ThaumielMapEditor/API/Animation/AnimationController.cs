@@ -6,16 +6,17 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
-using System.Linq;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
 using UnityEngine;
 
 namespace ThaumielMapEditor.API.Animation
 {
+    [GitBookPage("Animation/AnimationController")]
     public class AnimationController
     {
         internal static readonly Dictionary<SchematicData, AnimationController> Dictionary = [];
+        private static readonly object DictionaryLock = new();
 
         internal AnimationController(SchematicData schematic)
         {
@@ -29,7 +30,10 @@ namespace ThaumielMapEditor.API.Animation
             }
 
             Animators = animators;
-            Dictionary[schematic] = this;
+            lock (DictionaryLock)
+            {
+                Dictionary[schematic] = this;
+            }
         }
 
         /// <summary>
@@ -49,7 +53,13 @@ namespace ThaumielMapEditor.API.Animation
         /// <param name="animatorIndex">The index of the animator to use.</param>
         public void Play(string stateName, int animatorIndex = 0)
         {
-            Animator animator = Animators[animatorIndex];
+            if ((uint)animatorIndex >= (uint)Animators.Count)
+                return;
+
+            Animator? animator = Animators[animatorIndex];
+            if (animator == null)
+                return;
+
             animator.Play(stateName);
             animator.speed = 1f;
         }
@@ -62,7 +72,13 @@ namespace ThaumielMapEditor.API.Animation
         /// <param name="speed">The speed to play the animation at.</param>
         public void Play(string stateName, float speed, int animatorIndex = 0)
         {
-            Animator animator = Animators[animatorIndex];
+            if ((uint)animatorIndex >= (uint)Animators.Count)
+                return;
+
+            Animator? animator = Animators[animatorIndex];
+            if (animator == null)
+                return;
+
             animator.Play(stateName);
             animator.speed = speed;
         }
@@ -75,7 +91,13 @@ namespace ThaumielMapEditor.API.Animation
         /// <param name="animatorIndex">The index of the animator to use.</param>
         public void Play(string animParam, bool state, int animatorIndex = 0)
         {
-            Animator animator = Animators[animatorIndex];
+            if ((uint)animatorIndex >= (uint)Animators.Count)
+                return;
+
+            Animator? animator = Animators[animatorIndex];
+            if (animator == null)
+                return;
+
             animator.SetBool(animParam, state);
             animator.speed = 1f;
         }
@@ -89,7 +111,13 @@ namespace ThaumielMapEditor.API.Animation
         /// <param name="speed">The speed to play the animation at.</param>
         public void Play(string animParam, bool state, float speed, int animatorIndex = 0)
         {
-            Animator animator = Animators[animatorIndex];
+            if ((uint)animatorIndex >= (uint)Animators.Count)
+                return;
+
+            Animator? animator = Animators[animatorIndex];
+            if (animator == null)
+                return;
+
             animator.SetBool(animParam, state);
             animator.speed = speed;
         }
@@ -101,7 +129,9 @@ namespace ThaumielMapEditor.API.Animation
         /// <param name="animatorName">The name of the animator GameObject to target.</param>
         public void Play(string stateName, string animatorName)
         {
-            Animator animator = Animators.FirstOrDefault(a => a.name == animatorName);
+            if (!TryGetAnimator(animatorName, out Animator animator))
+                return;
+
             animator.Play(stateName);
             animator.speed = 1f;
         }
@@ -114,9 +144,27 @@ namespace ThaumielMapEditor.API.Animation
         /// <param name="speed">The speed to play the animation at.</param>
         public void Play(string stateName, string animatorName, float speed)
         {
-            Animator animator = Animators.FirstOrDefault(a => a.name == animatorName);
+            if (!TryGetAnimator(animatorName, out Animator animator))
+                return;
+
             animator.Play(stateName);
             animator.speed = speed;
+        }
+
+        private bool TryGetAnimator(string animatorName, out Animator animator)
+        {
+            for (int i = 0; i < Animators.Count; i++)
+            {
+                Animator? candidate = Animators[i];
+                if (candidate == null || candidate.name != animatorName)
+                    continue;
+
+                animator = candidate;
+                return true;
+            }
+
+            animator = null!;
+            return false;
         }
 
         /// <summary>
@@ -125,7 +173,13 @@ namespace ThaumielMapEditor.API.Animation
         /// <param name="animatorIndex">The index of the animator to stop.</param>
         public void Stop(int animatorIndex = 0)
         {
-            Animator animator = Animators[animatorIndex];
+            if ((uint)animatorIndex >= (uint)Animators.Count)
+                return;
+
+            Animator? animator = Animators[animatorIndex];
+            if (animator == null)
+                return;
+
             animator.StopPlayback();
             animator.speed = 0f;
         }
@@ -136,7 +190,9 @@ namespace ThaumielMapEditor.API.Animation
         /// <param name="animatorName">The name of the animator GameObject to stop.</param>
         public void Stop(string animatorName)
         {
-            Animator animator = Animators.FirstOrDefault(a => a.name == animatorName);
+            if (!TryGetAnimator(animatorName, out Animator animator))
+                return;
+
             animator.StopPlayback();
             animator.speed = 0f;
         }
@@ -146,8 +202,31 @@ namespace ThaumielMapEditor.API.Animation
         /// </summary>
         /// <param name="schematic">The schematic to look up.</param>
         /// <returns>The existing or newly created <see cref="AnimationController"/>.</returns>
-        public static AnimationController Get(SchematicData schematic) => Dictionary.TryGetValue(schematic, out AnimationController? controller) ? controller : new AnimationController(schematic);
+        public static AnimationController Get(SchematicData schematic)
+        {
+            lock (DictionaryLock)
+            {
+                if (Dictionary.TryGetValue(schematic, out AnimationController? controller))
+                    return controller;
+            }
 
-        internal static void Remove(SchematicData schematic) => Dictionary.Remove(schematic);
+            return new AnimationController(schematic);
+        }
+
+        internal static void Remove(SchematicData schematic)
+        {
+            lock (DictionaryLock)
+            {
+                Dictionary.Remove(schematic);
+            }
+        }
+
+        internal static void ClearAll()
+        {
+            lock (DictionaryLock)
+            {
+                Dictionary.Clear();
+            }
+        }
     }
 }

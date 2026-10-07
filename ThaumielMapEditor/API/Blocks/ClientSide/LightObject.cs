@@ -5,23 +5,21 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LabApi.Features.Wrappers;
 using Mirror;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
-using ThaumielMapEditor.API.Helpers;
-using ThaumielMapEditor.API.Serialization;
-using ThaumielMapEditor.Events.EventArgs.Handlers;
 using UnityEngine;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
+    [GitBookPage("Blocks/Client/LightObject")]
     public class LightObject : ClientObject
     {
         /// <summary>
         /// Gets or sets the intensity of the light.
         /// </summary>
+        [YamlMember(Alias = "LightIntensity")]
         public float Intensity
         {
             get;
@@ -38,6 +36,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Gets or sets the range of the light.
         /// </summary>
+        [YamlMember(Alias = "LightRange")]
         public float Range
         {
             get;
@@ -54,6 +53,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Gets or sets the color of the light.
         /// </summary>
+        [YamlMember(Alias = "LightColor")]
         public Color Color
         {
             get;
@@ -70,6 +70,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Gets or sets the shadow type used by the light.
         /// </summary>
+        [YamlMember(Alias = "ShadowType")]
         public LightShadows Shadows
         {
             get;
@@ -102,6 +103,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Gets or sets the type of the light.
         /// </summary>
+        [YamlMember(Alias = "LightType")]
         public LightType Type
         {
             get;
@@ -119,6 +121,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets or sets the shape of the light.
         /// </summary>
 #pragma warning disable CS0618
+        [YamlMember(Alias = "LightShape")]
         public LightShape Shape
         {
             get;
@@ -173,25 +176,10 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Light;
 
-        /// <inheritdoc/>
-        public override void SpawnForPlayer(Player player)
+        /// <inheritdoc />
+        protected override void WriteSyncVars(NetworkWriter writer)
         {
-            if (player.IsHost)
-                return;
-
-            using NetworkWriterPooled writer = NetworkWriterPool.Get();
-
-            writer.WriteByte(1);
-
-            int sizePos = writer.Position;
-            writer.WriteByte(0);
-            int start = writer.Position;
-
-            writer.WriteVector3(Position);
-            writer.WriteQuaternion(Rotation);
-            writer.WriteVector3(Scale);
-            writer.WriteByte(MovementSmoothing);
-            writer.WriteBool(IsStatic);
+            base.WriteSyncVars(writer);
             writer.WriteFloat(Intensity);
             writer.WriteFloat(Range);
             writer.WriteColor(Color);
@@ -201,101 +189,69 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             writer.WriteInt((int)Shape);
             writer.WriteFloat(SpotAngle);
             writer.WriteFloat(InnerSpotAngle);
-            writer.WriteUInt(ParentNetId);
-
-            int end = writer.Position;
-            writer.Position = sizePos;
-            writer.WriteByte((byte)(end - start));
-            writer.Position = end;
-
-            player.Connection.Send(new SpawnMessage
-            {
-                netId = NetId,
-                assetId = AssetId,
-                position = Position,
-                rotation = Rotation,
-                scale = Scale,
-                isLocalPlayer = false,
-                isOwner = false,
-                sceneId = 0,
-                payload = writer.ToArraySegment()
-            });
-
-            ObjectHandler.OnClientObjectSpawned(new(this, player));
-            SpawnedPlayers.Add(player);
         }
 
-        /// <summary>
-        /// Deserializes and applies light specific values from a <see cref="SerializableObject"/>.
-        /// </summary>
-        /// <param name="serializable">The serialized object containing light data.</param>
-        public void DeserializeValues(SerializableObject serializable)
+        protected override ulong GetDerivedDirtyBits(SyncFlags flags)
         {
-            if (serializable.ObjectType != ObjectType.Light)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Light");
-                return;
-            }
+            ulong mask = 0UL;
+            if (flags.HasFlagFast(SyncFlags.LightIntensity))
+                mask |= 0x20UL;
 
-            if (!serializable.Values.TryConvertValue<float>("LightIntensity", out var intensity))
-            {
-                LogManager.Warn("Failed to parse LightIntensity");
-            }
+            if (flags.HasFlagFast(SyncFlags.LightRange))
+                mask |= 0x40UL;
 
-            if (!serializable.Values.TryConvertValue<float>("LightRange", out var range))
-            {
-                LogManager.Warn("Failed to parse LightRange");
-            }
+            if (flags.HasFlagFast(SyncFlags.LightColor))
+                mask |= 0x80UL;
 
-            if (!serializable.Values.TryConvertValue<Color>("LightColor", out var color))
-            {
-                LogManager.Warn("Failed to parse LightColor");
-            }
+            if (flags.HasFlagFast(SyncFlags.Shadows))
+                mask |= 0x100UL;
 
-            if (!serializable.Values.TryConvertValue<LightShadows>("ShadowType", out var shadowType))
-            {
-                LogManager.Warn("Failed to parse ShadowType");
-            }
+            if (flags.HasFlagFast(SyncFlags.ShadowStrength))
+                mask |= 0x200UL;
 
-            if (!serializable.Values.TryConvertValue<float>("ShadowStrength", out var shadowStrength))
-            {
-                LogManager.Warn("Failed to parse ShadowStrength");
-            }
+            if (flags.HasFlagFast(SyncFlags.LightType))
+                mask |= 0x400UL;
 
-            if (!serializable.Values.TryConvertValue<LightType>("LightType", out var lightType))
-            {
-                LogManager.Warn("Failed to parse LightType");
-            }
-#pragma warning disable CS0618 // Type or member is obsolete
+            if (flags.HasFlagFast(SyncFlags.LightShape))
+                mask |= 0x800UL;
 
-            if (!serializable.Values.TryConvertValue<LightShape>("LightShape", out var lightShape))
-            {
-                LogManager.Warn("Failed to parse LightShape");
-            }
-#pragma warning restore CS0618 // Type or member is obsolete
+            if (flags.HasFlagFast(SyncFlags.SpotAngle))
+                mask |= 0x1000UL;
 
-            if (!serializable.Values.TryConvertValue<float>("SpotAngle", out var spotAngle))
-            {
-                LogManager.Warn("Failed to parse SpotAngle");
-            }
+            if (flags.HasFlagFast(SyncFlags.InnerSpotAngle))
+                mask |= 0x2000UL;
 
-            if (!serializable.Values.TryConvertValue<float>("InnerSpotAngle", out var innerSpotAngle))
-            {
-                LogManager.Warn("Failed to parse InnerSpotAngle");
-            }
+            return mask;
+        }
 
-            Intensity = intensity;
-            Range = range;
-            Color = color;
-            Shadows = shadowType;
-            ShadowStrength = shadowStrength;
-            Type = lightType;
-            Shape = lightShape;
-            SpotAngle = spotAngle;
-            InnerSpotAngle = innerSpotAngle;
+        protected override void WriteDerivedSyncVars(NetworkWriter writer, SyncFlags flags)
+        {
+            if (flags.HasFlagFast(SyncFlags.LightIntensity))
+                writer.WriteFloat(Intensity);
+                
+            if (flags.HasFlagFast(SyncFlags.LightRange))
+                writer.WriteFloat(Range);
 
-            ObjectId = serializable.ObjectId;
-            ParentId = serializable.ParentId;
+            if (flags.HasFlagFast(SyncFlags.LightColor))
+                writer.WriteColor(Color);
+
+            if (flags.HasFlagFast(SyncFlags.Shadows))
+                writer.WriteInt((int)Shadows);
+
+            if (flags.HasFlagFast(SyncFlags.ShadowStrength))
+                writer.WriteFloat(ShadowStrength);
+
+            if (flags.HasFlagFast(SyncFlags.LightType))
+                writer.WriteInt((int)Type);
+
+            if (flags.HasFlagFast(SyncFlags.LightShape))
+                writer.WriteInt((int)Shape);
+
+            if (flags.HasFlagFast(SyncFlags.SpotAngle))
+                writer.WriteFloat(SpotAngle);
+                
+            if (flags.HasFlagFast(SyncFlags.InnerSpotAngle))
+                writer.WriteFloat(InnerSpotAngle);
         }
     }
 }

@@ -13,6 +13,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Data
 {
+    [GitBookPage("Data/PrefabCollidersData")]
     public class PrefabCollidersData
     {
 #pragma warning disable CS8618
@@ -83,6 +84,9 @@ namespace ThaumielMapEditor.API.Data
             
             foreach (Collider collider in SharedColliderBuffer)
             {
+                if (collider.GetType() == typeof(CharacterController))
+                    continue;
+
                 ColliderType type;
                 try
                 {

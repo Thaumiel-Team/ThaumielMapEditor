@@ -9,6 +9,7 @@ using ThaumielMapEditor.API.Blocks;
 
 namespace ThaumielMapEditor.Events.EventArgs.Objects
 {
+    [GitBookPage("Events/EventArgs/DestroyedServerObjectEventArgs")]
     public class DestroyedServerObjectEventArgs : System.EventArgs
     {
         public ServerObject Object { get; }

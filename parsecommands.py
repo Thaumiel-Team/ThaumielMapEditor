@@ -3,11 +3,7 @@ import re
 import argparse
 
 def parse_commands(base_dir):
-    directories = [
-        os.path.join(base_dir, "ThaumielMapEditor", "Commands"),
-        os.path.join(base_dir, "ThaumielMapEditor", "Commands", "Admin"),
-        os.path.join(base_dir, "ThaumielMapEditor", "Commands", "Console")
-    ]
+    commands_root = os.path.join(base_dir, "ThaumielMapEditor", "Commands")
 
     parsed_commands = {
         "Console": [],
@@ -17,26 +13,27 @@ def parse_commands(base_dir):
 
     name_pattern = re.compile(r'public\s+(?:override\s+)?string\s+(?:Name|Command)\s*=>\s*"([^"]+)";')
     desc_pattern = re.compile(r'public\s+(?:override\s+)?string\s+Description\s*=>\s*"([^"]+)";')
-    alias_pattern = re.compile(r'public\s+(?:override\s+)?string\[\]\s+Aliases\s*=>\s*\[(.*?)\];')
+    alias_pattern = re.compile(r'public\s+(?:override\s+)?string\[\]\s+Aliases\s*=>\s*\[(.*?)\];', re.DOTALL)
     args_pattern = re.compile(r'public\s+(?:override\s+)?string\s+VisibleArgs\s*=>\s*"([^"]*)";')
     perm_pattern = re.compile(r'public\s+(?:override\s+)?string\s+RequiredPermission\s*=>\s*"([^"]+)";')
+    subcommand_pattern = re.compile(r'class\s+\w+\s*:\s*(?:[\w.]+\s*,\s*)*SubCommand\b')
 
-    for directory in directories:
-        if not os.path.exists(directory):
-            print(f"[!] Directory not found, skipping: {directory}")
-            print(f"(Ensure the base directory '{base_dir}' contains the 'ThaumielMapEditor' folder)")
-            continue
+    if not os.path.isdir(commands_root):
+        print(f"[!] Directory not found, skipping: {commands_root}")
+        print(f"(Ensure the base directory '{base_dir}' contains the 'ThaumielMapEditor' folder)")
+        return
 
-        for filename in os.listdir(directory):
+    for root, _, files in os.walk(commands_root):
+        for filename in sorted(files):
             if not filename.endswith(".cs"):
                 continue
 
-            filepath = os.path.join(directory, filename)
+            filepath = os.path.join(root, filename)
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
 
             cmd_type = None
-            if "ISubCommand" in content:
+            if subcommand_pattern.search(content):
                 cmd_type = "SubCommand"
             elif "[CommandHandler(typeof(GameConsoleCommandHandler))]" in content:
                 cmd_type = "Console"
@@ -59,7 +56,7 @@ def parse_commands(base_dir):
             aliases = ""
             if alias_match:
                 raw_aliases = alias_match.group(1)
-                aliases = ", ".join([a.strip(' "') for a in raw_aliases.split(",") if a.strip(' "')])
+                aliases = ", ".join([a.strip(' "\' \t\r\n') for a in raw_aliases.split(",") if a.strip(' "\' \t\r\n')])
 
             parsed_commands[cmd_type].append({
                 "name": name,
@@ -68,6 +65,9 @@ def parse_commands(base_dir):
                 "args": args_match.group(1) if args_match else "None",
                 "permission": perm_match.group(1) if perm_match else "None"
             })
+
+    for key in parsed_commands:
+        parsed_commands[key].sort(key=lambda c: c["name"].lower())
 
     generate_markdown(parsed_commands, base_dir)
 

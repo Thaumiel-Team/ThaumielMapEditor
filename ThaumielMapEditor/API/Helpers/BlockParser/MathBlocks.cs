@@ -154,4 +154,177 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             return result;
         }
     }
+
+    public class MathMinBlock : BlockBase
+    {
+        public object? A { get; set; }
+        public object? B { get; set; }
+
+        public override object ReturnExecute()
+            => Mathf.Min(ResolveFloat(A), ResolveFloat(B));
+    }
+
+    public class MathMaxBlock : BlockBase
+    {
+        public object? A { get; set; }
+        public object? B { get; set; }
+
+        public override object ReturnExecute()
+            => Mathf.Max(ResolveFloat(A), ResolveFloat(B));
+    }
+
+    public class MathClamp01Block : BlockBase
+    {
+        public object? VALUE { get; set; }
+
+        public override object ReturnExecute()
+            => Mathf.Clamp01(ResolveFloat(VALUE));
+    }
+
+    public class MathLerpFloatBlock : BlockBase
+    {
+        public object? A { get; set; }
+        public object? B { get; set; }
+        public object? T { get; set; }
+
+        public override object ReturnExecute()
+            => Mathf.Lerp(ResolveFloat(A), ResolveFloat(B), ResolveFloat(T));
+    }
+
+    public class MathMoveTowardsBlock : BlockBase
+    {
+        public object? CURRENT { get; set; }
+        public object? TARGET { get; set; }
+        public object? MAXDELTA { get; set; }
+
+        public override object ReturnExecute()
+            => Mathf.MoveTowards(ResolveFloat(CURRENT), ResolveFloat(TARGET), ResolveFloat(MAXDELTA));
+    }
+
+    public class MathRandomIntRangeBlock : BlockBase
+    {
+        public object? MIN { get; set; }
+        public object? MAX { get; set; }
+
+        public override object ReturnExecute()
+            => Random.Range(ResolveInt(MIN), ResolveInt(MAX));
+    }
+
+    public class MathRandomFloatRangeBlock : BlockBase
+    {
+        public object? MIN { get; set; }
+        public object? MAX { get; set; }
+
+        public override object ReturnExecute()
+            => Random.Range(ResolveFloat(MIN), ResolveFloat(MAX));
+    }
+
+    public class MathSignBlock : BlockBase
+    {
+        public object? VALUE { get; set; }
+
+        public override object ReturnExecute()
+        {
+            float value = ResolveFloat(VALUE);
+            return value > 0f ? 1 : value < 0f ? -1 : 0;
+        }
+    }
+
+    public class MathFloorToIntBlock : BlockBase
+    {
+        public object? VALUE { get; set; }
+
+        public override object ReturnExecute()
+            => Mathf.FloorToInt(ResolveFloat(VALUE));
+    }
+
+    public class MathCeilToIntBlock : BlockBase
+    {
+        public object? VALUE { get; set; }
+
+        public override object ReturnExecute()
+            => Mathf.CeilToInt(ResolveFloat(VALUE));
+    }
+
+    public class MathRoundToIntBlock : BlockBase
+    {
+        public object? VALUE { get; set; }
+
+        public override object ReturnExecute()
+            => Mathf.RoundToInt(ResolveFloat(VALUE));
+    }
+
+    public class MathRoundDigitsBlock : BlockBase
+    {
+        public object? VALUE { get; set; }
+        public object? DIGITS { get; set; }
+
+        public override object ReturnExecute()
+        {
+            int digits = ResolveInt(DIGITS);
+            if (digits < 0)
+                digits = 0;
+
+            if (digits > 15)
+                digits = 15;
+
+            return (float)System.Math.Round(ResolveFloat(VALUE), digits, System.MidpointRounding.AwayFromZero);
+        }
+    }
+
+    public class MathPingPongBlock : BlockBase
+    {
+        public object? VALUE { get; set; }
+        public object? LENGTH { get; set; }
+
+        public override object ReturnExecute()
+            => Mathf.PingPong(ResolveFloat(VALUE), ResolveFloat(LENGTH, 1f));
+    }
+
+    public class MathRepeatBlock : BlockBase
+    {
+        public object? VALUE { get; set; }
+        public object? LENGTH { get; set; }
+
+        public override object ReturnExecute()
+            => Mathf.Repeat(ResolveFloat(VALUE), ResolveFloat(LENGTH, 1f));
+    }
+
+    public class MathPiBlock : BlockBase
+    {
+        public override object ReturnExecute()
+            => Mathf.PI;
+    }
+
+    public class MathDeg2RadBlock : BlockBase
+    {
+        public object? VALUE { get; set; }
+
+        public override object ReturnExecute()
+            => ResolveFloat(VALUE) * Mathf.Deg2Rad;
+    }
+
+    public class MathRad2DegBlock : BlockBase
+    {
+        public object? VALUE { get; set; }
+
+        public override object ReturnExecute()
+            => ResolveFloat(VALUE) * Mathf.Rad2Deg;
+    }
+
+    public class MathIsNaNBlock : BlockBase
+    {
+        public object? VALUE { get; set; }
+
+        public override object ReturnExecute()
+            => float.IsNaN(ResolveFloat(VALUE));
+    }
+
+    public class MathIsInfinityBlock : BlockBase
+    {
+        public object? VALUE { get; set; }
+
+        public override object ReturnExecute()
+            => float.IsInfinity(ResolveFloat(VALUE));
+    }
 }

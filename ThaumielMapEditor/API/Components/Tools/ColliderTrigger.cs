@@ -5,6 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LabApi.Features.Wrappers;
@@ -15,33 +16,43 @@ using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Components.Tools.Helpers;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.Commands;
 using UnityEngine;
 using static ThaumielMapEditor.API.Components.Tools.Helpers.RunCommand;
 using Warhead = ThaumielMapEditor.API.Components.Tools.Helpers.Warhead;
 using LabWarhead = LabApi.Features.Wrappers.Warhead;
-using CustomPlayerEffects;
 using MEC;
-using System.Linq;
 using ThaumielMapEditor.API.Serialization;
+using YamlDotNet.Serialization;
+using DrawableLine;
+using LabApi.Features.Permissions;
+using ThaumielMapEditor.API.Extensions;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
+    [GitBookPage("Components/Tools/ColliderTrigger")]
     public class ColliderTrigger : ToolBase
     {
-        internal static Dictionary<Player, HashSet<StatusEffectBase>> PlayerEffectCache = [];
-        
-        public Vector3 Bounds;
+        [YamlMember(Alias = "Bounds")]
+        public Vector3 Bounds { get; set; }
+
+        [YamlMember(Alias = "OnEntered")]
+        public Classes OnEntered { get; set; } = new();
+
+        [YamlMember(Alias = "OnExited")]
+        public Classes OnExited { get; set; } = new();
+
+        [YamlMember(Alias = "OnSpawned")]
+        public Classes OnSpawned { get; set; } = new();
+
+        [YamlMember(Alias = "OnDestroyed")]
+        public Classes OnDestroyed { get; set; } = new();
+
+        [YamlMember(Alias = "Permission")]
+        public Permission Permissions { get; set; } = new();
 
 #pragma warning disable CS8618
-        public ColliderClasses OnEntered;
-
-        public ColliderClasses OnExited;
-
-        public Permission Permissions;
-
         public GameObject ColliderObject;
 
         public Collider Collider;
@@ -52,45 +63,63 @@ namespace ThaumielMapEditor.API.Components.Tools
         public override void Init(ServerObject obj, SchematicData schem, Dictionary<string, object> properties)
         {
             base.Init(obj, schem, properties);
-            ParseValues(properties);
             ColliderObject = new($"{Object!.Object!.name} - ColliderObject");
-            ColliderObject.transform.SetParent(Object.Object.transform);
-            Collider = ColliderObject.AddComponent<Collider>();
-            Collider.isTrigger = true;
+            ColliderObject.transform.SetParent(Object.Object.transform, false);
+            ColliderObject.transform.localPosition = Vector3.zero;
+            BoxCollider box = ColliderObject.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            if (Bounds != Vector3.zero)
+                box.size = Bounds;
+
+            Collider = box;
+            ExecuteLifecycleBlocks(OnSpawned, EventType.OnSpawned, "spawn");
         }
 
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
-            if (!OnExited.Blocky.IsEmpty())
+            if (OnExited.Blocky is { Count: > 0 })
             {
                 foreach (BlockyPayload blocky in OnExited.Blocky)
                 {
-                    Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    if (blocky == null)
+                        continue;
+
+                    try
+                    {
+                        Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"ColliderTrigger OnExited cleanup failed: {ex.Message}");
+                    }
                 }
             }
 
-            if (!OnEntered.Blocky.IsEmpty())
+            if (OnEntered.Blocky is { Count: > 0 })
             {
                 foreach (BlockyPayload blocky in OnEntered.Blocky)
                 {
-                    Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    if (blocky == null)
+                        continue;
+
+                    try
+                    {
+                        Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"ColliderTrigger OnEntered cleanup failed: {ex.Message}");
+                    }
                 }
             }
-        }
 
-        public void ParseValues(Dictionary<string, object> properties)
-        {
-            if (properties.TryConvertValue<ColliderClasses>("OnEntered", out var entered))
-                OnEntered = entered;
+            ExecuteLifecycleBlocks(OnSpawned, EventType.OnDestroyed, "OnSpawned cleanup");
+            ExecuteLifecycleBlocks(OnDestroyed, EventType.OnDestroyed, "OnDestroyed cleanup");
 
-            if (properties.TryConvertValue<ColliderClasses>("OnExited", out var exit))
-                OnExited = exit;
+            if (ColliderObject != null)
+                Destroy(ColliderObject);
 
-            if (properties.TryConvertValue<Permission>("Permission", out var perms))
-                Permissions = perms;
-
-            if (properties.TryConvertValue<Vector3>("Bounds", out var bounds))
-                Bounds = bounds;
+            base.OnDestroy();
         }
 
         private void OnTriggerEnter(Collider other)
@@ -102,7 +131,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             if (!Player.TryGet(root, out var player))
                 return;
 
-            if (!Permissions.AllowedRoles.IsEmpty() && !Permissions.AllowedRoles.Contains(player.Role))
+            if ((!Permissions.AllowedRoles.IsEmpty() && !Permissions.AllowedRoles.Contains(player.Role)) || (!string.IsNullOrEmpty(Permissions.LabAPIPermission) && !player.HasPermissions([Permissions.LabAPIPermission])))
                 return;
 
             HandleEffect(OnEntered, player);
@@ -123,7 +152,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             if (!Player.TryGet(root, out var player))
                 return;
 
-            if (!Permissions.AllowedRoles.IsEmpty() && !Permissions.AllowedRoles.Contains(player.Role))
+            if ((!Permissions.AllowedRoles.IsEmpty() && !Permissions.AllowedRoles.Contains(player.Role)) || (!string.IsNullOrEmpty(Permissions.LabAPIPermission) && !player.HasPermissions([Permissions.LabAPIPermission])))
                 return;
 
             HandleEffect(OnExited, player);
@@ -135,7 +164,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             HandleBlocks(OnExited, player, EventType.OnTriggerExited);
         }
 
-        private void HandleBlocks(ColliderClasses classes, Player player, EventType eventType)
+        private void HandleBlocks(Classes classes, Player player, EventType eventType)
         {
             foreach (BlockyPayload blocky in classes.Blocky)
             {
@@ -144,7 +173,28 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleCassie(ColliderClasses classes, Player player)
+        private void ExecuteLifecycleBlocks(Classes classes, EventType eventType, string context)
+        {
+            if (classes?.Blocky is not { Count: > 0 })
+                return;
+
+            foreach (BlockyPayload blocky in classes.Blocky)
+            {
+                if (blocky == null)
+                    continue;
+
+                try
+                {
+                    Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, eventType);
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Error($"ColliderTrigger {context} failed: {ex.Message}");
+                }
+            }
+        }
+
+        private void HandleCassie(Classes classes, Player player)
         {
             foreach (SendCassieMessage message in classes.SendCassieMessage)
             {
@@ -153,7 +203,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleWarhead(ColliderClasses classes, Player player)
+        private void HandleWarhead(Classes classes, Player player)
         {
             foreach (Warhead warhead in classes.Warhead)
             {
@@ -190,7 +240,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleAnimation(ColliderClasses classes, Player player)
+        private void HandleAnimation(Classes classes, Player player)
         {
             foreach (PlayAnimation play in classes.PlayAnimation)
             {
@@ -198,11 +248,8 @@ namespace ThaumielMapEditor.API.Components.Tools
             }
         }
 
-        private void HandleEffect(ColliderClasses classes, Player player)
+        private void HandleEffect(Classes classes, Player player)
         {
-            if (!PlayerEffectCache.ContainsKey(player))
-                PlayerEffectCache[player] = [];
-
             foreach (GiveEffect give in classes.GiveEffect)
             {
                 if (!player.TryGetEffect(give.Effect.ToString(), out var effectBase))
@@ -211,9 +258,7 @@ namespace ThaumielMapEditor.API.Components.Tools
                     continue;
                 }
 
-                if (effectBase.IsEnabled)
-                    PlayerEffectCache[player].Add(effectBase);
-
+                player.AddEffectCache(effectBase);
                 player.EnableEffect(effectBase, (byte)give.Intensity, give.Duration, true);
             }
 
@@ -226,66 +271,91 @@ namespace ThaumielMapEditor.API.Components.Tools
                 }
 
                 player.DisableEffect(effectBase);
-                if (PlayerEffectCache.TryGetValue(player, out var effects))
+                if (player.TryGetFromEffectCache(effectBase, out var effect) && effect != null)
                 {
                     Timing.CallDelayed(Timing.WaitForOneFrame, () =>
                     {
-                        StatusEffectBase? status = effects.FirstOrDefault(e => e == effectBase);
-                        if (status == null)
-                            return;
-                        
-                        player.EnableEffect(status, status._intensity, status._duration);
+                        player.EnableEffect(effect, effect._intensity, effect._duration);
                     });
                 }
             }
         }
 
-        private void HandleCommand(ColliderClasses classes, Player player)
+        private void HandleCommand(Classes classes, Player player)
         {
             foreach (RunCommand command in classes.RunCommand)
             {
-                command.Command
-                .Replace("%id%", player.PlayerId.ToString())
-                .Replace("%name%", player.DisplayName)
-                .Replace("%userid%", player.UserId)
-                .Replace("%role%", player.Role.ToString())
-                .Replace("%health%", player.Health.ToString())
-                .Replace("%maxhealth%", player.MaxHealth.ToString())
-                .Replace("%room%", player.Room?.Name.ToString())
-                .Replace("%position%", player.Position.ToString().Trim('(', ')'));
+                string commandText = command.Command
+                    .Replace("%id%", player.PlayerId.ToString())
+                    .Replace("%name%", player.DisplayName)
+                    .Replace("%userid%", player.UserId)
+                    .Replace("%role%", player.Role.ToString())
+                    .Replace("%health%", player.Health.ToString())
+                    .Replace("%maxhealth%", player.MaxHealth.ToString())
+                    .Replace("%room%", player.Room?.Name.ToString())
+                    .Replace("%position%", player.Position.ToString().Trim('(', ')'));
 
                 switch (command.Type)
                 {
                     case CommandType.Client:
-                        Server.RunCommand($".{command.Command}", new SilentCommandSender());
+                        Server.RunCommand($".{commandText}", new SilentCommandSender());
                         break;
                     
                     case CommandType.Console:
-                        Server.RunCommand($"{command.Command}", new SilentCommandSender());
+                        Server.RunCommand($"{commandText}", new SilentCommandSender());
                         break;
                     
                     case CommandType.RemoteAdmin:
-                        Server.RunCommand($"/{command.Command}", new SilentCommandSender());
+                        Server.RunCommand($"/{commandText}", new SilentCommandSender());
                         break;
                 }
             }
         }
 
-        private void HandleAudio(ColliderClasses classes, Player player)
+        private void HandleAudio(Classes classes, Player player)
         {
+            string? audioPath = Main.Instance?.Config?.AudioPath;
             foreach (PlayAudio play in classes.PlayAudio)
             {
+                if (string.IsNullOrEmpty(play.Path))
+                    continue;
+
+                if (play.Path.Contains(".."))
+                {
+                    LogManager.Warn($"Blocked audio path traversal attempt: '{play.Path}'.");
+                    continue;
+                }
+
                 AudioPlayer audioPlayer = AudioPlayer.CreateDefault(parent: transform);
                 audioPlayer.WithMinDistance(play.MinDistance);
                 audioPlayer.WithMaxDistance(play.MaxDistance);
                 audioPlayer.WithSpatial(play.IsSpatial);
-                if (IsLocalFile(play.Path))
+                try
                 {
-                    audioPlayer.UseFile(Path.Combine(Main.Instance.Config?.AudioPath, play.Path), volume: play.Volume);
+                    if (IsLocalFile(play.Path) && !string.IsNullOrEmpty(audioPath))
+                    {
+                        audioPlayer.UseFile(Path.Combine(audioPath, play.Path), volume: play.Volume);
+                    }
+                    else if (!IsLocalFile(play.Path))
+                    {
+                        audioPlayer.UseFile(play.Path, volume: play.Volume);
+                    }
+                    else
+                        LogManager.Warn($"AudioPath is not configured; skipping local audio '{play.Path}'.");
                 }
-                else
-                    audioPlayer.UseFile(play.Path, volume: play.Volume);
+                catch (Exception ex)
+                {
+                    LogManager.Error($"Failed to play audio '{play.Path}': {ex.Message}");
+                }
             }
+        }
+
+        public void DrawLines()
+        {
+            if (Collider == null)
+                return;
+
+            DrawableLines.GenerateBounds(Collider.bounds);
         }
     }
 }

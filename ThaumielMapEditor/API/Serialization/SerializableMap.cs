@@ -14,6 +14,7 @@ namespace ThaumielMapEditor.API.Serialization
     /// <summary>
     /// This class is used to read map schematics from yaml
     /// </summary>
+    [GitBookPage("Serialization/SerializedMapSchematic")]
     public class SerializedMapSchematic
     {
         /// <summary>
@@ -30,6 +31,7 @@ namespace ThaumielMapEditor.API.Serialization
     /// <summary>
     /// This class is used to read map data from yaml
     /// </summary>
+    [GitBookPage("Serialization/SerializableMap")]
     public class SerializableMap
     {
         /// <summary>

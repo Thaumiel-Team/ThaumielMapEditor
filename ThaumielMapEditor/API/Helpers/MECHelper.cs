@@ -10,10 +10,10 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using MEC;
 using System.Linq;
-using ThaumielMapEditor.API.Attributes;
 
 namespace ThaumielMapEditor.API.Helpers
 {
+    [GitBookPage("MECHelper")]
     public class MECHelper
     {
         internal static readonly Dictionary<string, CoroutineHandle> handles = [];
@@ -79,11 +79,7 @@ namespace ThaumielMapEditor.API.Helpers
 
         private static IEnumerator<float> WaitCoroutine(uint frames, Action onComplete)
         {
-            for (int i = 0; i < frames; i++)
-            {
-                yield return Timing.WaitForOneFrame;
-            }
-
+            yield return Timing.WaitForSeconds(frames / 60f);
             onComplete?.Invoke();
         }
     }

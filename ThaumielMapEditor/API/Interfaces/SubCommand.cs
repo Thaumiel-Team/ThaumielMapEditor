@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="ISubCommand.cs" company="Thaumiel Team">
+// <copyright file="SubCommand.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
@@ -14,7 +14,8 @@ using ThaumielMapEditor.API.Data;
 
 namespace ThaumielMapEditor.API.Interfaces
 {
-    public abstract class ISubCommand
+    [GitBookPage("Interfaces/SubCommand")]
+    public abstract class SubCommand
     {
         public abstract string Name { get; }
 
@@ -28,7 +29,7 @@ namespace ThaumielMapEditor.API.Interfaces
 
         public virtual string[] Aliases => [];
 
-        public virtual List<ISubCommand> SubCommands { get; set; } = [];
+        public virtual List<SubCommand> SubCommands { get; set; } = [];
 
         public virtual void PopulateSubCommands() { }
 

@@ -5,57 +5,20 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using Interactables.Interobjects.DoorUtils;
 using InventorySystem.Items.Pickups;
 using LabApi.Features.Wrappers;
-using Mirror;
-using System;
 using UnityEngine;
 
 namespace ThaumielMapEditor.API.Components
 {
+    [GitBookPage("Components/TriggerHandler")]
     public class TriggerHandler : MonoBehaviour
     {
-#pragma warning disable CS8618
         /// <summary>
-        /// Gets the 
+        /// Gets the box collider associated with the trigger.
         /// </summary>
-        public BoxCollider Collider { get; private set; }
-
-        /// <summary>
-        /// Gets the
-        /// </summary>
-        public Rigidbody Rigidbody { get; private set; }
-#pragma warning restore CS8618
-
-        /// <summary>
-        /// Fired when a <see cref="Player"/> enters the bounds of the <see cref="TriggerHandler"/>
-        /// </summary>
-        public event Action<Player, Collider>? OnPlayerEntered;
-
-        /// <summary>
-        /// Fired when a <see cref="Player"/> leaves the bounds of the <see cref="TriggerHandler"/>
-        /// </summary>
-        public event Action<Player, Collider>? OnPlayerExited;
-
-        /// <summary>
-        /// Fired when a <see cref="Pickup"/> enters the bounds of the <see cref="TriggerHandler"/>
-        /// </summary>
-        public event Action<Pickup, Collider>? OnPickupEntered;
-
-        /// <summary>
-        /// Fired when a <see cref="Pickup"/> leaves the bounds of the <see cref="TriggerHandler"/>
-        /// </summary>
-        public event Action<Pickup, Collider>? OnPickupExited;
-
-        /// <summary>
-        /// Fired when a <see cref="Projectile"/> enters the bounds of the <see cref="TriggerHandler"/>
-        /// </summary>
-        public event Action<Projectile, Collider>? OnProjectileEntered;
-
-        /// <summary>
-        /// Fired when a <see cref="Projectile"/> leaves the bounds of the <see cref="TriggerHandler"/>
-        /// </summary>
-        public event Action<Projectile, Collider>? OnProjectileExited;
+        public BoxCollider? Collider { get; private set; }
 
         private void Awake()
         {
@@ -63,60 +26,62 @@ namespace ThaumielMapEditor.API.Components
                 collider = gameObject.AddComponent<BoxCollider>();
 
             collider.isTrigger = true;
-
-            if (!TryGetComponent<Rigidbody>(out var body))
-                body = gameObject.AddComponent<Rigidbody>();
-
-            body.isKinematic = true;
-
             Collider = collider;
-            Rigidbody = body;
         }
+
+        public virtual void OnPlayerEntered(Player player) { }
+        public virtual void OnPlayerExited(Player player) { }
+        public virtual void OnDoorEntered(DoorVariant door) { }
+        public virtual void OnDoorExited(DoorVariant door) { }
+        public virtual void OnPickupEntered(Pickup pickup) { }
+        public virtual void OnPickupExited(Pickup pickup) { }
+        public virtual void OnObjectEntered(GameObject obj) { }
+        public virtual void OnObjectExited(GameObject obj) { }
 
         private void OnTriggerEnter(Collider other)
         {
-            GameObject? root = other.GetComponentInParent<NetworkIdentity>()?.gameObject;
-            if (root == null)
-                return;
-
-            if (Player.TryGet(root, out var player))
+            if (Player.TryGet(other.gameObject, out var player))
             {
-                OnPlayerEntered?.Invoke(player, other);
+                OnPlayerEntered(player);
                 return;
             }
 
-            if (root.TryGetComponent<ItemPickupBase>(out var pickupbase) && Pickup.TryGet(pickupbase.Info.Serial, out var pickup))
+            if (other.gameObject.TryGetComponent<ItemPickupBase>(out var pickupbase))
             {
-                if (pickup is Projectile projectile)
-                {
-                    OnProjectileEntered?.Invoke(projectile, other);
-                }
-                else
-                    OnPickupEntered?.Invoke(pickup, other);
+                OnPickupEntered(Pickup.Get(pickupbase));
+                return;
             }
+
+            if (other.gameObject.GetComponentInParent<DoorVariant>() is { } door)
+            {
+                OnDoorEntered(door);
+                return;
+            }
+
+            OnObjectEntered(other.gameObject);
         }
 
         private void OnTriggerExit(Collider other)
         {
-            GameObject? root = other.GetComponentInParent<NetworkIdentity>()?.gameObject;
-            if (root == null)
-                return;
-
-            if (Player.TryGet(root, out var player))
+            if (Player.TryGet(other.gameObject, out var player))
             {
-                OnPlayerExited?.Invoke(player, other);
+                OnPlayerExited(player);
                 return;
             }
 
-            if (root.TryGetComponent<ItemPickupBase>(out var pickupbase) && Pickup.TryGet(pickupbase.Info.Serial, out var pickup))
+            if (other.gameObject.TryGetComponent<ItemPickupBase>(out var pickupbase))
             {
-                if (pickup is Projectile projectile)
-                {
-                    OnProjectileExited?.Invoke(projectile, other);
-                }
-                else
-                    OnPickupExited?.Invoke(pickup, other);   
+                OnPickupExited(Pickup.Get(pickupbase));
+                return;
             }
+
+            if (other.gameObject.GetComponentInParent<DoorVariant>() is { } door)
+            {
+                OnDoorExited(door);
+                return;
+            }
+
+            OnObjectExited(other.gameObject);
         }
     }
 }

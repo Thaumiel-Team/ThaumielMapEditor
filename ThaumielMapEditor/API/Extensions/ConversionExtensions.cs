@@ -7,11 +7,13 @@
 
 using System;
 using System.Collections.Generic;
+using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
 
 namespace ThaumielMapEditor.API.Extensions
 {
+    [GitBookPage("Extensions/Convert")]
     public static class ConvertExtensions
     {
         public static Vector3? ToVector3(object obj)

@@ -6,6 +6,8 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
+using System.Linq;
+using DrawableLine;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Components;
 using ThaumielMapEditor.API.Data;
@@ -14,12 +16,24 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Helpers
 {
+    [GitBookPage("LODHelper")]
     public class LODHelper
     {
         /// <summary>
         /// Gets or sets the <see cref="Player"/>s that are in a <see cref="LODZone"/>
         /// </summary>
         public static Dictionary<Player, HashSet<LODZone>> PlayersInLODZones { get; set; } = [];
+
+        public static void DrawLines(SchematicData schematic)
+        {
+            if (schematic.LODZones.IsEmpty())
+                return;
+
+            foreach (LODData data in schematic.LODZones)
+            {
+                DrawableLines.GenerateBounds(new (schematic.Position, data.Bounds));
+            }
+        }
 
         /// <summary>
         /// 
@@ -48,9 +62,6 @@ namespace ThaumielMapEditor.API.Helpers
                 collider.name = $"{schematic.FileName}-LOD{data.Index}-Collider";
                 collider.isTrigger = true;
 
-                Rigidbody body = colliderobj.AddComponent<Rigidbody>();
-                body.isKinematic = true;
-
                 LODZone lodZone = colliderobj.AddComponent<LODZone>();
                 lodZone.Init(schematic, data.Primitives, data.Index);
 
@@ -71,25 +82,30 @@ namespace ThaumielMapEditor.API.Helpers
         public static IEnumerable<Player> PlayersInsideZone(uint index, SchematicData schematic)
         {
             List<Player> players = [];
-            LODZone lod = null!;
-            foreach (LODZone lodzone in schematic.Primitive!.GameObject.GetComponents<LODZone>())
+            LODZone? lod = null;
+            GameObject? root = schematic.Primitive?.GameObject;
+            if (root != null)
             {
-                if (lodzone.Index != index)
-                    continue;
+                foreach (LODZone lodzone in root.GetComponents<LODZone>())
+                {
+                    if (lodzone.Index != index)
+                        continue;
 
-                lod = lodzone;
-                break;
+                    lod = lodzone;
+                    break;
+                }
             }
 
-            foreach (Player player in Player.ReadyList)
+            if (lod?.Collider == null)
+                return players;
+
+            Bounds bounds = lod.Collider.bounds;
+            foreach (Player player in Player.ReadyList.ToArray())
             {
-                if (player.IsHost)
+                if (player == null || player.IsHost || player.IsDestroyed)
                     continue;
 
-                if (lod == null)
-                    return [];
-
-                if (lod.Collider.bounds.Contains(player.Position))
+                if (bounds.Contains(player.Position))
                     players.Add(player);
             }
 
@@ -105,12 +121,16 @@ namespace ThaumielMapEditor.API.Helpers
         {
             List<Player> players = [];
 
-            foreach (Player player in Player.ReadyList)
+            if (zone?.Collider == null)
+                return players;
+
+            Bounds bounds = zone.Collider.bounds;
+            foreach (Player player in Player.ReadyList.ToArray())
             {
-                if (player.IsHost)
+                if (player == null || player.IsHost || player.IsDestroyed)
                     continue;
 
-                if (zone.Collider.bounds.Contains(player.Position))
+                if (bounds.Contains(player.Position))
                     players.Add(player);
             }
 

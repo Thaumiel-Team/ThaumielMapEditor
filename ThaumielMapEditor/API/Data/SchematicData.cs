@@ -29,6 +29,7 @@ namespace ThaumielMapEditor.API.Data
     /// </summary>
     public class SchematicObject : SchematicData;
 
+    [GitBookPage("Data/SchematicData")]
     public class SchematicData
     {
         /// <summary>
@@ -169,6 +170,9 @@ namespace ThaumielMapEditor.API.Data
         /// <param name="player">The <see cref="Player"/> to sync with.</param>
         public void SyncWithPlayer(Player player)
         {
+            if (player.IsDummy || player.IsHost)
+                return;
+
             foreach (ClientObject objects in SpawnedClientObjects)
             {
                 objects.SpawnForPlayer(player);
@@ -184,7 +188,16 @@ namespace ThaumielMapEditor.API.Data
 
             foreach (KeyValuePair<LODZone, SchematicData> kvp in Loader.SchematicLODZones.Where(s => s.Value == this).ToArray())
             {
+                if (kvp.Key == null)
+                    continue;
+
                 Loader.SchematicLODZones.Remove(kvp.Key);
+                try
+                {
+                    if (kvp.Key != null && kvp.Key.gameObject != null)
+                        UnityEngine.Object.Destroy(kvp.Key.gameObject);
+                }
+                catch { }
             }
 
             foreach (ClientObject clientobj in SpawnedClientObjects.ToArray())
@@ -195,17 +208,32 @@ namespace ThaumielMapEditor.API.Data
 
             foreach (ServerObject serverobj in SpawnedServerObjects.ToArray())
             {
-                if (serverobj.Object == null)
-                    continue;
+                try
+                {
+                    if (serverobj is DoorObject && serverobj.Object != null && serverobj.Object.TryGetComponent<DoorLink>(out var link))
+                        link.Unregister();
 
-                if (serverobj is DoorObject && serverobj.Object.TryGetComponent<DoorLink>(out var link))
-                    link.Unregister();
-
-                if (serverobj.Object.TryGetComponent<BlockyRuntime>(out var blocky))
-                    Executor?.Execute(ArgumentsParser.Load(blocky.Blocky!), null!, EventType.OnDestroyed);
+                    if (serverobj.Object != null && serverobj.Object.TryGetComponent<BlockyRuntime>(out var blocky) && blocky.Blocky != null && !string.IsNullOrEmpty(blocky.Blocky.Code))
+                        Executor?.Execute(ArgumentsParser.Load(blocky.Blocky), null!, EventType.OnDestroyed);
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Error($"Schematic destroy cleanup failed for '{serverobj.Name}': {ex.Message}");
+                }
 
                 serverobj.DestroyObject(this);
             }
+
+            foreach (Transform transform in ServerSideTransforms.Values)
+            {
+                if (transform != null)
+                    UnityEngine.Object.Destroy(transform.gameObject);
+            }
+
+            ServerSideTransforms.Clear();
+
+            if (Primitive != null && !Primitive.IsDestroyed && Primitive.Base != null)
+                NetworkServer.Destroy(Primitive.Base.gameObject);
 
             Executor = null;
             AnimationController.Remove(this);

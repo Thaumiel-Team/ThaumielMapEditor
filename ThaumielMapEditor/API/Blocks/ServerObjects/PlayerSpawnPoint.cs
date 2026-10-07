@@ -6,19 +6,18 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
-using System.Linq;
 using LabApi.Events.Arguments.PlayerEvents;
 using MEC;
 using PlayerRoles;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/PlayerSpawnPoint")]
     public class PlayerSpawnPoint : ServerObject
     {
         public static List<PlayerSpawnPoint> Instances { get; private set; } = [];
@@ -68,17 +67,18 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
         internal static void OnPlayerSpawned(PlayerSpawnedEventArgs ev)
         {
-            IEnumerable<PlayerSpawnPoint> validSpawns = Instances.Where(p => p.AllowedRoles.Contains(ev.Role.RoleTypeId) && !p.Disabled);
-            if (validSpawns.IsEmpty())
-                return;
-
+            List<PlayerSpawnPoint> validSpawns = [];
             float totalWeight = 0;
-            foreach (PlayerSpawnPoint spawn in validSpawns)
+            foreach (PlayerSpawnPoint spawn in Instances)
             {
+                if (spawn.Disabled || !spawn.AllowedRoles.Contains(ev.Role.RoleTypeId))
+                    continue;
+
+                validSpawns.Add(spawn);
                 totalWeight += spawn.Chance;
             }
 
-            if (totalWeight <= 0)
+            if (validSpawns.Count == 0 || totalWeight <= 0)
                 return;
 
             float roll = Random.Range(0f, totalWeight);
@@ -97,24 +97,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
                     return;
                 }
             }
-        }
-
-        private void ParseValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.PlayerSpawnPoint)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Player Spawn Point");
-                return;
-            }
-
-            if (serializable.Values.TryConvertValue<List<RoleTypeId>>("AllowedRoles", out var roles))
-                AllowedRoles = roles;
-
-            if (serializable.Values.TryConvertValue<float>("Chance", out var chance))
-                Chance = chance;
-
-            if (serializable.Values.TryConvertValue<DisableFlags>("DisableFlags", out var flags))
-                Disable = flags;
         }
 
         public bool HasFlagFast(DisableFlags flag) => (Disable & flag) != 0;

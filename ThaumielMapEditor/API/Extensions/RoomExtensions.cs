@@ -9,11 +9,13 @@ using System.Collections.Generic;
 using System.Linq;
 using LabApi.Features.Wrappers;
 using MapGeneration;
+using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
 
 namespace ThaumielMapEditor.API.Extensions
 {
+    [GitBookPage("Extensions/Room")]
     public static class RoomExtensions
     {
         /// <summary>

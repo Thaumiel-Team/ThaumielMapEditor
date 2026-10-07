@@ -13,21 +13,21 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     public class LoggingBlock : BlockBase
     {
         public LogLevel Level { get; set; } = LogLevel.Info;
-        public string Text { get; set; } = string.Empty;
+        public object? Text { get; set; }
 
         public override void Execute()
         {
-            Log(Text);
+            Log(ResolveString(Text));
         }
 
         public override void Execute(Player player)
         {
-            Log(Text);
+            Log(ResolveString(Text));
         }
 
         public override void Execute(object obj)
         {
-            Log(Text);
+            Log(ResolveString(Text));
         }
 
         private void Log(string message)

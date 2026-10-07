@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Globalization;
 using System.Text;
 using CommandSystem;
 using ThaumielMapEditor.API.Attributes;
@@ -17,7 +18,7 @@ namespace ThaumielMapEditor.Commands.Admin.ModifySubCommands
 {
 #pragma warning disable CS1591
     [DoNotParse]
-    public class Rotation : ISubCommand
+    public class Rotation : SubCommand
     {
         public override string Name => "rotate";
 
@@ -33,19 +34,25 @@ namespace ThaumielMapEditor.Commands.Admin.ModifySubCommands
 
         public override bool SubCommandExecute(ArraySegment<string> arguments, ICommandSender sender, SchematicData schematic, StringBuilder sb, out string response)
         {
-            if (!float.TryParse(arguments.At(0), out var x))
+            if (arguments.Count < 3)
+            {
+                response = $"Wrong usage! Correct usage: tme modify {Name} {VisibleArgs}";
+                return false;
+            }
+
+            if (!float.TryParse(arguments.At(0), NumberStyles.Float, CultureInfo.InvariantCulture, out var x) || float.IsNaN(x) || float.IsInfinity(x))
             {
                 response = "Failed to parse X coordinate. Make sure its a number";
                 return false;
             }
 
-            if (!float.TryParse(arguments.At(1), out var y))
+            if (!float.TryParse(arguments.At(1), NumberStyles.Float, CultureInfo.InvariantCulture, out var y) || float.IsNaN(y) || float.IsInfinity(y))
             {
                 response = "Failed to parse Y coordinate. Make sure its a number";
                 return false;
             }
 
-            if (!float.TryParse(arguments.At(2), out var z))
+            if (!float.TryParse(arguments.At(2), NumberStyles.Float, CultureInfo.InvariantCulture, out var z) || float.IsNaN(z) || float.IsInfinity(z))
             {
                 response = "Failed to parse Z coordinate. Make sure its a number";
                 return false;
@@ -55,10 +62,12 @@ namespace ThaumielMapEditor.Commands.Admin.ModifySubCommands
             Quaternion prevrot = schematic.Primitive!.Rotation;
             schematic.Rotation = rotation;
 
-            foreach (ServerObject serverObject in schematic.SpawnedServerObjects)
+            foreach (ServerObject serverObject in schematic.SpawnedServerObjects.ToArray())
             {
-                serverObject.UpdateObject(schematic);
+                serverObject.UpdateObject(schematic, false);
             }
+
+            SyncManager.FlushServer();
 
             response = $"Rotated schematic {schematic.FileName} to {rotation} from {prevrot}";
             return true;

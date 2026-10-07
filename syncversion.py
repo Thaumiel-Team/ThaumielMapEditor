@@ -7,7 +7,7 @@ MAINFILE = BASE / r"ThaumielMapEditor/Main.cs"
 ASSEMBLYFILE = BASE / r"ThaumielMapEditor/Properties/AssemblyInfo.cs"
 
 maincontent = MAINFILE.read_text()
-versionmatch = re.search(r'Version\s*=>\s*new\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)', maincontent)
+versionmatch = re.search(r'override\s+Version\s+Version\s*(?:=>|\{[^}]*\}\s*=)\s*new\s*(?:Version\s*)?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)', maincontent)
 
 if not versionmatch:
     raise Exception("Could not find Version in Main.cs")

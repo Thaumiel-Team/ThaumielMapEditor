@@ -5,29 +5,29 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System;
 using System.Collections.Generic;
-using MEC;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
+    [GitBookPage("Components/Tools/DoorLink")]
     public class DoorLink : ToolBase
     {
         private static readonly Dictionary<string, List<DoorLink>> Groups = [];
         
         private static readonly List<DoorLink> ActiveLinks = [];
-        private static float waitTime = 0.1f;
 
         private DoorObject? door;
         private bool lastKnownState;
-        private bool isSyncing;
+        private bool _propagating;
 
-        public string GroupId { get; private set; } = string.Empty;
+        [YamlMember(Alias = "GroupId")]
+        public string GroupId { get; set; } = string.Empty;
 
         public override ToolType Type => ToolType.Doorlink;
 
@@ -41,14 +41,13 @@ namespace ThaumielMapEditor.API.Components.Tools
                 return;
             }
 
-            if (!properties.TryGetValue("GroupId", out object? groupIdRaw) || groupIdRaw is not string groupId || string.IsNullOrEmpty(groupId))
+            if (string.IsNullOrEmpty(GroupId))
             {
                 LogManager.Warn($"DoorLink on '{obj.Name}' in '{schem.FileName}' is missing a valid GroupId property. Skipping.");
                 return;
             }
 
-            this.door = doorObj;
-            GroupId = groupId;
+            door = doorObj;
             lastKnownState = doorObj.IsOpen;
 
             if (!Groups.TryGetValue(GroupId, out List<DoorLink>? group))
@@ -60,78 +59,72 @@ namespace ThaumielMapEditor.API.Components.Tools
             group.Add(this);
             ActiveLinks.Add(this);
             LogManager.Debug($"DoorLink registered door '{obj.Name}' to group '{GroupId}' in '{schem.FileName}'.");
-            MECHelper.TryRunCoroutine(GlobalPollRoutine());
-
-            if (Main.Instance.Config!.DoorPollingDelay == 0)
-            {
-                waitTime = Timing.WaitForOneFrame;
-            }
-            else
-                waitTime = Main.Instance.Config!.DoorPollingDelay;
+            doorObj.Base?.OnStateChanged += PropagateToGroup;
         }
 
-        private static IEnumerator<float> GlobalPollRoutine()
+        protected override void OnDestroy()
         {
-            while (ActiveLinks.Count > 0)
-            {
-                yield return Timing.WaitForSeconds(waitTime);
+            Unregister();
+            base.OnDestroy();
+        }
 
-                for (int i = ActiveLinks.Count - 1; i >= 0; i--)
+        private void PropagateToGroup()
+        {
+            if (_propagating)
+                return;
+
+            if (door == null)
+            {
+                Unregister();
+                return;
+            }
+
+            bool state = door.Base != null ? door.Base.NetworkTargetState : door.IsOpen;
+            if (state == lastKnownState)
+                return;
+
+            lastKnownState = state;
+
+            if (!Groups.TryGetValue(GroupId, out List<DoorLink>? group))
+                return;
+
+            DoorLink[] snapshot = group.ToArray();
+            _propagating = true;
+            try
+            {
+                foreach (DoorLink link in snapshot)
                 {
-                    DoorLink link = ActiveLinks[i];
+                    if (link == this)
+                        continue;
+
                     if (link.door == null)
                     {
                         link.Unregister();
                         continue;
                     }
 
-                    if (link.isSyncing || link.door.IsOpen == link.lastKnownState)
-                        continue;
-
-                    link.lastKnownState = link.door.IsOpen;
-                    LogManager.Debug($"door '{link.door.Name}' in group '{link.GroupId}' changed. Notifying group.");
-                    link.PropagateToGroup();
+                    link.door.IsOpen = state;
+                    link.lastKnownState = state;
                 }
             }
-        }
-
-        private void PropagateToGroup()
-        {
-            if (!Groups.TryGetValue(GroupId, out List<DoorLink>? group))
-                return;
-
-            for (int i = group.Count - 1; i >= 0; i--)
+            finally
             {
-                DoorLink link = group[i];
-
-                if (link == this)
-                    continue;
-
-                if (link.door == null)
-                {
-                    link.Unregister();
-                    continue;
-                }
-
-                link.isSyncing = true;
-                try
-                {
-                    link.door.IsOpen = !lastKnownState;
-                    link.lastKnownState = link.door.IsOpen; 
-                }
-                catch (Exception ex)
-                {
-                    LogManager.Warn($"DoorLink error while syncing door '{link.door.Name}': {ex.Message}");
-                }
-                finally
-                {
-                    link.isSyncing = false; 
-                }
+                _propagating = false;
             }
         }
 
         public void Unregister()
         {
+            try
+            {
+                if (door?.Base != null)
+                    door.Base.OnStateChanged -= PropagateToGroup;
+            }
+            catch
+            {
+                // Base may already be destroyed subscription dies with it.
+            }
+
             ActiveLinks.Remove(this);
             if (Groups.TryGetValue(GroupId, out List<DoorLink>? group))
             {
@@ -146,6 +139,29 @@ namespace ThaumielMapEditor.API.Components.Tools
                     LogManager.Debug($"DoorLink unregistered door '{door?.Name ?? "Unknown"}' from group '{GroupId}'.");
                 }
             }
+
+            door = null;
+        }
+
+        internal static void ClearAll()
+        {
+            foreach (DoorLink link in ActiveLinks.ToArray())
+            {
+                try
+                {
+                    if (link.door?.Base != null)
+                        link.door.Base.OnStateChanged -= link.PropagateToGroup;
+                }
+                catch
+                {
+                    // Ignore destroy races during cleanup.
+                }
+
+                link.door = null;
+            }
+
+            ActiveLinks.Clear();
+            Groups.Clear();
         }
     }
 }

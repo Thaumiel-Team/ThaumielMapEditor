@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using CommandSystem;
 using LabApi.Features.Permissions;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Interfaces;
 using ThaumielMapEditor.Commands.Admin;
@@ -37,14 +36,34 @@ namespace ThaumielMapEditor.Commands
             Subcommands.Add(new Spawned());
             Subcommands.Add(new Destroy());
             Subcommands.Add(new Spawn());
+            Subcommands.Add(new SpawnObject());
             Subcommands.Add(new List());
             Subcommands.Add(new Reload());
             Subcommands.Add(new Grab());
             Subcommands.Add(new Admin.Convert());
             Subcommands.Add(new Coroutines());
+            Subcommands.Add(new Debug());
         }
 
-        private List<ISubCommand> Subcommands { get; } = [];
+        public bool RegisterSubCommand(SubCommand command)
+        {
+            if (Subcommands.Any(c => c.GetType() == command.GetType()))
+                return false;
+
+            Subcommands.Add(command);
+            return true;
+        }
+
+        public bool UnregisterSubCommand<T>() where T : SubCommand
+        {
+            SubCommand? existing = Subcommands.FirstOrDefault(c => c is T);
+            if (existing == null)
+                return false;
+
+            return Subcommands.Remove(existing);
+        }
+
+        private List<SubCommand> Subcommands { get; } = [];
 
         protected override bool ExecuteParent(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
@@ -52,15 +71,20 @@ namespace ThaumielMapEditor.Commands
             {
                 if (arguments.Count == 0)
                 {
-                    response = $"Thaumiel Map Editor v{Main.Instance.Version} by Mr. Baguetter\n\nAvailable commands:";
-                    foreach (ISubCommand command in Subcommands)
-                        response += $"\n- tme {command.Name}{(command.VisibleArgs != string.Empty ? $" {command.VisibleArgs}" : "")} - {command.Description}";
+                    System.Text.StringBuilder sb = new();
+                    sb.AppendLine($"Thaumiel Map Editor v{Main.Instance.Version} by Mr. Baguetter");
+                    sb.AppendLine();
+                    sb.Append("Available commands:");
+                    foreach (SubCommand command in Subcommands)
+                        sb.Append($"\n- tme {command.Name}{(command.VisibleArgs != string.Empty ? $" {command.VisibleArgs}" : "")} - {command.Description}");
 
+                    response = sb.ToString();
                     return true;
                 }
 
-                ISubCommand cmd = Subcommands.FirstOrDefault(cmd => cmd.Name == arguments.At(0));
-                cmd ??= Subcommands.FirstOrDefault(cmd => cmd.Aliases.Contains(arguments.At(0)));
+                string invoked = arguments.At(0);
+                SubCommand? cmd = Subcommands.FirstOrDefault(c => string.Equals(c.Name, invoked, StringComparison.OrdinalIgnoreCase));
+                cmd ??= Subcommands.FirstOrDefault(c => c.Aliases.Any(a => string.Equals(a, invoked, StringComparison.OrdinalIgnoreCase)));
 
                 if (cmd == null)
                 {
@@ -70,11 +94,11 @@ namespace ThaumielMapEditor.Commands
 
                 if (!sender.HasPermissions(cmd.RequiredPermission))
                 {
-                    response = $"You don't have permission to access that command! Requited permission: {cmd.RequiredPermission}";
+                    response = $"You don't have permission to access that command! Required permission: {cmd.RequiredPermission}";
                     return false;
                 }
 
-                if (arguments.Count < cmd.RequiredArgsCount)
+                if (arguments.Count < cmd.RequiredArgsCount + 1)
                 {
                     response = $"Wrong usage! Correct usage: tme {cmd.Name} {cmd.VisibleArgs}";
                     return false;

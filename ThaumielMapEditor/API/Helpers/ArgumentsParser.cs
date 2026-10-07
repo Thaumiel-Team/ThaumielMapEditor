@@ -5,6 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Discord;
 using ThaumielMapEditor.API.Serialization;
@@ -22,70 +23,58 @@ namespace ThaumielMapEditor.API.Helpers
 {
     public class ArgumentsParser
     {
-        public static Dictionary<BlockyPayload, List<object>> Cache { get; set; } = [];
+        public static ConcurrentDictionary<string, List<object>> Cache { get; set; } = [];
 
-        public static IDeserializer Deserializer = new DeserializerBuilder()
+        public static readonly IDeserializer Deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
 
         public static List<object> Load(BlockyPayload payload)
         {
-            if (payload.Language != "yaml")
+            if (string.IsNullOrEmpty(payload.Code))
                 return [];
 
-            if (Cache.TryGetValue(payload, out var blocks))
-                return blocks;
+            if (Cache.Count > 500)
+                Cache.Clear();
 
-            List<object> parsedBlocks = [];
-            List<Dictionary<string, object>> values = Deserializer.Deserialize<List<Dictionary<string, object>>>(payload.Code);
-            if (values == null)
-                return parsedBlocks;
-
-            foreach (Dictionary<string, object> dict in values)
+            return Cache.GetOrAdd(payload.Code, static code =>
             {
-                object? result = null;
+                List<object> parsedBlocks = [];
+                List<Dictionary<string, object>> values = Deserializer.Deserialize<List<Dictionary<string, object>>>(code);
+                if (values == null)
+                    return parsedBlocks;
 
-                foreach (string key in dict.Keys)
+                foreach (Dictionary<string, object> dict in values)
                 {
-                    if (BlockParsers.TryGetValue(key, out var parser))
+                    object? result = ParseBlock(dict);
+
+                    if (result is UnknownBlock)
                     {
-                        result = parser(dict);
-                        break; 
+                        string? blockType = dict.TryGetValue("type", out object? t) ? t?.ToString() : null;
+
+                        if (blockType != null && blockType.StartsWith("enum_"))
+                        {
+                            result = blockType.EndsWith("_combine")
+                                ? new EnumCombineBlock
+                                {
+                                    InputA = ParseValue(dict.GetValueOrDefault("A")),
+                                    InputB = ParseValue(dict.GetValueOrDefault("B"))
+                                }
+                                : new EnumBlock
+                                {
+                                    Value = dict.GetValueOrDefault("Value")
+                                };
+                        }
+                    }
+
+                    if (result != null)
+                    {
+                        parsedBlocks.Add(result);
                     }
                 }
 
-                if (result == null)
-                {
-                    string? enumKey = dict.Keys.FirstOrDefault(k => k.StartsWith("enum_"));
-
-                    if (enumKey != null)
-                    {
-                        if (enumKey.EndsWith("_combine"))
-                        {
-                            result = new EnumCombineBlock
-                            {
-                                InputA = ParseValue(dict.GetValueOrDefault("A")),
-                                InputB = ParseValue(dict.GetValueOrDefault("B"))
-                            };
-                        }
-                        else
-                        {
-                            result = new EnumBlock
-                            {
-                                Value = dict[enumKey]
-                            };
-                        }
-                    }
-                }
-
-                if (result != null)
-                {
-                    parsedBlocks.Add(result);
-                }
-            }
-
-            Cache.Add(payload, parsedBlocks);
-            return parsedBlocks;
+                return parsedBlocks;
+            });
         }
 
         private static readonly Dictionary<string, Func<Dictionary<string, object>, object?>> BlockParsers = new()
@@ -106,6 +95,9 @@ namespace ThaumielMapEditor.API.Helpers
             ["door_close"] = d => new CloseDoorBlock(),
             ["door_lock"] = d => new LockDoorBlock(),
             ["door_unlock"] = d => new UnlockDoorBlock(),
+            ["door_is_open"] = d => new DoorIsOpenBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_is_closed"] = d => new DoorIsClosedBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_is_opening"] = d => new DoorIsOpeningBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
 
             ["math_arithmetic"] = d => new MathArithmeticBlock
             {
@@ -154,7 +146,7 @@ namespace ThaumielMapEditor.API.Helpers
                     .ToList()
             },
 
-            ["text_length"] = d => new TextLengthBlock { Text = GetString(d, "TEXT") },
+            ["text_length"] = d => new TextLengthBlock { Text = ParseValue(d.GetValueOrDefault("VALUE")) },
 
             ["controls_repeat_ext"] = d => new RepeatBlock
             {
@@ -201,12 +193,12 @@ namespace ThaumielMapEditor.API.Helpers
                 ElseStack = ParseStack(d, "ELSE")
             },
 
-            ["timing_wait_for_frames"] = d => new WaitForFrames { WaitTime = (uint)ParseFloat(d, "WaitTime") },
-            ["timing_wait_for_seconds"] = d => new WaitForSeconds { WaitTime = (uint)ParseFloat(d, "WaitTime") },
+            ["timing_wait_for_frames"] = d => new WaitForFrames { WaitTime = (uint)ParseFloatAny(d, 5f, "FRAMES", "WaitTime") },
+            ["timing_wait_for_seconds"] = d => new WaitForSeconds { WaitTime = ParseFloatAny(d, 5f, "SECONDS", "WaitTime") },
 
             ["timing_wait_until_true"] = d => new WaitUntilBlock
             {
-                Condition = ParseBlockBase(d),
+                Condition = ParseCondition(d),
                 Stack = ParseStack(d, "DO")
             },
 
@@ -224,7 +216,7 @@ namespace ThaumielMapEditor.API.Helpers
                 Name = d.TryGetValue("NAME", out object? drName) ? drName.ToString() : string.Empty,
                 Stack = ParseStack(d, "STACK"),
                 Params = d.TryGetValue("PARAMS", out var drp) ? ParseParams(drp) : [],
-                Return = d.TryGetValue("RETURN", out object? ret) ? ParseBlock((Dictionary<string, object>)ret) : null
+                Return = d.TryGetValue("RETURN", out object? ret) && ToStringDict(ret) is Dictionary<string, object> returnDict ? ParseBlock(returnDict) : null
             },
 
             ["procedures_defnoreturn"] = d => new MethodBlock
@@ -269,13 +261,13 @@ namespace ThaumielMapEditor.API.Helpers
             ["logger_log"] = d => new LoggingBlock
             {
                 Level = GetLogLevel(GetString(d, "LEVEL")),
-                Text = GetString(d, "M")
+                Text = ParseValue(d.GetValueOrDefault("M"))
             },
 
             ["variables_set"] = d => new VariableBlock
             {
                 Name = d.TryGetValue("VAR", out object? vn) ? vn.ToString() : string.Empty,
-                Value = d.TryGetValue("VALUE", out object? vval) ? vval : null
+                Value = ParseValue(d.GetValueOrDefault("VALUE"))
             },
 
             ["variables_get"] = d => new GetVariableBlock
@@ -283,7 +275,10 @@ namespace ThaumielMapEditor.API.Helpers
                 Name = d.TryGetValue("VAR", out object? gvn) ? gvn.ToString() : string.Empty
             },
 
-            ["get_player_property"] = d => new PlayerGetPropertyBlock { Property = GetString(d, "Property") },
+            ["get_player_property"] = d => new PlayerGetPropertyBlock
+            {
+                Property = GetString(d, "Property")
+            },
 
             ["set_player_gravity"] = d => new PlayerSetGravityBlock
             {
@@ -292,49 +287,70 @@ namespace ThaumielMapEditor.API.Helpers
                 Z = ParseFloat(d, "z")
             },
 
-            ["get_player_by_id"] = d => new PlayerGetByIdBlock { PlayerId = (int)ParseFloat(d, "Player Id") },
-            ["get_player_by_userid"] = d => new PlayerGetByUserIdBlock { UserId = GetString(d, "Player User Id") },
+            ["get_player_by_id"] = d => new PlayerGetByIdBlock
+            {
+                PlayerId = (int)ParseFloatAny(d, 0f, "PLAYER_ID", "Player Id")
+            },
+            ["get_player_by_userid"] = d => new PlayerGetByUserIdBlock
+            {
+                UserId = GetStringAny(d, "USER_ID", "Player User Id")
+            },
 
             ["set_player_role"] = d => new PlayerSetRoleBlock
             {
-                Role = Enum.TryParse(GetString(d, "New Role"), out RoleTypeId role) ? role : RoleTypeId.None,
-                KeepPosition = ParseBool(d, "Keep Position")
+                Role = Enum.TryParse(GetStringAny(d, "ROLE", "New Role"), out RoleTypeId role) ? role : RoleTypeId.None,
+                KeepPosition = ParseBoolAny(d, "KEEP_POSITION", "Keep Position")
             },
 
             ["give_player_item"] = d => new PlayerGiveItemBlock
             {
-                Item = Enum.TryParse(GetString(d, "New Item"), out ItemType item) ? item : ItemType.None,
-                Amount = (int)ParseFloat(d, "Amount", 1f),
-                DropIfFull = ParseBool(d, "Drop if full")
+                Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType item) ? item : ItemType.None,
+                Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
+                DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
+            },
+
+            ["give_player_items"] = d => new PlayerGiveItemBlock
+            {
+                Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType stackedItem) ? stackedItem : ItemType.None,
+                Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
+                DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
             },
 
             ["remove_player_item"] = d => new PlayerRemoveItemBlock
             {
-                Item = Enum.TryParse(GetString(d, "Removed Item"), out ItemType ri) ? ri : ItemType.None
+                Item = Enum.TryParse(GetStringAny(d, "ITEM", "Removed Item"), out ItemType ri) ? ri : ItemType.None
             },
 
-            ["set_player_health"] = d => new PlayerSetHealthBlock { HealthType = "health", Value = ParseFloat(d, "Health") },
-            ["set_player_max_health"] = d => new PlayerSetHealthBlock { HealthType = "max_health", Value = ParseFloat(d, "Max Health") },
-            ["set_player_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "artificial_health", Value = ParseFloat(d, "Artificial Health") },
-            ["set_player_max_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "max_artificial_health", Value = ParseFloat(d, "Max Artificial Health") },
-            ["set_player_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield", Value = ParseFloat(d, "Hume shield") },
-            ["set_player_max_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "max_hume_shield", Value = ParseFloat(d, "Max Hume Shield") },
-            ["set_player_hume_shield_regen_rate"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_rate", Value = ParseFloat(d, "Hume Shield Regen Rate") },
-            ["set_player_hume_shield_regen_cooldown"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_cooldown", Value = ParseFloat(d, "Hume Shield Regen Cooldown") },
+            ["set_player_health"] = d => new PlayerSetHealthBlock
+            {
+                HealthType = "health",
+                Value = ParseFloatAny(d, 0f, "HEALTH", "Health")
+            },
+            ["set_player_max_health"] = d => new PlayerSetHealthBlock
+            {
+                HealthType = "max_health",
+                Value = ParseFloatAny(d, 0f, "MAX_HEALTH", "Max Health")
+            },
+            ["set_player_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "artificial_health", Value = ParseFloatAny(d, 0f, "ARTIFICIAL_HEALTH", "Artificial Health") },
+            ["set_player_max_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "max_artificial_health", Value = ParseFloatAny(d, 0f, "MAX_ARTIFICIAL_HEALTH", "Max Artificial Health") },
+            ["set_player_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield", Value = ParseFloatAny(d, 0f, "HUME_SHIELD", "Hume shield") },
+            ["set_player_max_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "max_hume_shield", Value = ParseFloatAny(d, 0f, "MAX_HUME_SHIELD", "Max Hume Shield") },
+            ["set_player_hume_shield_regen_rate"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_rate", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_RATE", "Hume Shield Regen Rate") },
+            ["set_player_hume_shield_regen_cooldown"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_cooldown", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_COOLDOWN", "Hume Shield Regen Cooldown") },
 
-            ["set_player_group_name"] = d => new PlayerSetGroupBlock { GroupType = "name", Value = GetString(d, "Group Name") },
-            ["set_player_group_color"] = d => new PlayerSetGroupBlock { GroupType = "color", Value = GetString(d, "Group Color") },
+            ["set_player_group_name"] = d => new PlayerSetGroupBlock { GroupType = "name", Value = GetStringAny(d, "GROUP_NAME", "Group Name") },
+            ["set_player_group_color"] = d => new PlayerSetGroupBlock { GroupType = "color", Value = GetStringAny(d, "GROUP_COLOR", "Group Color") },
 
             ["send_player_broadcast"] = d => new PlayerSendBroadcastBlock
             {
-                Message = GetString(d, "Broadcast Message"),
-                Duration = (ushort)ParseFloat(d, "Duration", 5f)
+                Message = GetStringAny(d, "MESSAGE", "Broadcast Message"),
+                Duration = (ushort)ParseFloatAny(d, 5f, "DURATION", "Duration")
             },
 
             ["send_player_hint"] = d => new PlayerSendHintBlock
             {
-                Message = GetString(d, "Hint Message"),
-                Duration = (ushort)ParseFloat(d, "Duration", 5f)
+                Message = GetStringAny(d, "MESSAGE", "Hint Message"),
+                Duration = (ushort)ParseFloatAny(d, 5f, "DURATION", "Duration")
             },
 
             ["set_player_scale"] = d => new PlayerSetScaleBlock
@@ -350,8 +366,8 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["texttoy_set_display_size"] = d => new TextToySetDisplaySizeBlock
             {
-                X = ParseFloat(d, "x", 1f),
-                Y = ParseFloat(d, "y", 1f)
+                X = ParseFloatAny(d, 1f, "width", "x"),
+                Y = ParseFloatAny(d, 1f, "height", "y")
             },
 
             ["waypoint_create"] = d => new WaypointCreateBlock { Name = GetString(d, "name") },
@@ -367,7 +383,7 @@ namespace ThaumielMapEditor.API.Helpers
             },
 
             ["speaker_create"] = d => new SpeakerCreateBlock { Name = GetString(d, "name") },
-            ["get_speaker_property"] = d => new SpeakerGetPropertyBlock { Property = GetString(d, "Property") },
+            ["get_speaker_property"] = d => new SpeakerGetPropertyBlock { Property = GetString(d, "Property"), Speaker = ParseValue(d.GetValueOrDefault("Speaker")) },
             ["speaker_set_volume"] = d => new SpeakerSetVolumeBlock { Volume = ParseFloat(d, "volume", 100f) },
             ["speaker_set_is_spatial"] = d => new SpeakerSetIsSpatialBlock { IsSpatial = ParseBool(d, "isSpatial") },
             ["speaker_set_min_distance"] = d => new SpeakerSetMinDistanceBlock { MinDistance = ParseFloat(d, "minDistance", 1f) },
@@ -396,19 +412,20 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["get_door_property"] = d => new DoorGetPropertyBlock
             {
-                Property = GetString(d, "Property")
+                Property = GetString(d, "Property"),
+                Door = ParseValue(d.GetValueOrDefault("Door"))
             },
 
             ["run_method"] = d => new RunMethodBlock
             {
-                FullMethodName = GetString(d, "Full Method Name (namespace + method)"),
+                FullMethodName = GetStringAny(d, "METHOD", "Full Method Name (namespace + method)"),
                 Args = ParseMethodArgs(d, "Argument", 4)
             },
 
             ["run_method_instance"] = d => new RunMethodInstanceBlock
             {
-                Instance = d.TryGetValue("Instance", out object? inst) ? inst : null,
-                MethodName = GetString(d, "Full Method Name (namespace + method)"),
+                Instance = ParseValue(d.GetValueOrDefault("INSTANCE") ?? d.GetValueOrDefault("Instance")),
+                MethodName = GetStringAny(d, "METHOD", "Full Method Name (namespace + method)"),
                 Args = ParseMethodArgs(d, "Argument", 4)
             },
 
@@ -452,6 +469,19 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 Effect = Enum.TryParse(GetString(d, "effect"), out EffectType ret) ? ret : default,
                 Intensity = (byte)ParseFloat(d, "intensity", 1f)
+            },
+
+            ["give_player_effect"] = d => new PlayerGivePlayerEffectBlock
+            {
+                Effect = GetStringAny(d, "effect", "Effect"),
+                Intensity = (byte)ParseFloatAny(d, 1f, "intensity", "Intensity"),
+                Duration = ParseFloatAny(d, 5f, "duration", "Duration"),
+                AddDuration = ParseBoolAny(d, "addDuration", "Add Duration")
+            },
+
+            ["remove_player_effect"] = d => new PlayerRemovePlayerEffectBlock
+            {
+                Effect = GetStringAny(d, "effect", "Effect")
             },
 
             ["give_item"] = d => new ActionGiveItemBlock
@@ -602,9 +632,255 @@ namespace ThaumielMapEditor.API.Helpers
             ["foreach_loop"] = d => new ForeachBlock
             {
                 VarName = GetString(d, "VAR"),
-                ListInput = ParseValue(d.GetValueOrDefault("LIST")), 
+                ListInput = ParseValue(d.GetValueOrDefault("LIST")),
                 Stack = ParseStack(d, "DO")
             },
+
+            ["list_first"] = d => new ListFirstBlock { List = ParseValue(d.GetValueOrDefault("LIST")) },
+            ["list_last"] = d => new ListLastBlock { List = ParseValue(d.GetValueOrDefault("LIST")) },
+
+            ["get_player_by_collider"] = d => new PlayerGetByColliderBlock
+            {
+                Collider = ParseValue(d.GetValueOrDefault("Collider"))
+            },
+
+            ["string_contains"] = d => new StringContainsBlock { STR = ParseValue(d.GetValueOrDefault("STR")), VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["string_starts_with"] = d => new StringStartsWithBlock { STR = ParseValue(d.GetValueOrDefault("STR")), VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["string_ends_with"] = d => new StringEndsWithBlock { STR = ParseValue(d.GetValueOrDefault("STR")), VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["string_to_upper"] = d => new StringToUpperBlock { STR = ParseValue(d.GetValueOrDefault("STR")) },
+            ["string_to_lower"] = d => new StringToLowerBlock { STR = ParseValue(d.GetValueOrDefault("STR")) },
+            ["string_trim"] = d => new StringTrimBlock { STR = ParseValue(d.GetValueOrDefault("STR")) },
+            ["string_substring"] = d => new StringSubstringBlock
+            {
+                STR = ParseValue(d.GetValueOrDefault("STR")),
+                START = ParseValue(d.GetValueOrDefault("START")),
+                LENGTH = ParseValue(d.GetValueOrDefault("LENGTH"))
+            },
+            ["string_replace"] = d => new StringReplaceBlock
+            {
+                STR = ParseValue(d.GetValueOrDefault("STR")),
+                OLD = ParseValue(d.GetValueOrDefault("OLD")),
+                NEW = ParseValue(d.GetValueOrDefault("NEW"))
+            },
+            ["string_index_of"] = d => new StringIndexOfBlock { STR = ParseValue(d.GetValueOrDefault("STR")), VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["string_char_at"] = d => new StringCharAtBlock { STR = ParseValue(d.GetValueOrDefault("STR")), INDEX = ParseValue(d.GetValueOrDefault("INDEX")) },
+            ["string_format"] = d => new StringFormatBlock
+            {
+                FMT = ParseValue(d.GetValueOrDefault("FMT")),
+                ARG1 = ParseValue(d.GetValueOrDefault("ARG1")),
+                ARG2 = ParseValue(d.GetValueOrDefault("ARG2")),
+                ARG3 = ParseValue(d.GetValueOrDefault("ARG3"))
+            },
+            ["string_is_null_or_empty"] = d => new StringIsNullOrEmptyBlock { STR = ParseValue(d.GetValueOrDefault("STR")) },
+            ["string_is_null_or_whitespace"] = d => new StringIsNullOrWhitespaceBlock { STR = ParseValue(d.GetValueOrDefault("STR")) },
+            ["string_pad_left"] = d => new StringPadLeftBlock { STR = ParseValue(d.GetValueOrDefault("STR")), TOTAL = ParseValue(d.GetValueOrDefault("TOTAL")) },
+            ["string_pad_right"] = d => new StringPadRightBlock { STR = ParseValue(d.GetValueOrDefault("STR")), TOTAL = ParseValue(d.GetValueOrDefault("TOTAL")) },
+            ["string_join"] = d => new StringJoinBlock { SEP = ParseValue(d.GetValueOrDefault("SEP")), LIST = ParseValue(d.GetValueOrDefault("LIST")) },
+            ["string_split"] = d => new StringSplitBlock { STR = ParseValue(d.GetValueOrDefault("STR")), SEP = ParseValue(d.GetValueOrDefault("SEP")) },
+
+            ["dict_create"] = d => new DictCreateBlock(),
+            ["dict_add"] = d => new DictAddBlock
+            {
+                DICT = ParseValue(d.GetValueOrDefault("DICT")),
+                KEY = ParseValue(d.GetValueOrDefault("KEY")),
+                VALUE = ParseValue(d.GetValueOrDefault("VALUE"))
+            },
+            ["dict_remove"] = d => new DictRemoveBlock
+            {
+                DICT = ParseValue(d.GetValueOrDefault("DICT")),
+                KEY = ParseValue(d.GetValueOrDefault("KEY"))
+            },
+            ["dict_contains_key"] = d => new DictContainsKeyBlock
+            {
+                DICT = ParseValue(d.GetValueOrDefault("DICT")),
+                KEY = ParseValue(d.GetValueOrDefault("KEY"))
+            },
+            ["dict_contains_value"] = d => new DictContainsValueBlock
+            {
+                DICT = ParseValue(d.GetValueOrDefault("DICT")),
+                VALUE = ParseValue(d.GetValueOrDefault("VALUE"))
+            },
+            ["dict_get"] = d => new DictGetBlock
+            {
+                DICT = ParseValue(d.GetValueOrDefault("DICT")),
+                KEY = ParseValue(d.GetValueOrDefault("KEY"))
+            },
+            ["dict_set"] = d => new DictSetBlock
+            {
+                DICT = ParseValue(d.GetValueOrDefault("DICT")),
+                KEY = ParseValue(d.GetValueOrDefault("KEY")),
+                VALUE = ParseValue(d.GetValueOrDefault("VALUE"))
+            },
+            ["dict_count"] = d => new DictCountBlock { DICT = ParseValue(d.GetValueOrDefault("DICT")) },
+            ["dict_keys"] = d => new DictKeysBlock { DICT = ParseValue(d.GetValueOrDefault("DICT")) },
+            ["dict_values"] = d => new DictValuesBlock { DICT = ParseValue(d.GetValueOrDefault("DICT")) },
+            ["dict_clear"] = d => new DictClearBlock { DICT = ParseValue(d.GetValueOrDefault("DICT")) },
+
+            ["hashset_create"] = d => new HashSetCreateBlock(),
+            ["hashset_add"] = d => new HashSetAddBlock
+            {
+                SET = ParseValue(d.GetValueOrDefault("SET")),
+                ITEM = ParseValue(d.GetValueOrDefault("ITEM"))
+            },
+            ["hashset_remove"] = d => new HashSetRemoveBlock
+            {
+                SET = ParseValue(d.GetValueOrDefault("SET")),
+                ITEM = ParseValue(d.GetValueOrDefault("ITEM"))
+            },
+            ["hashset_contains"] = d => new HashSetContainsBlock
+            {
+                SET = ParseValue(d.GetValueOrDefault("SET")),
+                ITEM = ParseValue(d.GetValueOrDefault("ITEM"))
+            },
+            ["hashset_count"] = d => new HashSetCountBlock { SET = ParseValue(d.GetValueOrDefault("SET")) },
+            ["hashset_clear"] = d => new HashSetClearBlock { SET = ParseValue(d.GetValueOrDefault("SET")) },
+            ["hashset_union_with"] = d => new HashSetUnionWithBlock
+            {
+                SET = ParseValue(d.GetValueOrDefault("SET")),
+                OTHER = ParseValue(d.GetValueOrDefault("OTHER"))
+            },
+            ["hashset_intersect_with"] = d => new HashSetIntersectWithBlock
+            {
+                SET = ParseValue(d.GetValueOrDefault("SET")),
+                OTHER = ParseValue(d.GetValueOrDefault("OTHER"))
+            },
+
+            ["stack_create"] = d => new StackCreateBlock(),
+            ["stack_push"] = d => new StackPushBlock
+            {
+                STACK = ParseValue(d.GetValueOrDefault("STACK")),
+                ITEM = ParseValue(d.GetValueOrDefault("ITEM"))
+            },
+            ["stack_pop"] = d => new StackPopBlock { STACK = ParseValue(d.GetValueOrDefault("STACK")) },
+            ["stack_peek"] = d => new StackPeekBlock { STACK = ParseValue(d.GetValueOrDefault("STACK")) },
+            ["stack_count"] = d => new StackCountBlock { STACK = ParseValue(d.GetValueOrDefault("STACK")) },
+
+            ["queue_create"] = d => new QueueCreateBlock(),
+            ["queue_enqueue"] = d => new QueueEnqueueBlock
+            {
+                QUEUE = ParseValue(d.GetValueOrDefault("QUEUE")),
+                ITEM = ParseValue(d.GetValueOrDefault("ITEM"))
+            },
+            ["queue_dequeue"] = d => new QueueDequeueBlock { QUEUE = ParseValue(d.GetValueOrDefault("QUEUE")) },
+            ["queue_peek"] = d => new QueuePeekBlock { QUEUE = ParseValue(d.GetValueOrDefault("QUEUE")) },
+            ["queue_count"] = d => new QueueCountBlock { QUEUE = ParseValue(d.GetValueOrDefault("QUEUE")) },
+
+            ["array_create"] = d => new ArrayCreateBlock { SIZE = ParseValue(d.GetValueOrDefault("SIZE")) },
+            ["array_length"] = d => new ArrayLengthBlock { ARR = ParseValue(d.GetValueOrDefault("ARR")) },
+            ["array_get"] = d => new ArrayGetBlock
+            {
+                ARR = ParseValue(d.GetValueOrDefault("ARR")),
+                INDEX = ParseValue(d.GetValueOrDefault("INDEX"))
+            },
+            ["array_set"] = d => new ArraySetBlock
+            {
+                ARR = ParseValue(d.GetValueOrDefault("ARR")),
+                INDEX = ParseValue(d.GetValueOrDefault("INDEX")),
+                VALUE = ParseValue(d.GetValueOrDefault("VALUE"))
+            },
+
+            ["datetime_now"] = d => new DateTimeNowBlock(),
+            ["datetime_utc_now"] = d => new DateTimeUtcNowBlock(),
+            ["datetime_part"] = d => new DateTimePartBlock
+            {
+                DT = ParseValue(d.GetValueOrDefault("DT")),
+                PART = GetString(d, "PART")
+            },
+            ["datetime_add"] = d => new DateTimeAddBlock
+            {
+                DT = ParseValue(d.GetValueOrDefault("DT")),
+                UNIT = GetString(d, "UNIT"),
+                VALUE = ParseValue(d.GetValueOrDefault("VALUE"))
+            },
+            ["datetime_subtract"] = d => new DateTimeSubtractBlock
+            {
+                A = ParseValue(d.GetValueOrDefault("A")),
+                B = ParseValue(d.GetValueOrDefault("B"))
+            },
+            ["datetime_to_string"] = d => new DateTimeToStringBlock { DT = ParseValue(d.GetValueOrDefault("DT")) },
+            ["datetime_to_string_format"] = d => new DateTimeToStringFormatBlock
+            {
+                DT = ParseValue(d.GetValueOrDefault("DT")),
+                FMT = ParseValue(d.GetValueOrDefault("FMT"))
+            },
+            ["datetime_parse"] = d => new DateTimeParseBlock { STR = ParseValue(d.GetValueOrDefault("STR")) },
+            ["datetime_ticks"] = d => new DateTimeTicksBlock { DT = ParseValue(d.GetValueOrDefault("DT")) },
+            ["timespan_from"] = d => new TimeSpanFromBlock
+            {
+                VALUE = ParseValue(d.GetValueOrDefault("VALUE")),
+                UNIT = GetString(d, "UNIT")
+            },
+            ["timespan_part"] = d => new TimeSpanPartBlock
+            {
+                TS = ParseValue(d.GetValueOrDefault("TS")),
+                PART = GetString(d, "PART")
+            },
+            ["timespan_zero"] = d => new TimeSpanZeroBlock(),
+
+            ["convert_to_string"] = d => new ConvertToStringBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["convert_to_int"] = d => new ConvertToIntBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["convert_to_float"] = d => new ConvertToFloatBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["convert_to_double"] = d => new ConvertToDoubleBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["convert_to_bool"] = d => new ConvertToBoolBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["convert_parse_int"] = d => new ConvertParseIntBlock { STR = ParseValue(d.GetValueOrDefault("STR")) },
+            ["convert_parse_float"] = d => new ConvertParseFloatBlock { STR = ParseValue(d.GetValueOrDefault("STR")) },
+            ["convert_parse_double"] = d => new ConvertParseDoubleBlock { STR = ParseValue(d.GetValueOrDefault("STR")) },
+            ["convert_parse_bool"] = d => new ConvertParseBoolBlock { STR = ParseValue(d.GetValueOrDefault("STR")) },
+            ["convert_to_string_format"] = d => new ConvertToStringFormatBlock
+            {
+                VALUE = ParseValue(d.GetValueOrDefault("VALUE")),
+                FMT = ParseValue(d.GetValueOrDefault("FMT"))
+            },
+
+            ["math_min"] = d => new MathMinBlock { A = ParseValue(d.GetValueOrDefault("A")), B = ParseValue(d.GetValueOrDefault("B")) },
+            ["math_max"] = d => new MathMaxBlock { A = ParseValue(d.GetValueOrDefault("A")), B = ParseValue(d.GetValueOrDefault("B")) },
+            ["math_clamp01"] = d => new MathClamp01Block { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["math_lerp_float"] = d => new MathLerpFloatBlock
+            {
+                A = ParseValue(d.GetValueOrDefault("A")),
+                B = ParseValue(d.GetValueOrDefault("B")),
+                T = ParseValue(d.GetValueOrDefault("T"))
+            },
+            ["math_move_towards"] = d => new MathMoveTowardsBlock
+            {
+                CURRENT = ParseValue(d.GetValueOrDefault("CURRENT")),
+                TARGET = ParseValue(d.GetValueOrDefault("TARGET")),
+                MAXDELTA = ParseValue(d.GetValueOrDefault("MAXDELTA"))
+            },
+            ["math_random_int_range"] = d => new MathRandomIntRangeBlock
+            {
+                MIN = ParseValue(d.GetValueOrDefault("MIN")),
+                MAX = ParseValue(d.GetValueOrDefault("MAX"))
+            },
+            ["math_random_float_range"] = d => new MathRandomFloatRangeBlock
+            {
+                MIN = ParseValue(d.GetValueOrDefault("MIN")),
+                MAX = ParseValue(d.GetValueOrDefault("MAX"))
+            },
+            ["math_sign"] = d => new MathSignBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["math_floor_to_int"] = d => new MathFloorToIntBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["math_ceil_to_int"] = d => new MathCeilToIntBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["math_round_to_int"] = d => new MathRoundToIntBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["math_round_digits"] = d => new MathRoundDigitsBlock
+            {
+                VALUE = ParseValue(d.GetValueOrDefault("VALUE")),
+                DIGITS = ParseValue(d.GetValueOrDefault("DIGITS"))
+            },
+            ["math_pingpong"] = d => new MathPingPongBlock
+            {
+                VALUE = ParseValue(d.GetValueOrDefault("VALUE")),
+                LENGTH = ParseValue(d.GetValueOrDefault("LENGTH"))
+            },
+            ["math_repeat"] = d => new MathRepeatBlock
+            {
+                VALUE = ParseValue(d.GetValueOrDefault("VALUE")),
+                LENGTH = ParseValue(d.GetValueOrDefault("LENGTH"))
+            },
+            ["math_pi"] = d => new MathPiBlock(),
+            ["math_deg2rad"] = d => new MathDeg2RadBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["math_rad2deg"] = d => new MathRad2DegBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["math_is_nan"] = d => new MathIsNaNBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
+            ["math_is_infinity"] = d => new MathIsInfinityBlock { VALUE = ParseValue(d.GetValueOrDefault("VALUE")) },
         };
 
         internal static object? ParseBlock(Dictionary<string, object> dict)
@@ -646,7 +922,17 @@ namespace ThaumielMapEditor.API.Helpers
             if (!d.TryGetValue(key, out object? raw))
                 return [];
 
-            return ParseStatementList(raw).Select(ParseBlock).Where(x => x != null).ToList()!;
+            List<Dictionary<string, object>> statements = ParseStatementList(raw);
+            List<object?> stack = new(statements.Count);
+
+            foreach (Dictionary<string, object> statement in statements)
+            {
+                object? parsed = ParseBlock(statement);
+                if (parsed != null)
+                    stack.Add(parsed);
+            }
+
+            return stack;
         }
 
         private static object?[] ParseMethodArgs(Dictionary<string, object> d, string prefix, int count)
@@ -655,7 +941,16 @@ namespace ThaumielMapEditor.API.Helpers
 
             for (int i = 0; i < count; i++)
             {
-                args[i] = d.TryGetValue($"{prefix} {i + 1}", out object? arg) ? arg : null;
+                if (d.TryGetValue($"ARG{i + 1}", out object? modern))
+                {
+                    args[i] = modern;
+                }
+                else if (d.TryGetValue($"{prefix} {i + 1}", out object? legacy))
+                {
+                    args[i] = legacy;
+                }
+                else
+                    args[i] = null;
             }
 
             return args;
@@ -677,6 +972,23 @@ namespace ThaumielMapEditor.API.Helpers
             return block;
         }
 
+        private static BlockBase? ParseCondition(Dictionary<string, object> dict)
+        {
+            if (ToStringDict(dict.GetValueOrDefault("BOOL")) is Dictionary<string, object> boolDict)
+                return ParseBlockBase(boolDict);
+
+            if (ToStringDict(dict.GetValueOrDefault("CONDITION")) is Dictionary<string, object> condDict)
+                return ParseBlockBase(condDict);
+
+            if (ToStringDict(dict.GetValueOrDefault("IF0")) is Dictionary<string, object> ifDict)
+                return ParseBlockBase(ifDict);
+
+            if (ToStringDict(dict.GetValueOrDefault("WaitingInput")) is Dictionary<string, object> waitDict)
+                return ParseBlockBase(waitDict);
+
+            return null;
+        }
+
         private static Dictionary<string, object?> ParseCallArgs(Dictionary<string, object> dict)
         {
             Dictionary<string, object?> args = [];
@@ -684,11 +996,31 @@ namespace ThaumielMapEditor.API.Helpers
 
             while (dict.TryGetValue($"ARGNAME{i}", out object? argName) && dict.TryGetValue($"ARG{i}", out object? argVal))
             {
-                args[argName.ToString()!] = argVal is Dictionary<string, object> d ? ParseBlock(d) : argVal;
+                args[argName.ToString()!] = ToStringDict(argVal) is Dictionary<string, object> d ? ParseBlock(d) : argVal;
                 i++;
             }
 
             return args;
+        }
+
+        private static Dictionary<string, object>? ToStringDict(object? obj)
+        {
+            if (obj is Dictionary<string, object> stringDict)
+                return stringDict;
+
+            if (obj is Dictionary<object, object> objectDict)
+            {
+                Dictionary<string, object> newDict = [];
+
+                foreach (KeyValuePair<object, object> kvp in objectDict)
+                {
+                    newDict[kvp.Key.ToString()] = kvp.Value;
+                }
+
+                return newDict;
+            }
+
+            return null;
         }
 
         private static Vector3 ParseVector3(object? obj)
@@ -717,20 +1049,20 @@ namespace ThaumielMapEditor.API.Helpers
 
         private static List<string> ParseParams(object obj)
         {
-            List<string> list = [];
+            if (obj is not List<object> paramList)
+                return [];
 
-            if (obj is List<object> paramList)
-            {
-                foreach (object item in paramList)
-                    list.Add(item.ToString());
-            }
+            List<string> list = new(paramList.Count);
+
+            foreach (object item in paramList)
+                list.Add(item.ToString());
 
             return list;
         }
 
         private static object? ParseValue(object? value)
         {
-            if (value is Dictionary<string, object> dict)
+            if (ToStringDict(value) is Dictionary<string, object> dict)
                 return ParseBlock(dict);
 
             return value;
@@ -738,22 +1070,75 @@ namespace ThaumielMapEditor.API.Helpers
 
         private static float ParseFloat(Dictionary<string, object> dict, string key, float defaultVal = 0f)
         {
-            if (dict.TryGetValue(key, out var val) && float.TryParse(val?.ToString(), out float result))
-                return result;
+            if (!dict.TryGetValue(key, out object? val))
+                return defaultVal;
 
-            return defaultVal;
+            return val switch
+            {
+                float f => f,
+                double d => (float)d,
+                decimal m => (float)m,
+                int i => i,
+                long l => l,
+                short s => s,
+                byte b => b,
+                uint ui => ui,
+                ulong ul => ul,
+                ushort us => us,
+                sbyte sb => sb,
+                string str when float.TryParse(str, out float result) => result,
+                _ => defaultVal
+            };
         }
 
         private static bool ParseBool(Dictionary<string, object> dict, string key)
         {
-            if (dict.TryGetValue(key, out var val) && bool.TryParse(val?.ToString(), out bool result))
-                return result;
+            if (!dict.TryGetValue(key, out object? val))
+                return false;
 
-            return false;
+            return val switch
+            {
+                bool b => b,
+                string str when bool.TryParse(str, out bool result) => result,
+                _ => false
+            };
         }
 
         private static string GetString(Dictionary<string, object> dict, string key)
-            => dict.TryGetValue(key, out var val) ? val?.ToString() ?? string.Empty : string.Empty;
+            => dict.TryGetValue(key, out var val) ? val as string ?? val?.ToString() ?? string.Empty : string.Empty;
+
+        private static string GetStringAny(Dictionary<string, object> dict, params string[] keys)
+        {
+            foreach (string key in keys)
+            {
+                if (dict.TryGetValue(key, out var val) && val != null)
+                    return val as string ?? val.ToString() ?? string.Empty;
+            }
+
+            return string.Empty;
+        }
+
+        private static float ParseFloatAny(Dictionary<string, object> dict, float defaultVal, params string[] keys)
+        {
+            foreach (string key in keys)
+            {
+                if (dict.ContainsKey(key))
+                    return ParseFloat(dict, key, defaultVal);
+            }
+
+            return defaultVal;
+        }
+
+        private static bool ParseBoolAny(Dictionary<string, object> dict, params string[] keys)
+        {
+            foreach (string key in keys)
+            {
+                if (dict.ContainsKey(key))
+                    return ParseBool(dict, key);
+            }
+
+            return false;
+        }
 
         private static List<Dictionary<string, object>> ParseStatementList(object stmtObj)
         {
@@ -763,16 +1148,8 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 foreach (object item in objList)
                 {
-                    if (item is Dictionary<object, object> dictObj)
-                    {
-                        Dictionary<string, object> newDict = [];
-                        foreach (KeyValuePair<object, object> kvp in dictObj)
-                        {
-                            newDict[kvp.Key.ToString()] = kvp.Value;
-                        }
-
-                        list.Add(newDict);
-                    }
+                    if (ToStringDict(item) is Dictionary<string, object> dictObj)
+                        list.Add(dictObj);
                 }
             }
             return list;

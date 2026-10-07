@@ -124,6 +124,7 @@ namespace ThaumielMapEditor.API.Helpers.Networking
             if (req.result != UnityWebRequest.Result.Success)
             {
                 LogManager.Error($"Failed to download plugin: {req.error} ({req.responseCode})");
+                req.Dispose();
                 yield break;
             }
 
@@ -133,12 +134,15 @@ namespace ThaumielMapEditor.API.Helpers.Networking
                 LogManager.Updater($"{PluginName} downloaded successfully ({fileBytes.Length} bytes). Applying update...");
 
                 File.WriteAllBytes(Main.Instance.FilePath, fileBytes);
-                req.Dispose();
             }
             catch (Exception ex)
             {
                 LogManager.Error($"Failed to write plugin file: {ex}");
                 yield break;
+            }
+            finally
+            {
+                req.Dispose();
             }
 
             GitHubAssetInfo? depsAsset = latestRelease.Assets?.FirstOrDefault(a => a.Name.Equals(DependenciesZipName, StringComparison.OrdinalIgnoreCase));
@@ -161,6 +165,7 @@ namespace ThaumielMapEditor.API.Helpers.Networking
                 if (depsReq.result != UnityWebRequest.Result.Success)
                 {
                     LogManager.Error($"Failed to download {DependenciesZipName}: {depsReq.error} ({depsReq.responseCode})");
+                    depsReq.Dispose();
                 }
                 else
                 {
@@ -173,7 +178,14 @@ namespace ThaumielMapEditor.API.Helpers.Networking
                         using ZipArchive archive = new(zipStream, ZipArchiveMode.Read);
                         foreach (ZipArchiveEntry entry in archive.Entries)
                         {
-                            string destinationPath = Path.Combine(dependenciesPath, entry.FullName);
+                            string entryPath = entry.FullName.Replace('\\', '/');
+                            if (Path.IsPathRooted(entry.FullName) || entryPath.Contains(".."))
+                            {
+                                LogManager.Warn($"Skipping unsafe zip entry: '{entry.FullName}'");
+                                continue;
+                            }
+
+                            string destinationPath = Path.Combine(dependenciesPath, entryPath);
                             if (string.IsNullOrEmpty(entry.Name))
                             {
                                 Directory.CreateDirectory(destinationPath);
@@ -188,11 +200,14 @@ namespace ThaumielMapEditor.API.Helpers.Networking
                         }
 
                         LogManager.Updater($"{DependenciesZipName} extracted successfully to '{dependenciesPath}'.");
-                        depsReq.Dispose();
                     }
                     catch (Exception ex)
                     {
                         LogManager.Error($"Failed to extract {DependenciesZipName}: {ex}");
+                    }
+                    finally
+                    {
+                        depsReq.Dispose();
                     }
                 }
             }
@@ -214,6 +229,7 @@ namespace ThaumielMapEditor.API.Helpers.Networking
             if (req.result != UnityWebRequest.Result.Success)
             {
                 LogManager.Error($"Failed to fetch release info from GitHub. Error: {req.error} ({req.responseCode})");
+                req.Dispose();
                 onComplete?.Invoke(null!);
                 yield break;
             }
@@ -238,12 +254,15 @@ namespace ThaumielMapEditor.API.Helpers.Networking
                 }).FirstOrDefault();
 
                 onComplete?.Invoke(chosen);
-                req.Dispose();
             }
             catch (Exception ex)
             {
                 LogManager.Error($"Error parsing GitHub response: {ex.Message}");
                 onComplete?.Invoke(null!);
+            }
+            finally
+            {
+                req.Dispose();
             }
         }
     }

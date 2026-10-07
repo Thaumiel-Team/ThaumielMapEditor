@@ -38,7 +38,7 @@ namespace ThaumielMapEditor.Events
             if (client is not PrimitiveObject primitive)
                 return;
 
-            if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
+            if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
                 return;
 
             primitive.ServerCollider.transform.localScale = new(Math.Abs(scale.x), Math.Abs(scale.y), Math.Abs(scale.z));
@@ -49,7 +49,7 @@ namespace ThaumielMapEditor.Events
             if (client is not PrimitiveObject primitive)
                 return;
 
-            if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
+            if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
                 return;
 
             if (primitive.Schematic.ServerSideTransforms.TryGetValue(primitive.ParentId, out var transform))
@@ -65,7 +65,7 @@ namespace ThaumielMapEditor.Events
             if (client is not PrimitiveObject primitive)
                 return;
 
-            if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
+            if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
                 return;
 
             if (primitive.Schematic.ServerSideTransforms.TryGetValue(primitive.ParentId, out var transform))
@@ -80,7 +80,7 @@ namespace ThaumielMapEditor.Events
         {
             foreach (PrimitiveObject primitive in schematic.GetClientObject<PrimitiveObject>())
             {
-                if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.ServerCollider == null || schematic.Primitive == null)
+                if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || schematic.Primitive == null)
                     continue;
 
                 if (schematic.ServerSideTransforms.TryGetValue(primitive.ParentId, out var transform))
@@ -96,7 +96,7 @@ namespace ThaumielMapEditor.Events
         {
             foreach (PrimitiveObject primitive in schematic.GetClientObject<PrimitiveObject>())
             {
-                if (!primitive.PrimitiveFlags.HasFlag(PrimitiveFlags.Collidable) || primitive.ServerCollider == null)
+                if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null)
                     continue;
 
                 if (schematic.ServerSideTransforms.TryGetValue(primitive.ParentId, out var transform))

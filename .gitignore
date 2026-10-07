@@ -368,5 +368,17 @@ ThaumielMapEditor/Dependencies/
 !syncversion.py
 !parsecommands.py
 !addcopyright.py
+!GitbookDocGen.py
 *.dll
 *.xml
+*.json
+*.md
+!CODE_OF_CONDUCT.md
+!Commands.md
+!Dependencies.md
+!README.md
+!ThaumielMapEditor.ToolGun/Dependencies/CustomItemsAPI.dll
+!Localization/
+!Localization/*.md
+!Localization/**/*.md
+!.github/PULL_REQUEST_TEMPLATE/*.md

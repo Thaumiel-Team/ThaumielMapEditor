@@ -21,6 +21,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks
 {
+    [GitBookPage("Components/Tools/ServerObject")]
     public class ServerObject
     {
         internal SyncFlags SyncFlags { get; private set; } = SyncFlags.None;
@@ -180,6 +181,16 @@ namespace ThaumielMapEditor.API.Blocks
             }
         }
 
+
+        /// <summary>
+        /// Gets or sets the sync interval of the <see cref="ServerObject"/>.
+        /// </summary>
+        public byte SyncInterval
+        {
+            get => MovementSmoothing;
+            set => MovementSmoothing = value;
+        }
+
         /// <summary>
         /// The NetId of the spawned ServerObject.
         /// </summary>
@@ -241,18 +252,22 @@ namespace ThaumielMapEditor.API.Blocks
                 return;
             }
 
-            NetworkServer.UnSpawn(Object);
-            SetWorldTransform(schematic);
+            if (respawn)
+                NetworkServer.UnSpawn(Object);
+
             if (PositionSync == null && Object.TryGetComponent<StructurePositionSync>(out var posSync))
                 PositionSync = posSync;
 
-            PositionSync?.Network_position = Position;
-            PositionSync?.Network_rotationY = (sbyte)Mathf.RoundToInt(Rotation.eulerAngles.y / 5.625f);
+            SetWorldTransform(schematic);
 
             OnObjectUpdated?.Invoke(this, respawn);
             
-            if (respawn)
+            if (respawn && Object != null)
+            {
                 NetworkServer.Spawn(Object);
+            }
+            else
+                MarkSyncNeeded(SyncFlags.Position | SyncFlags.Rotation | SyncFlags.Scale);
         }
 
         /// <summary>
@@ -262,16 +277,15 @@ namespace ThaumielMapEditor.API.Blocks
         /// <param name="schematic">The schematic data instance from which the object will be removed.</param>
         public virtual void DestroyObject(SchematicData schematic)
         {
-            if (Object == null)
-            {
-                LogManager.Warn($"Failed to destroy Object. Object is null.");
-                return;
-            }
-
+            DrawableLinesHelper.StopDraw(this, null);
             OnObjectDestroying?.Invoke(this);
             ObjectHandler.OnServerObjectDestroyed(new(this));
             schematic.SpawnedServerObjects.Remove(this);
             SpawnedObjects.Remove(this);
+
+            if (Object == null)
+                return;
+
             NetworkServer.Destroy(Object);
         }
 

@@ -19,15 +19,16 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
-    public class ClientObject
+    [GitBookPage("Blocks/Client/ClientObject")]
+    public abstract class ClientObject
     {
         internal SyncFlags SyncFlags { get; private set; } = SyncFlags.None;
-        
+
         /// <summary>
         /// True if this object has pending changes that need syncing.
         /// </summary>
         public bool IsDirty => SyncFlags != SyncFlags.None;
-        
+
         /// <summary>
         /// Marks specific properties as needing to be synced and registers for batch sync.
         /// </summary>
@@ -84,6 +85,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             get;
             set
             {
+                if (field == value)
+                    return;
+
                 field = value;
                 MarkSyncNeeded(SyncFlags.Position);
                 PositionUpdated?.Invoke(value, this);
@@ -101,6 +105,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             get;
             set
             {
+                if (field == value)
+                    return;
+
                 field = value;
                 MarkSyncNeeded(SyncFlags.Scale);
                 ScaleUpdated?.Invoke(value, this);
@@ -118,6 +125,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             get;
             set
             {
+                if (field == value)
+                    return;
+
                 field = value;
                 MarkSyncNeeded(SyncFlags.Rotation);
                 RotationUpdated?.Invoke(value, this);
@@ -148,9 +158,21 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             get;
             set
             {
+                if (field == value)
+                    return;
+
                 field = value;
                 MarkSyncNeeded(SyncFlags.MovementSmoothing);
             }
+        }
+
+        /// <summary>
+        /// Gets or sets the sync interval of the <see cref="ClientObject"/>.
+        /// </summary>
+        public byte SyncInterval
+        {
+            get => MovementSmoothing;
+            set => MovementSmoothing = value;
         }
 
         /// <summary>
@@ -186,7 +208,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Gets or sets the object type of the <see cref="ClientObject"/> instance.
         /// </summary>
-        public virtual ObjectType ObjectType { get; internal set; }
+        public abstract ObjectType ObjectType { get; }
 
         /// <summary>
         /// Gets or sets the asset id of the <see cref="ClientObject"/> instance.
@@ -197,7 +219,47 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Spawns the <see cref="ClientObject"/> instance for the specified player.
         /// </summary>
         /// <param name="player">The player to spawn the <see cref="ClientObject"/> instance to.</param>
-        public virtual void SpawnForPlayer(Player player) { }
+        public virtual void SpawnForPlayer(Player player)
+        {
+            if (player.IsHost)
+                return;
+
+            using NetworkWriterPooled payloadWriter = NetworkWriterPool.Get();
+
+            payloadWriter.WriteByte(1);
+
+            int sizePos = payloadWriter.Position;
+            payloadWriter.WriteByte(0);
+            int dataStart = payloadWriter.Position;
+
+            WriteSyncObjects(payloadWriter);
+            WriteSyncVars(payloadWriter);
+
+            payloadWriter.WriteUInt(ParentNetId);
+
+            int dataEnd = payloadWriter.Position;
+            payloadWriter.Position = sizePos;
+            payloadWriter.WriteByte((byte)(dataEnd - dataStart));
+            payloadWriter.Position = dataEnd;
+
+            ArraySegment<byte> payload = payloadWriter.ToArraySegment();
+
+            player.Connection.Send(new SpawnMessage
+            {
+                netId = NetId,
+                isLocalPlayer = false,
+                isOwner = false,
+                sceneId = 0,
+                assetId = AssetId,
+                position = Position,
+                rotation = Rotation,
+                scale = Scale,
+                payload = payload
+            });
+
+            ObjectHandler.OnClientObjectSpawned(new(this, player));
+            SpawnedPlayers.Add(player);
+        }
 
         /// <summary>
         /// Destroys this <see cref="ClientObject"/> instance for the specified <see cref="Player"/>
@@ -205,6 +267,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <param name="player">The <see cref="Player"/> to destroy this object on.</param>
         public void DestroyForPlayer(Player player)
         {
+            DrawableLinesHelper.StopDraw(this, player);
             player.Connection.Send(new ObjectDestroyMessage { netId = NetId });
             SpawnedPlayers.Remove(player);
         }
@@ -214,9 +277,10 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// </summary>
         public void DestroyForAllPlayers()
         {
+            DrawableLinesHelper.StopDraw(this, null);
             foreach (Player player in Player.ReadyList)
             {
-                if (player.IsHost)
+                if (player.IsHost || player.IsDummy)
                     continue;
 
                 DestroyForPlayer(player);
@@ -368,6 +432,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 return;
 
             player.Connection.Send(new ObjectHideMessage { netId = NetId });
+            SpawnedPlayers.Remove(player);
         }
 
         /// <summary>
@@ -391,6 +456,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             if (player.IsHost)
                 return;
 
+            DrawableLinesHelper.StopDraw(this, player);
             ObjectHandler.OnClientObjectDestroyed(new (this, player));
             player.Connection.Send(new ObjectDestroyMessage { netId = NetId });
             SpawnedPlayers.Remove(player);
@@ -402,6 +468,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <returns>The number of players this object was despawned for.</returns>
         public uint DespawnForAllPlayers()
         {
+            DrawableLinesHelper.StopDraw(this, null);
             uint count = 0;
             foreach (Player player in Player.ReadyList)
             {
@@ -413,6 +480,116 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             }
 
             return count;
+        }
+
+        /// <summary>
+        /// Syncs pending changes for the specified <see cref="Player"/> without resending a spawn message.
+        /// </summary>
+        /// <remarks>
+        /// Falls back to <see cref="SpawnForPlayer(Player)"/> if this object was not spawned for the player yet.
+        /// </remarks>
+        /// <param name="player">The <see cref="Player"/> to sync to.</param>
+        public void SyncForPlayer(Player player)
+        {
+            if (player.IsHost)
+                return;
+
+            if (!IsSpawnedForPlayer(player))
+            {
+                SpawnForPlayer(player);
+                return;
+            }
+
+            SendDeltaUpdate(player, SyncFlags);
+        }
+
+        /// <summary>
+        /// Sends the given <paramref name="flags"/> as a Mirror <c>EntityStateMessage</c>
+        /// </summary>
+        /// <param name="player">The <see cref="Player"/> to send the message to. Must already have this object spawned.</param>
+        /// <param name="flags">The changes to include in the message.</param>
+        public void SendDeltaUpdate(Player player, SyncFlags flags)
+        {
+            if (player.IsHost)
+                return;
+
+            if (player.Connection == null || !player.Connection.isReady)
+                return;
+
+            if (flags.HasFlagFast(SyncFlags.Parent))
+                player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, ParentNetId);
+
+            ulong baseMask = 0UL;
+            if (flags.HasFlagFast(SyncFlags.Position))
+                baseMask |= 1UL;
+
+            if (flags.HasFlagFast(SyncFlags.Rotation))
+                baseMask |= 2UL;
+
+            if (flags.HasFlagFast(SyncFlags.Scale))
+                baseMask |= 4UL;
+
+            if (flags.HasFlagFast(SyncFlags.MovementSmoothing))
+                baseMask |= 8UL;
+
+            if (flags.HasFlagFast(SyncFlags.IsStatic))
+                baseMask |= 16UL;
+
+            ulong combinedMask = baseMask | GetDerivedDirtyBits(flags);
+            if (combinedMask == 0UL)
+                return;
+
+            using NetworkWriterPooled writer = NetworkWriterPool.Get();
+
+            writer.WriteByte(1);
+
+            int sizePos = writer.Position;
+            writer.WriteByte(0);
+            int dataStart = writer.Position;
+
+            writer.WriteULong(0UL);
+
+            writer.WriteULong(combinedMask);
+            if (flags.HasFlagFast(SyncFlags.Position))
+                writer.WriteVector3(Position);
+                
+            if (flags.HasFlagFast(SyncFlags.Rotation))
+                writer.WriteQuaternion(Rotation);
+
+            if (flags.HasFlagFast(SyncFlags.Scale))
+                writer.WriteVector3(Scale);
+
+            if (flags.HasFlagFast(SyncFlags.MovementSmoothing))
+                writer.WriteByte(MovementSmoothing);
+
+            if (flags.HasFlagFast(SyncFlags.IsStatic))
+                writer.WriteBool(IsStatic);
+
+            writer.WriteULong(combinedMask);
+            WriteDerivedSyncVars(writer, flags);
+
+            int dataEnd = writer.Position;
+            writer.Position = sizePos;
+            writer.WriteByte((byte)(dataEnd - dataStart));
+            writer.Position = dataEnd;
+
+            player.Connection.Send(new EntityStateMessage { netId = NetId, payload = writer.ToArraySegment() });
+        }
+
+        /// <summary>
+        /// Gets the derived dirty bits for the given <paramref name="flags"/>.
+        /// </summary>
+        /// <param name="flags">The changes to map to dirty bits.</param>
+        /// <returns>The derived dirty bit mask.</returns>
+        protected virtual ulong GetDerivedDirtyBits(SyncFlags flags) => 0UL;
+
+        /// <summary>
+        /// Writes derived SyncVar values in ascending dirty bit order.
+        /// </summary>
+        /// <param name="writer">The <see cref="NetworkWriter"/> to write to.</param>
+        /// <param name="flags">The changes to write.</param>
+        protected virtual void WriteDerivedSyncVars(NetworkWriter writer, SyncFlags flags)
+        {
         }
 
         /// <summary>
@@ -429,7 +606,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     continue;
 
                 LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
-                SpawnForPlayer(player);
+                SyncForPlayer(player);
             }
 
             ClearDirtyFlags();
@@ -448,7 +625,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 return;
 
             LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
-            SpawnForPlayer(player);
+            SyncForPlayer(player);
             ClearDirtyFlags();
         }
 
@@ -470,7 +647,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                     continue;
 
                 LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
-                SpawnForPlayer(player);
+                SyncForPlayer(player);
             }
 
             ClearDirtyFlags();
@@ -481,16 +658,17 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             if (!Spawned || SyncFlags == SyncFlags.None)
                 return;
 
+            SyncFlags flags = SyncFlags;
             foreach (Player player in SpawnedPlayers)
             {
                 if (player.IsHost)
                     continue;
 
-                SpawnForPlayer(player);
+                SyncForPlayer(player);
             }
             
             ClearDirtyFlags();
-            LogManager.Debug($"Batched sync completed for object {NetId} ({SyncFlags})");
+            LogManager.Debug($"Batched sync completed for object {NetId} ({flags})");
         }
 
         /// <summary>
@@ -518,7 +696,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 LogManager.Warn($"netId {identity.netId} is already in the spawned dictionary.");
                 return false;
             }
-            
+
             identity.isLocalPlayer = false;
             identity.isClient = true;
             identity.isServer = false;
@@ -529,6 +707,23 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             SendCustomSpawnMessage(identity, player);
 
             return true;
+        }
+
+        /// <summary>
+        /// Writes the sync variables to the specified <see cref="NetworkWriter"/>.
+        /// </summary>
+        /// <param name="payloadWriter">The <see cref="NetworkWriter"/> to write to.</param>
+        protected virtual void WriteSyncVars(NetworkWriter payloadWriter)
+        {
+            payloadWriter.WriteVector3(Position);
+            payloadWriter.WriteQuaternion(Rotation);
+            payloadWriter.WriteVector3(Scale);
+            payloadWriter.WriteByte(MovementSmoothing);
+            payloadWriter.WriteBool(IsStatic);
+        }
+        
+        protected virtual void WriteSyncObjects(NetworkWriterPooled payloadWriter)
+        {
         }
 
         private static void SendCustomSpawnMessage(NetworkIdentity identity, Player player)

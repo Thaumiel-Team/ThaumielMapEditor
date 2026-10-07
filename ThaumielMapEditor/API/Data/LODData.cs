@@ -10,6 +10,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Data
 {
+    [GitBookPage("Data/LODData")]
     public class LODData
     {
         /// <summary>

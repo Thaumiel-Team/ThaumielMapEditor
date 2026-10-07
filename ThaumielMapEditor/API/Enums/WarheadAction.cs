@@ -7,6 +7,7 @@
 
 namespace ThaumielMapEditor.API.Enums
 {
+    [GitBookPage("Enums/WarheadAction")]
     public enum WarheadAction
     {
         Start,

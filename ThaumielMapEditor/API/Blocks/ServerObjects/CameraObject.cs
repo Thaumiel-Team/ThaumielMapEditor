@@ -10,11 +10,9 @@ using LabApi.Features.Wrappers;
 using MapGeneration;
 using Mirror;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using UnityEngine;
@@ -23,6 +21,7 @@ using CameraType = ThaumielMapEditor.API.Enums.CameraType;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/CameraObject")]
     public class CameraObject : ServerObject
     {
         /// <summary>
@@ -34,24 +33,47 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 #pragma warning restore CS8618
 
         /// <summary>
-        /// The camera prefab type (mapped to a specific prefab via <see cref="GetCameraPrefab"/>).
+        /// The camera prefab type.
+        /// Setting this on a spawned camera respawns it in place with the new prefab.
         /// </summary>
-        public CameraType Type { get; internal set; }
+        [YamlMember(Alias = "CameraType")]
+        public CameraType Type
+        {
+            get;
+            set
+            {
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (Base == null || Object == null)
+                    return;
+
+                NetworkServer.Destroy(Object);
+                Respawn();
+            }
+        }
 
         /// <summary>
         /// Display label for the camera. Setting this property updates the networked label on
         /// the underlying <see cref="Base"/> when available.
         /// </summary>
+        [YamlMember(Alias = "Label")]
         public string Label
         {
             get;
             set
             {
-                if (field == value || Base == null)
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (Base == null)
                     return;
 
                 Base.NetworkLabel = value;
-                field = value;
             }
         } = string.Empty;
 
@@ -59,33 +81,53 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// The <see cref="Room"/> that the camera belongs to.
         /// Setting this property updates <see cref="Scp079CameraToy.NetworkRoom"/> on <see cref="Base"/>.
         /// </summary>
+        [YamlIgnore]
         public Room Room
         {
             get;
             set
             {
-                if (field == value || Base == null)
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (Base == null || value == null)
                     return;
 
                 Base.NetworkRoom = value.Base;
-                field = value;
             }
         } = Room.Get(RoomName.Outside).First();
+
+        /// <summary>
+        /// Proxy property for <see cref="Room"/> to allow serialization as <see cref="RoomName"/>.
+        /// </summary>
+        [YamlMember(Alias = "Room")]
+        public RoomName RoomName
+        {
+            get => Room?.Name ?? RoomName.Outside;
+            set => Room = Room.Get(value).First();
+        }
 
         /// <summary>
         /// Vertical rotation constraint applied to the camera.
         /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkVerticalConstraint"/>.
         /// </summary>
+        [YamlMember(Alias = "VerticalConstraint")]
         public Vector2 VerticalConstraint
         {
             get;
             set
             {
-                if (field == value || Base == null)
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (Base == null)
                     return;
 
                 Base.NetworkVerticalConstraint = value;
-                field = value;
             }
         }
 
@@ -93,16 +135,21 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Horizontal rotation constraint applied to the camera.
         /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkHorizontalConstraint"/>.
         /// </summary>
+        [YamlMember(Alias = "HorizontalConstraint")]
         public Vector2 HorizontalConstraint
         {
             get;
             set
             {
-                if (field == value || Base == null)
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (Base == null)
                     return;
 
                 Base.NetworkHorizontalConstraint = value;
-                field = value;
             }
         }
         
@@ -110,16 +157,21 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Zoom constraint for the camera (min/max).
         /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkZoomConstraint"/>.
         /// </summary>
+        [YamlMember(Alias = "ZoomConstraint")]
         public Vector2 ZoomConstraint
         {
             get;
             set
             {
-                if (field == value || Base == null)
+                if (field == value)
                     return;
-                
-                Base.NetworkZoomConstraint = value;
+
                 field = value;
+
+                if (Base == null)
+                    return;
+
+                Base.NetworkZoomConstraint = value;
             }
         }
 
@@ -150,63 +202,47 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// <inheritdoc/>
         public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
         {
-            Scp079CameraToy camera = UnityEngine.Object.Instantiate(GetCameraPrefab(GetValue<CameraType>(serializable, "CameraType")));
+            Scp079CameraToy camera = UnityEngine.Object.Instantiate(GetCameraPrefab(Type));
             NetworkServer.UnSpawn(camera.gameObject);
             Base = camera;
             Object = camera.gameObject;
-            ParseValues(serializable);
             SetWorldTransform(schematic);
+            Object.transform.localScale = Scale;
+            ApplyProperties(camera);
             NetworkServer.Spawn(camera.gameObject);
+            NetId = camera.netId;
+            base.SpawnObject(schematic, serializable);
         }
 
         /// <summary>
-        /// Parses values from a <see cref="SerializableObject"/> and applies them to this instance.
+        /// Respawns this camera in place with the current <see cref="Type"/> prefab,
         /// </summary>
-        /// <param name="serializable">The serialized camera object to parse.</param>
-        public void ParseValues(SerializableObject serializable)
+        public void Respawn()
         {
-            if (serializable.ObjectType is not ObjectType.Camera)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Camera");
-                return;                
-            }
+            Scp079CameraToy camera = UnityEngine.Object.Instantiate(GetCameraPrefab(Type));
+            NetworkServer.UnSpawn(camera.gameObject);
+            Base = camera;
+            Object = camera.gameObject;
+            Object.transform.SetPositionAndRotation(Position, Rotation);
+            Object.transform.localScale = Scale;
+            ApplyProperties(camera);
+            NetworkServer.Spawn(camera.gameObject);
+            NetId = camera.netId;
+        }
 
-            if (!serializable.Values.TryConvertValue<string>("Label", out var label))
-            {
-                LogManager.Warn("Failed to parse Label");
-            }
+        /// <summary>
+        /// Applies all current property values to the given camera toy.
+        /// </summary>
+        /// <param name="camera">The <see cref="Scp079CameraToy"/> to apply properties to.</param>
+        public void ApplyProperties(Scp079CameraToy camera)
+        {
+            camera.NetworkLabel = Label;
+            if (Room != null)
+                camera.NetworkRoom = Room.Base;
 
-            if (!serializable.Values.TryConvertValue<RoomName>("Room", out var room))
-            {
-                LogManager.Warn("Failed to parse Room");
-            }
-
-            if (serializable.Values.TryGetValue("VerticalConstraint", out var raw) && raw is IDictionary<object, object> dict)
-            {
-                float x = Convert.ToSingle(dict["x"]);
-                float y = Convert.ToSingle(dict["y"]);
-
-                VerticalConstraint = new(x, y);
-            }
-
-            if (serializable.Values.TryGetValue("HorizontalConstraint", out var raw1) && raw1 is IDictionary<object, object> dict1)
-            {
-                float x = Convert.ToSingle(dict1["x"]);
-                float y = Convert.ToSingle(dict1["y"]);
-
-                HorizontalConstraint = new(x, y);
-            }
-
-            if (serializable.Values.TryGetValue("ZoomConstraint", out var raw2) && raw2 is IDictionary<object, object> dict2)
-            {
-                float x = Convert.ToSingle(dict2["x"]);
-                float y = Convert.ToSingle(dict2["y"]);
-
-                ZoomConstraint = new(x, y);
-            }
-
-            Label = label;
-            Room = Room.Get(room).First();
+            camera.NetworkVerticalConstraint = VerticalConstraint;
+            camera.NetworkHorizontalConstraint = HorizontalConstraint;
+            camera.NetworkZoomConstraint = ZoomConstraint;
         }
     }
 }

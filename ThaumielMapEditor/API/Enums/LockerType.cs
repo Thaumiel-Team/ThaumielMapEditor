@@ -12,8 +12,10 @@ namespace ThaumielMapEditor.API.Enums
     /// <summary>
     /// Defines the types that <see cref="LockerObject"/> can use.
     /// </summary>
+    [GitBookPage("Enums/LockerType")]
     public enum LockerType
     {
+        None = 0,
         Pedestal = 1,
         LargeGun = 2,
         RifleRack = 3,

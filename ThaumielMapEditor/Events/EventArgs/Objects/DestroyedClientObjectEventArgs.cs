@@ -10,6 +10,7 @@ using ThaumielMapEditor.API.Blocks.ClientSide;
 
 namespace ThaumielMapEditor.Events.EventArgs.Objects
 {
+    [GitBookPage("Events/EventArgs/DestroyedClientObjectEventArgs")]
     public class DestroyedClientObjectEventArgs : System.EventArgs
     {
         public ClientObject Object { get; }

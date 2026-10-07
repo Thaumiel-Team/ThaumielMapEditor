@@ -79,4 +79,20 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             return list?.Contains(item!) ?? false;
         }
     }
+
+    public class ListFirstBlock : BlockBase
+    {
+        public object? List { get; set; }
+
+        public override object ReturnExecute()
+            => (List is BlockBase bL ? bL.ReturnExecute() : List) is List<object> list && list.Count > 0 ? list[0] : null!;
+    }
+
+    public class ListLastBlock : BlockBase
+    {
+        public object? List { get; set; }
+
+        public override object ReturnExecute()
+            => (List is BlockBase bL ? bL.ReturnExecute() : List) is List<object> list && list.Count > 0 ? list[list.Count - 1] : null!;
+    }
 }

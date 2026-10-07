@@ -10,12 +10,16 @@ using LabApi.Events.Arguments.Scp079Events;
 using LabApi.Events.Handlers;
 using LabApi.Features.Wrappers;
 using MEC;
+using System.Collections.Generic;
+using System.Linq;
+using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Components;
-using ThaumielMapEditor.API.Components.Tools;
 using ThaumielMapEditor.API.Data;
+using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
+using ThaumielMapEditor.Commands.Admin;
 
 namespace ThaumielMapEditor.Events
 {
@@ -25,7 +29,6 @@ namespace ThaumielMapEditor.Events
         public static void Register()
         {
             PlayerEvents.Joined += OnPlayerJoined;
-            PlayerEvents.ChangedSpectator += OnPlayerChangedSpectator;
             PlayerEvents.Spawned += PlayerSpawnPoint.OnPlayerSpawned;
             Scp079Events.ChangedCamera += OnScp079ChangedCamera;
             ReferenceHub.OnBeforePlayerDestroyed += OnPlayerLeft;
@@ -34,7 +37,6 @@ namespace ThaumielMapEditor.Events
         public static void Unregister()
         {
             PlayerEvents.Joined -= OnPlayerJoined;
-            PlayerEvents.ChangedSpectator -= OnPlayerChangedSpectator;
             PlayerEvents.Spawned -= PlayerSpawnPoint.OnPlayerSpawned;
             Scp079Events.ChangedCamera -= OnScp079ChangedCamera;
             ReferenceHub.OnBeforePlayerDestroyed -= OnPlayerLeft;
@@ -42,66 +44,12 @@ namespace ThaumielMapEditor.Events
 
         private static void OnScp079ChangedCamera(Scp079ChangedCameraEventArgs ev)
         {
-            foreach (CullingObject cullingZone in CullingObject.AllInstances)
-            {
-                if (cullingZone.IsInsideCollider(ev.Camera.Position))
-                {
-                    cullingZone.ToggleVisibility(ev.Player, true);
-                }
-                else
-                    cullingZone.ToggleVisibility(ev.Player, false);
-            }
-        }
-        
-        private static void OnPlayerChangedSpectator(PlayerChangedSpectatorEventArgs ev)
-        {
-            if (ev.OldTarget == ev.NewTarget)
+            if (ev.Player == null || ev.Camera == null)
                 return;
 
-            UpdateSpectatorLOD(ev.OldTarget, ev.Player, isNowVisible: false);
-            UpdateSpectatorLOD(ev.NewTarget, ev.Player, isNowVisible: true);
-
-            if (ev.OldTarget != null)
+            foreach (CullingObject cullingZone in CullingObject.AllInstances.ToArray())
             {
-                foreach (CullingObject cullingZone in CullingObject.AllInstances)
-                {
-                    if (cullingZone.PlayersInside.Contains(ev.OldTarget))
-                        cullingZone.ToggleVisibility(ev.Player, false);
-                }
-            }
-
-            if (ev.NewTarget != null)
-            {
-                foreach (CullingObject cullingZone in CullingObject.AllInstances)
-                {
-                    if (cullingZone.PlayersInside.Contains(ev.NewTarget))
-                        cullingZone.ToggleVisibility(ev.Player, true);
-                }
-            }
-        }
-
-        internal static void UpdateSpectatorLOD(Player target, Player spectator, bool isNowVisible)
-        {
-            if (target == null || !LODHelper.PlayersInLODZones.TryGetValue(target, out var zones))
-                return;
-
-            foreach (LODZone zone in zones)
-            {
-                if (!Loader.SchematicLODZones.TryGetValue(zone, out var schematic))
-                    continue;
-
-                foreach (PrimitiveObject primitive in schematic.GetClientObject<PrimitiveObject>())
-                {
-                    if (zone.PrimitivestoUnload.Contains(primitive.PrimitiveType))
-                    {
-                        if (isNowVisible)
-                        {
-                            primitive.ShowForPlayer(spectator);
-                        }
-                        else
-                            primitive.DespawnForPlayer(spectator);
-                    }
-                }
+                cullingZone.ToggleVisibility(ev.Player, cullingZone.IsInsideCollider(ev.Camera.Position));
             }
         }
 
@@ -116,42 +64,69 @@ namespace ThaumielMapEditor.Events
             if (player.IsHost)
                 return;
 
-            foreach (SchematicData data in Loader.SpawnedSchematics)
+            foreach (SchematicData data in Loader.SpawnedSchematics.ToArray())
             {
-                foreach (ClientObject clientobj in data.SpawnedClientObjects)
+                foreach (ClientObject clientobj in data.SpawnedClientObjects.ToArray())
                 {
                     if (!clientobj.SpawnedPlayers.Contains(player))
                         continue;
 
                     clientobj.SpawnedPlayers.Remove(player);
+                    SyncManager.RemoveFromPending(clientobj);
                 }
             }
 
-            InteractableTrigger.PlayerEffectCache.Remove(player);
-            ColliderTrigger.PlayerEffectCache.Remove(player);
+            CullingObject.RemovePlayer(player);
+            PlayerExtensions.EffectCache.Remove(player);
+            LODHelper.PlayersInLODZones.Remove(player);
+            Grab.ReleasePlayer(player);
+            DrawableLinesHelper.StopDrawsForPlayer(player);
         }
 
         private static void OnPlayerJoined(PlayerJoinedEventArgs ev)
         {
-            if (ev.Player == null)
-                return;
-
-            Timing.CallDelayed(0.5f, () =>
+            if (ev.Player == null || ev.Player.IsHost || ev.Player.IsDummy)
             {
-                if (ev.Player == null || ev.Player.IsDestroyed)
-                {
-                    LogManager.Warn($"Player was null or destroyed before sync could run.");
-                    return;
-                }
+                LogManager.Warn($"Player was null when joined.");
+                return;
+            }
 
-                foreach (SchematicData data in Loader.SchematicsById.Values)
-                {
-                    LogManager.Debug($"Spawning {data.FileName} for player {ev.Player.DisplayName}");
-                    data.SyncWithPlayer(ev.Player);
-                }
+            Timing.RunCoroutine(SyncPlayerWhenReady(ev.Player, ev.Player.DisplayName));
+            if (!ev.Player.IsDestroyed && ev.Player.GameObject != null)
+                ev.Player.GameObject.AddComponent<CullingUpdater>().Init(ev.Player);
+        }
 
-                CreditHelper.SetTag(ev.Player);
-            });
+        private static IEnumerator<float> SyncPlayerWhenReady(Player player, string name)
+        {
+            float timeout = 30f;
+            while (!player.IsReady && timeout > 0f)
+            {
+                if (player.IsDestroyed)
+                    yield break;
+
+                timeout -= Timing.DeltaTime;
+                yield return Timing.WaitForOneFrame;
+            }
+
+            if (player.IsDestroyed)
+            {
+                LogManager.Warn($"Player with name {name} was destroyed before sync could run.");
+                yield break;
+            }
+
+            if (!player.IsReady)
+            {
+                LogManager.Warn($"Timed out waiting for player {name} to be ready; skipping schematic sync.");
+                yield break;
+            }
+
+            foreach (SchematicData data in Loader.SchematicsById.Values.ToArray())
+            {
+                LogManager.Debug($"Syncing {data.FileName} to {name}");
+                data.SyncWithPlayer(player);
+            }
+
+            CreditHelper.SetTag(player);
         }
     }
 }

@@ -6,11 +6,13 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Globalization;
 using System.Text;
 using CommandSystem;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Data;
+using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Interfaces;
 using ThaumielMapEditor.API.Serialization;
@@ -20,7 +22,7 @@ namespace ThaumielMapEditor.Commands.Admin
 {
 #pragma warning disable CS1591
     [DoNotParse]
-    public class Spawn : ISubCommand
+    public class Spawn : SubCommand
     {
         public static readonly CachedLayerMask RayMask = new("Default", "Door", "CCTV");
 
@@ -38,9 +40,11 @@ namespace ThaumielMapEditor.Commands.Admin
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            if (!Loader.LoadedSchematics.TryGetValue(arguments.At(0), out SerializableSchematic schematic))
+            SerializableSchematic? schematic = null;
+
+            if (!Loader.LoadedMaps.TryGetValue(arguments.At(0), out SerializableMap? map) && !Loader.LoadedSchematics.TryGetValue(arguments.At(0), out schematic))
             {
-                response = $"Schematic '{arguments.At(0)}' not found.";
+                response = $"Schematic or Map '{arguments.At(0)}' not found.";
                 return false;
             }
 
@@ -48,17 +52,17 @@ namespace ThaumielMapEditor.Commands.Admin
 
             if (arguments.Count == 4)
             {
-                if (!float.TryParse(arguments.At(1), out var x))
+                if (!float.TryParse(arguments.At(1), NumberStyles.Float, CultureInfo.InvariantCulture, out var x) || float.IsNaN(x) || float.IsInfinity(x))
                 {
                     response = $"Failed to parse X value. Invalid float: {arguments.At(1)}";
                     return false;
                 }
-                if (!float.TryParse(arguments.At(2), out var y))
+                if (!float.TryParse(arguments.At(2), NumberStyles.Float, CultureInfo.InvariantCulture, out var y) || float.IsNaN(y) || float.IsInfinity(y))
                 {
                     response = $"Failed to parse Y value. Invalid float: {arguments.At(2)}";
                     return false;
                 }
-                if (!float.TryParse(arguments.At(3), out var z))
+                if (!float.TryParse(arguments.At(3), NumberStyles.Float, CultureInfo.InvariantCulture, out var z) || float.IsNaN(z) || float.IsInfinity(z))
                 {
                     response = $"Failed to parse Z value. Invalid float: {arguments.At(3)}";
                     return false;
@@ -66,15 +70,15 @@ namespace ThaumielMapEditor.Commands.Admin
 
                 position = new(x, y, z);
             }
-            else
+            else if (arguments.Count == 1)
             {
-                if (!Player.TryGet(sender, out var player))
+                if (!Player.TryGet(sender, out var player) || player.Camera == null)
                 {
-                    response = "Failed to get Player.";
+                    response = "Failed to get player camera. Provide X Y Z explicitly or look at a placement position.";
                     return false;
                 }
 
-                if (!Physics.Raycast(player.Camera.transform.position + player.Camera.forward, player.Camera.forward, out var hit, 50, RayMask))
+                if (!Physics.Raycast(player.Camera.position, player.Camera.forward, out var hit, 50, RayMask))
                 {
                     response = "Failed to get placement position from raycast.";
                     return false;
@@ -82,15 +86,39 @@ namespace ThaumielMapEditor.Commands.Admin
 
                 position = hit.point;
             }
+            else
+            {
+                response = $"Wrong usage! Correct usage: tme {Name} {VisibleArgs}";
+                return false;
+            }
 
-            SchematicData data = Loader.SpawnSchematic(schematic, position);
             StringBuilder sb = new();
-            sb.AppendLine();
-            sb.AppendLine($"Spawning schematic '{schematic.FileName}'...");
-            sb.AppendLine($"- Id: {data.Id}");
-            sb.AppendLine($"- Position: {position}");
-            sb.AppendLine($"- Scale: {schematic.Scale}");
-            sb.AppendLine($"- Objects queued: {schematic.Objects.Count}");
+
+            if (map != null)
+            {
+                MapData? data = Loader.SpawnMap(map);
+                if (data == null)
+                {
+                    response = $"Failed to spawn map '{map.FileName}'.";
+                    return false;
+                }
+
+                sb.AppendLine();
+                sb.AppendLine($"Spawning schematic '{data.FileName}'...");
+                sb.AppendLine($"- Id: {data.Id}");
+                sb.AppendLine($"- Position: {data.Room?.WorldPosition(data.Position)}");
+                sb.AppendLine($"- Room: {data.Room}");
+            }
+            else if (schematic != null)
+            {
+                SchematicData data = Loader.SpawnSchematic(schematic, position);
+                sb.AppendLine();
+                sb.AppendLine($"Spawning schematic '{schematic.FileName}'...");
+                sb.AppendLine($"- Id: {data.Id}");
+                sb.AppendLine($"- Position: {position}");
+                sb.AppendLine($"- Scale: {schematic.Scale}");
+                sb.AppendLine($"- Objects queued: {schematic.Objects.Count + schematic.ServerSideObjects.Count}");
+            }
 
             response = sb.ToString();
             return true;

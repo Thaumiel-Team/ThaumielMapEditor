@@ -9,6 +9,7 @@ using ThaumielMapEditor.API.Data;
 
 namespace ThaumielMapEditor.Events.EventArgs.Schematic
 {
+    [GitBookPage("Events/EventArgs/SchematicSpawnedEventArgs")]
     public class SchematicSpawnedEventArgs : System.EventArgs
     {
         public SchematicData Schematic { get; }

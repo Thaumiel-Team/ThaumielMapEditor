@@ -75,11 +75,11 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         {
             if (Condition?.ReturnExecute() is bool b && b)
             {
-                Executor?.Execute(IfStack!, player);
+                Executor?.ExecuteStack(IfStack!, player);
             }
             else if (ElseStack.Count > 0)
             {
-                Executor?.Execute(ElseStack!, player);
+                Executor?.ExecuteStack(ElseStack!, player);
             }
         }
     }

@@ -17,14 +17,33 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/ClutterObject")]
     public class ClutterObject : ServerObject
     {
         public override ObjectType ObjectType { get; set; } = ObjectType.Clutter;
 
         /// <summary>
-        /// Gets the <see cref="ClutterType"/> of this clutter object.
+        /// Gets or sets the <see cref="ClutterType"/> of this clutter object.
+        /// Setting this on a spawned clutter respawns it in place with the new prefab.
         /// </summary>
-        public ClutterType Type { get; internal set; }
+        [YamlMember(Alias = "ClutterType")]
+        public ClutterType Type
+        {
+            get;
+            set
+            {
+                if (field == value)
+                    return;
+
+                field = value;
+
+                if (ClutterGameObject == null || Object == null)
+                    return;
+
+                NetworkServer.Destroy(Object);
+                Respawn();
+            }
+        }
         
         /// <summary>
         /// Gets the underlying <see cref="GameObject"/> of this clutter object.
@@ -77,14 +96,35 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
                 Base = connector;
 
             SetWorldTransform(schematic);
+            clutterPrefab.transform.localScale = Scale;
+            NetworkServer.Spawn(clutterPrefab);
 
             if (clutterPrefab.TryGetComponent<NetworkBehaviour>(out var network))
             {
                 NetId = network.netId;
             }
 
-            NetworkServer.Spawn(clutterPrefab);
             base.SpawnObject(schematic, serializable);
+        }
+
+        /// <summary>
+        /// Respawns this clutter in place with the current <see cref="Type"/> prefab.
+        /// </summary>
+        public void Respawn()
+        {
+            GameObject clutterPrefab = UnityEngine.Object.Instantiate(GetClutterPrefab(Type));
+            NetworkServer.UnSpawn(clutterPrefab);
+            ClutterGameObject = clutterPrefab;
+            Object = clutterPrefab;
+            Base = clutterPrefab.TryGetComponent<SpawnableClutterConnector>(out var connector) ? connector : null;
+            clutterPrefab.transform.SetPositionAndRotation(Position, Rotation);
+            clutterPrefab.transform.localScale = Scale;
+            NetworkServer.Spawn(clutterPrefab);
+
+            if (clutterPrefab.TryGetComponent<NetworkBehaviour>(out var network))
+            {
+                NetId = network.netId;
+            }
         }
     }
 }

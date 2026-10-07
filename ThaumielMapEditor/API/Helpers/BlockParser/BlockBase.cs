@@ -5,6 +5,8 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System.Collections;
+using System.Reflection;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Data;
 
@@ -13,6 +15,35 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     public abstract class BlockBase
     {
         public BlockExecutor? Executor { get; internal set; }
+
+        /// <summary>
+        /// Assigns the executor to this block and recursively to any nested blocks exposed through its properties.
+        /// </summary>
+        internal void SetExecutorRecursive(BlockExecutor executor)
+        {
+            Executor = executor;
+
+            foreach (PropertyInfo property in GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (!property.CanRead)
+                    continue;
+
+                object? value = property.GetValue(this);
+
+                if (value is BlockBase block)
+                {
+                    block.SetExecutorRecursive(executor);
+                }
+                else if (value is IEnumerable enumerable && value is not string)
+                {
+                    foreach (object? item in enumerable)
+                    {
+                        if (item is BlockBase inner)
+                            inner.SetExecutorRecursive(executor);
+                    }
+                }
+            }
+        }
 
         public virtual void Execute()
         {
@@ -51,20 +82,85 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         {
             if (value is BlockBase block)
                 value = block.ReturnExecute();
- 
+
             if (value is float f)
                 return f;
- 
+
             if (value is double d)
                 return (float)d;
- 
+
             if (value is int i)
                 return i;
- 
+
             if (float.TryParse(value?.ToString(), out float parsed))
                 return parsed;
- 
+
             return defaultVal;
+        }
+
+        /// <summary>
+        /// Resolves a value to a string. If the value is a <see cref="BlockBase"/>, its <see cref="ReturnExecute()"/> is called first.
+        /// </summary>
+        protected static string ResolveString(object? value, string defaultVal = "")
+        {
+            if (value is BlockBase block)
+                value = block.ReturnExecute();
+
+            return value?.ToString() ?? defaultVal;
+        }
+
+        /// <summary>
+        /// Resolves a value to an int. If the value is a <see cref="BlockBase"/>, its <see cref="ReturnExecute()"/> is called first.
+        /// </summary>
+        protected static int ResolveInt(object? value, int defaultVal = 0)
+        {
+            if (value is BlockBase block)
+                value = block.ReturnExecute();
+
+            if (value is int i)
+                return i;
+
+            if (value is float f)
+                return (int)f;
+
+            if (value is double d)
+                return (int)d;
+
+            if (value is long l)
+                return (int)l;
+
+            if (int.TryParse(value?.ToString(), out int parsed))
+                return parsed;
+
+            return defaultVal;
+        }
+
+        /// <summary>
+        /// Resolves a value to a bool. If the value is a <see cref="BlockBase"/>, its <see cref="ReturnExecute()"/> is called first.
+        /// </summary>
+        protected static bool ResolveBool(object? value, bool defaultVal = false)
+        {
+            if (value is BlockBase block)
+                value = block.ReturnExecute();
+
+            if (value is bool b)
+                return b;
+
+            if (bool.TryParse(value?.ToString(), out bool parsed))
+                return parsed;
+
+            return defaultVal;
+        }
+
+        /// <summary>
+        /// Resolves a value. If the value is a <see cref="BlockBase"/>, its <see cref="ReturnExecute()"/> is called first.
+        /// </summary>
+        protected static object? ResolveValue(object? value)
+        {
+            if (value is BlockBase block)
+                return block.ReturnExecute();
+
+            return value;
         }
     }
 }

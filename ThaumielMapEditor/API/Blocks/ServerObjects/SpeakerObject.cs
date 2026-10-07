@@ -12,18 +12,19 @@ using SecretLabNAudio.Core;
 using SecretLabNAudio.Core.Extensions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
-using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/SpeakerObject")]
     public class SpeakerObject : ServerObject
     {
         /// <summary>
         /// Gets the <see cref="AudioPlayer"/> instance associated with this speaker.
         /// </summary>
 #pragma warning disable CS8618
+        [YamlIgnore]
         public AudioPlayer Player { get; private set; }
 #pragma warning restore CS8618
 
@@ -31,21 +32,31 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Gets or sets the volume of the speaker, expressed as a percentage between 0 and 100.
         /// </summary>
         /// <value>A <see cref="float"/> representing the volume percentage.</value>
+        [YamlMember(Alias = "Volume")]
         public float Volume
         {
-            get => Player.Speaker.Volume;
-            set => Player.Speaker.Volume = value / 100;
-        }
+            get;
+            set
+            {
+                field = value;
+                Player?.Speaker.Volume = value / 100;
+            }
+        } = 100f;
 
         /// <summary>
         /// Gets or sets a value indicating whether the speaker uses spatial audio.
         /// When <see langword="true"/>, audio volume and panning are affected by the listener's position.
         /// </summary>
         /// <value><see langword="true"/> if spatial audio is enabled; otherwise, <see langword="false"/>.</value>
+        [YamlMember(Alias = "IsSpatial")]
         public bool IsSpatial
         {
-            get => Player.Speaker.IsSpatial;
-            set => Player.Speaker.IsSpatial = value;
+            get;
+            set
+            {
+                field = value;
+                Player?.Speaker.IsSpatial = value;
+            }
         }
 
         /// <summary>
@@ -53,42 +64,48 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Within this distance, audio plays at full volume.
         /// </summary>
         /// <value>A <see cref="float"/> representing the minimum distance in world units.</value>
+        /// <remarks>
+        /// Only used if <see cref="IsSpatial"/> is true.
+        /// </remarks>
+        [YamlMember(Alias = "MinDistance")]
         public float MinDistance
         {
-            get => Player.Speaker.MinDistance;
-            set => Player.Speaker.MinDistance = value;
-        }
+            get;
+            set
+            {
+                field = value;
+                Player?.Speaker.MinDistance = value;
+            }
+        } = 1f;
 
         /// <summary>
         /// Gets or sets the maximum distance at which the speaker can be heard for spatial audio.
         /// Beyond this distance, audio is inaudible.
         /// </summary>
         /// <value>A <see cref="float"/> representing the maximum distance in world units.</value>
+        [YamlMember(Alias = "MaxDistance")]
         public float MaxDistance
-        {
-            get => Player.Speaker.MaxDistance;
-            set => Player.Speaker.MaxDistance = value;
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the speaker loops its audio.
-        /// Setting this property updates the underlying <see cref="AudioPlayer"/> loop state.
-        /// </summary>
-        /// <value><see langword="true"/> if the audio should loop; otherwise, <see langword="false"/>.</value>
-        public bool Loop
         {
             get;
             set
             {
-                Player.Loop(value);
                 field = value;
+                Player?.Speaker.MaxDistance = value;
             }
-        }
+        } = 10f;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the speaker loops its audio.
+        /// </summary>
+        /// <value><see langword="true"/> if the audio should loop; otherwise, <see langword="false"/>.</value>
+        [YamlMember(Alias = "Loop")]
+        public bool Loop { get; set; }
 
         /// <summary>
         /// Gets or sets the ID of the underlying <see cref="AudioPlayer"/>.
         /// </summary>
         /// <value>A <see cref="byte"/> representing the speaker's ID.</value>
+        [YamlIgnore]
         public byte Id
         {
             get => Player.Id;
@@ -100,6 +117,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Used as the default path when calling <see cref="Play(string)"/> with no argument.
         /// </summary>
         /// <value>A <see cref="string"/> containing the absolute path to the audio file.</value>
+        [YamlMember(Alias = "Path")]
         public string Path { get; set; } = string.Empty;
 
         /// <summary>
@@ -121,11 +139,11 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         {
             if (string.IsNullOrEmpty(filepath))
             {
-                Player.UseFile(Path, Loop, Volume);
+                Player.UseFile(Path, Loop, Volume / 100);
             }
             else if (File.Exists(filepath))
             {
-                Player.UseFile(filepath, Loop, Volume);
+                Player.UseFile(filepath, Loop, Volume / 100);
             }
         }
 
@@ -163,21 +181,23 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             SpeakerSettings settings = new()
             {
                 IsSpatial = IsSpatial,
-                Volume = Volume,
+                Volume = Volume / 100,
                 MaxDistance = MaxDistance,
                 MinDistance = MinDistance
             };
 
             Player = AudioPlayer.Create(1, settings);
-            if (IsLocalFile(Path))
+            if (!string.IsNullOrEmpty(Path))
             {
-                Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop, Volume);
+                if (IsLocalFile(Path))
+                {
+                    Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop);
+                }
+                else
+                    Player.UseFile(Path, Loop);
             }
-            else
-                Player.UseFile(Path, Loop, Volume);
 
             base.SpawnObject(schematic, serializable);
-            ParseValues(serializable);
             SetWorldTransform(schematic);
         }
 
@@ -186,66 +206,23 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             SpeakerSettings settings = new()
             {
                 IsSpatial = IsSpatial,
-                Volume = Volume,
+                Volume = Volume / 100,
                 MaxDistance = MaxDistance,
                 MinDistance = MinDistance
             };
 
             Player = AudioPlayer.Create(1, settings);
-            if (IsLocalFile(Path))
+            if (!string.IsNullOrEmpty(Path))
             {
-                Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop, Volume);
+                if (IsLocalFile(Path))
+                {
+                    Player.UseFile(System.IO.Path.Combine(Main.Instance.Config?.AudioPath, Path), Loop);
+                }
+                else
+                    Player.UseFile(Path, Loop);
             }
-            else
-                Player.UseFile(Path, Loop, Volume);
 
             SetWorldTransform(schematic);
-        }
-
-        private void ParseValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.Speaker)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Speaker");
-                return;
-            }
-
-            if (!serializable.Values.TryConvertValue<float>("Volume", out var vol))
-            {
-                LogManager.Warn("Failed to parse Volume");
-            }
-            if (!serializable.Values.TryConvertValue<bool>("IsSpatial", out var spatial))
-            {
-                LogManager.Warn("Failed to parse IsSpatial");
-            }
-            if (!serializable.Values.TryConvertValue<float>("MinDistance", out var min))
-            {
-                LogManager.Warn("Failed to parse MinDistance");
-            }
-            if (!serializable.Values.TryConvertValue<float>("MaxDistance", out var max))
-            {
-                LogManager.Warn("Failed to parse MaxDistance");
-            }
-            if (!serializable.Values.TryConvertValue<string>("Path", out var path))
-            {
-                LogManager.Warn("Failed to parse Path");
-            }
-            if (!serializable.Values.TryConvertValue<bool>("Loop", out var loop))
-            {
-                LogManager.Warn("Failed to parse Loop");
-            }
-
-            if (!File.Exists(path))
-            {
-                LogManager.Warn($"No file with the name {System.IO.Path.GetFileName(path)} exists in directory {System.IO.Path.GetDirectoryName(path)}");
-            }
-
-            Volume = vol;
-            IsSpatial = spatial;
-            MinDistance = min;
-            MaxDistance = max;
-            Path = path;
-            Loop = loop;
         }
     }
 }

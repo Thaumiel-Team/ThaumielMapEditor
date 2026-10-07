@@ -21,7 +21,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             int count = (int)ResolveFloat(Times);
             for (int i = 0; i < count; i++)
             {
-                Executor?.Execute(Stack!, player);
+                Executor?.ExecuteStack(Stack!, player);
             }
         }
     }
@@ -36,7 +36,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         {
             while (ShouldContinue())
             {
-                Executor?.Execute(Stack!, player);
+                Executor?.ExecuteStack(Stack!, player);
             }
         }
 
@@ -58,17 +58,34 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(Player player)
         {
+            if (Executor == null)
+                return;
+
             float start = ResolveFloat(From);
             float end = ResolveFloat(To);
             float step = ResolveFloat(By);
 
-            for (float i = start; i <= end; i += step)
+            if (step == 0)
             {
-                if (Executor != null && Executor.Scopes.Count > 0)
-                    Executor.Scopes.Peek()[VarName] = i;
-
-                Executor?.Execute(Stack!, player);
+                LogManager.Warn($"For loop step cannot be zero, skipping loop.");
+                return;
             }
+
+            if ((step > 0 && start > end) || (step < 0 && start < end))
+            {
+                LogManager.Warn($"For loop bounds are invalid for the given step, skipping loop.");
+                return;
+            }
+
+            Executor.PushScope();
+
+            for (float i = start; step > 0 ? i <= end : i >= end; i += step)
+            {
+                Executor.SetVariable(VarName, i);
+                Executor.ExecuteStack(Stack!, player);
+            }
+
+            Executor.PopScope();
         }
     }
 

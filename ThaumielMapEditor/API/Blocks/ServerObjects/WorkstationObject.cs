@@ -5,14 +5,13 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System.Collections.Generic;
 using InventorySystem.Items.Firearms.Attachments;
 using MapGeneration.Distributors;
 using Mirror;
 using PlayerRoles;
+using System.Collections.Generic;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
-using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using UnityEngine;
@@ -20,8 +19,10 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects
 {
+    [GitBookPage("Blocks/Server/WorkstationObject")]
     public class WorkstationObject : ServerObject
     {
+        [YamlIgnore]
         public static Dictionary<WorkstationController, WorkstationObject> WorkstationCache = [];
 
         /// <summary>
@@ -34,12 +35,22 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// <summary>
         /// Gets or sets the <see cref="RoleTypeId"/>s that are allowed to use this <see cref="WorkstationObject"/> instance.
         /// </summary>
+        [YamlMember(Alias = "AllowedRoles")]
         public List<RoleTypeId> AllowedRoles { get; set; } = [];
 
         /// <summary>
         /// Gets or sets whether players can use this <see cref="WorkstationObject"/> instance.
         /// </summary>
-        public bool AllowInteractions { get; set; }
+        [YamlMember(Alias = "AllowInteractions")]
+        public bool AllowInteractions
+        {
+            get;
+            set
+            {
+                Base?.NetworkStatus = (byte)(value ? 0 : 4);
+                field = value;
+            }
+        }
 
         /// <inheritdoc/>
         public override ObjectType ObjectType { get; set; } = ObjectType.Workstation;
@@ -53,23 +64,25 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
                 return;
             }
 
-            ParseValues(serializable);
             WorkstationController workstationPrefab = UnityEngine.Object.Instantiate(PrefabHelper.Workstation);
             NetworkServer.UnSpawn(workstationPrefab.gameObject);
             Base = workstationPrefab;
             Object = Base.gameObject;
-            NetId = Base.netId;
 
             workstationPrefab.NetworkStatus = (byte)(AllowInteractions ? 0 : 4);
+            SetWorldTransform(schematic);
+            Object.transform.localScale = Scale;
 
             if (workstationPrefab.TryGetComponent(out StructurePositionSync structurePositionSync))
             {
                 structurePositionSync.Network_position = workstationPrefab.transform.position;
+                
+                Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up);
                 structurePositionSync.Network_rotationY = (sbyte)Mathf.RoundToInt(workstationPrefab.transform.rotation.eulerAngles.y / 5.625f);
             }
 
-            SetWorldTransform(schematic);
             NetworkServer.Spawn(workstationPrefab.gameObject);
+            NetId = Base.netId;
             WorkstationCache.Add(workstationPrefab, this);
             base.SpawnObject(schematic, serializable);
         }
@@ -78,28 +91,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         {
             WorkstationCache.Remove(Base!);
             base.DestroyObject(schematic);
-        }
-
-        public void ParseValues(SerializableObject serializable)
-        {
-            if (serializable.ObjectType != ObjectType.Workstation)
-            {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as TextToy");
-                return;
-            }
-
-            if (!serializable.Values.TryConvertValue<List<RoleTypeId>>("AllowedRoles", out var roles))
-            {
-                LogManager.Warn("Failed to parse AllowedRoles");
-            }
-
-            if (!serializable.Values.TryConvertValue<bool>("AllowInteractions", out var allow))
-            {
-                LogManager.Warn("Failed to parse AllowInteractions");
-            }
-
-            AllowedRoles = roles;
-            AllowInteractions = allow;
         }
     }
 }

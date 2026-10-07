@@ -21,8 +21,11 @@ using MEC;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
 {
+    [GitBookPage("Blocks/Server/LockerObject")]
     public class LockerObject : ServerObject
     {
+        private static readonly ItemType[] AllItemTypes = (ItemType[])Enum.GetValues(typeof(ItemType));
+
         /// <summary>
         /// The instantiated <see cref="Locker"/> component in the scene.
         /// </summary>
@@ -41,8 +44,29 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
 
         /// <summary>
         /// The <see cref="LockerType"/> variant for this locker (e.g., Medkit, RifleRack, Misc).
+        /// Setting this on a spawned locker respawns it in place with the new prefab
         /// </summary>
-        public LockerType Type { get; private set; }
+        [YamlMember(Alias = "LockerType")]
+        public LockerType Type
+        {
+            get;
+            set
+            {
+                if (field == value)
+                    return;
+
+                if (value == LockerType.None)
+                    return;
+
+                field = value;
+
+                if (Base == null || Object == null)
+                    return;
+
+                NetworkServer.Destroy(Object);
+                Respawn();
+            }
+        }
 
         /// <summary>
         /// Maps a <see cref="LockerType"/> value to the corresponding locker prefab from <see cref="PrefabHelper"/>.
@@ -54,6 +78,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
         {
             return type switch
             {
+                LockerType.None => null,
                 LockerType.Adrenaline => PrefabHelper.LockerAdrenalineMedkit,
                 LockerType.ExperimentalWeapon => PrefabHelper.LockerExperimentalWeapon,
                 LockerType.LargeGun => PrefabHelper.LockerLargeGun,
@@ -68,7 +93,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
         /// <inheritdoc/>
         public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
         {
-            ParseValues(serializable);
             Locker? prefab = GetPrefabFromType(Type);
             if (prefab is null)
             {
@@ -87,10 +111,13 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
             Object = locker.gameObject;
             NetworkServer.UnSpawn(locker.gameObject);
             SetWorldTransform(schematic);
+            Object.transform.localScale = Scale;
             locker.gameObject.name += " [TME Locker]";
             if (locker.TryGetComponent<StructurePositionSync>(out var posSync))
             {
                 posSync.Network_position = Position;
+                
+                Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up);
                 posSync.Network_rotationY = (sbyte)Mathf.RoundToInt(Rotation.eulerAngles.y / 5.625f);
             }
 
@@ -101,6 +128,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
                 LabLocker labLocker = LabLocker.Get(locker);
                 labLocker.ClearAllChambers();
                 labLocker.ClearLockerLoot();
+                locker._serverChambersFilled = true;
                 PopulateChambers();
             });
 
@@ -108,68 +136,145 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
         }
 
         /// <summary>
-        /// Parses values from a <see cref="SerializableObject"/> to populate this object's <see cref="Type"/> and <see cref="Chambers"/>.
-        /// Validates that the supplied <paramref name="serializable"/> is of <see cref="ObjectType.Locker"/> and logs warnings on failure.
+        /// Respawns this locker in place with the current <see cref="Type"/> prefab.
+        /// Called automatically when <see cref="Type"/> changes on an already spawned locker.
         /// </summary>
-        /// <param name="serializable">The serializable data read from a schematic or saved map.</param>
-        public void ParseValues(SerializableObject serializable)
+        public void Respawn()
         {
-            if (serializable.ObjectType != ObjectType.Locker)
+            Locker? prefab = GetPrefabFromType(Type);
+            if (prefab is null)
             {
-                LogManager.Warn($"Tried to parse {serializable.ObjectType} as Locker.");                
+                LogManager.Warn($"Failed to get locker prefab for respawn (LockerType: {Type}).");
                 return;
             }
 
-            if (!serializable.Values.TryConvertValue<LockerType>("LockerType", out var lockerType))
+            GameObject lockerobj = UnityEngine.Object.Instantiate(prefab.gameObject);
+            if (!lockerobj.TryGetComponent<Locker>(out var locker))
             {
-                LogManager.Warn("Failed to parse LockerType");
+                LogManager.Warn($"Failed to get Locker component from prefab on respawn.");
+                UnityEngine.Object.Destroy(lockerobj);
+                return;
             }
 
-            if (!serializable.Values.TryConvertValue<List<LockerChamber>>("Chambers", out var chambers))
+            Base = locker;
+            Object = locker.gameObject;
+            NetworkServer.UnSpawn(locker.gameObject);
+            Object.transform.SetPositionAndRotation(Position, Rotation);
+            Object.transform.localScale = Scale;
+            locker.gameObject.name += " [TME Locker]";
+            if (locker.TryGetComponent<StructurePositionSync>(out var posSync))
             {
-                LogManager.Warn("Failed to parse LockerChambers");
+                posSync.Network_position = Position;
+                Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up);
+                posSync.Network_rotationY = (sbyte)Mathf.RoundToInt(Rotation.eulerAngles.y / 5.625f);
             }
 
-            Type = lockerType;
-            Chambers = chambers;
+            locker.ParentRoom = RoomExtensions.GetClosestRoomToPosition(Position)?.Base ?? null;
+            NetworkServer.Spawn(locker.gameObject);
+            NetId = locker.netId;
+            Timing.CallDelayed(Timing.WaitForOneFrame, () =>
+            {
+                if (Base == null)
+                    return;
+
+                LabLocker labLocker = LabLocker.Get(Base);
+                labLocker.ClearAllChambers();
+                labLocker.ClearLockerLoot();
+                Base._serverChambersFilled = true;
+                PopulateChambers();
+            });
         }
 
         /// <summary>
         /// Populates the runtime locker chambers based on the serialized <see cref="Chambers"/> data.
-        /// For each serialized chamber:
-        /// - Matches it to the corresponding runtime chamber by index.
-        /// - Applies required permissions.
-        /// - Iterates configured <see cref="ChamberData"/> entries and spawns items based on their spawn chance and amounts.
-        /// Ensures each serialized chamber only spawns once per population pass.
         /// </summary>
         public void PopulateChambers()
         {
-            List<LockerChamber> Spawned = [];
+            if (Base == null || Base.Chambers == null)
+                return;
 
-            foreach (MapGeneration.Distributors.LockerChamber chamber in Base.Chambers)
+            for (int i = 0; i < Base.Chambers.Length; i++)
             {
-                chamber.AcceptableItems = (ItemType[])Enum.GetValues(typeof(ItemType));
+                MapGeneration.Distributors.LockerChamber chamber = Base.Chambers[i];
+                chamber.AcceptableItems = AllItemTypes;
 
                 foreach (LockerChamber lockerChamber in Chambers)
                 {
-                    if (lockerChamber.Index != Base.Chambers.IndexOf(chamber))
+                    if (lockerChamber.Index != i)
                         continue;
 
                     chamber.RequiredPermissions = lockerChamber.Permissions;
                     foreach (ChamberData chamberData in lockerChamber.Data)
                     {
-                        if (UnityEngine.Random.Range(0, 101) > chamberData.SpawnPercent)
-                            continue;
-
-                        if (Spawned.Contains(lockerChamber))
+                        if (UnityEngine.Random.Range(0f, 100f) > chamberData.SpawnPercent)
                             continue;
 
                         chamber.SpawnItem(chamberData.ItemType, chamberData.AmountToSpawn);
-                        LogManager.Debug($"Spawned item in Chamber {Base.Chambers.IndexOf(chamber)}");
-                        Spawned.Add(lockerChamber);
+                        LogManager.Debug($"Spawned item in Chamber {i}");
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Removes all items currently spawned in the locker chambers.
+        /// </summary>
+        public void ClearChambers()
+        {
+            if (Base == null)
+                return;
+
+            LabLocker labLocker = LabLocker.Get(Base);
+            labLocker.ClearAllChambers();
+            labLocker.ClearLockerLoot();
+        }
+
+        /// <summary>
+        /// Gets the number of runtime chambers on the spawned locker prefab, or 0 when not spawned.
+        /// </summary>
+        public int ChamberCount => Base?.Chambers?.Length ?? 0;
+
+        /// <summary>
+        /// Gets the serialized chamber definition for the given index, or <see langword="null"/> when not configured.
+        /// </summary>
+        public LockerChamber? GetChamber(int index)
+        {
+            foreach (LockerChamber chamber in Chambers)
+            {
+                if (chamber.Index == (uint)index)
+                    return chamber;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the serialized chamber definition for the given index, creating it with defaults when missing.
+        /// </summary>
+        public LockerChamber GetOrCreateChamber(int index)
+        {
+            LockerChamber? existing = GetChamber(index);
+            if (existing != null)
+                return existing;
+
+            LockerChamber created = new() { Index = (uint)index };
+            Chambers.Add(created);
+            return created;
+        }
+
+        /// <summary>
+        /// Removes the serialized chamber definition for the given index.
+        /// </summary>
+        /// <returns><see langword="true"/> when an entry was removed.</returns>
+        public bool RemoveChamber(int index) => Chambers.RemoveAll(c => c.Index == (uint)index) > 0;
+
+        /// <summary>
+        /// Clears runtime chambers and repopulates them from the serialized <see cref="Chambers"/> data.
+        /// </summary>
+        public void RefreshChambers()
+        {
+            ClearChambers();
+            PopulateChambers();
         }
     }
 }

@@ -10,10 +10,12 @@ using LabApi.Events.Arguments.WarheadEvents;
 using LabApi.Events.Handlers;
 using PlayerRoles;
 using System.Linq;
+using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
+using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Helpers.Networking;
 
@@ -78,41 +80,28 @@ namespace ThaumielMapEditor.Events
         // TODO Test.
         private static void OnRoomLightChanged(RoomLightChangedEventArgs ev)
         {
-            foreach (SchematicData schematic in Loader.SpawnedSchematics.Where(s => s.Room != null && s.Room == ev.Room))
+            foreach (SchematicData schematic in Loader.SchematicsById.Values)
             {
-                if (schematic.GetClientObject<LightObject>().IsEmpty() && schematic.GetServerObject<LightObjectServer>().IsEmpty())
+                if (schematic.Room == null || schematic.Room != ev.Room)
                     continue;
 
-                foreach (LightObjectServer serverLight in schematic.GetServerObject<LightObjectServer>())
+                foreach (ServerObject obj in schematic.SpawnedServerObjects)
                 {
-                    float Intensity = 0;
-                    Intensity = serverLight.Intensity;
-
-                    if (!ev.NewState)
-                    {
-                        serverLight.Intensity = 0;
-                    }
-                    else
-                        serverLight.Intensity = Intensity;
+                    if (obj is LightObjectServer serverLight)
+                        serverLight.Intensity = ev.NewState ? serverLight.Intensity : 0f;
                 }
 
-                foreach (LightObject light in schematic.GetClientObject<LightObject>())
+                foreach (ClientObject obj in schematic.SpawnedClientObjects)
                 {
-                    float Intensity = 0;
-                    Intensity = light.Intensity;
-
-                    if (!ev.NewState)
-                    {
-                        light.Intensity = 0;
-                    }
-                    else
-                        light.Intensity = Intensity;
+                    if (obj is LightObject light)
+                        light.Intensity = ev.NewState ? light.Intensity : 0f;
                 }
             }
         }
 
         private static void OnWaitingForPlayers()
         {
+            PlayerExtensions.EffectCache.Clear();
             PrefabHelper.RegisterPrefabs();
             Loader.Cleanup();
 

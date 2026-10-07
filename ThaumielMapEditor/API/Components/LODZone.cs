@@ -14,6 +14,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Components
 {
+    [GitBookPage("Components/LODZone")]
     public class LODZone : TriggerHandler
     {
         /// <summary>
@@ -41,28 +42,20 @@ namespace ThaumielMapEditor.API.Components
         /// <param name="index">The index of this zone within the schematic.</param>
         public void Init(SchematicData schematic, List<PrimitiveType> unload, uint index)
         {
-            OnPlayerEntered += OnTriggerEnter;
-            OnPlayerExited += OnTriggerExit;
-
             PrimitivestoUnload = unload;
             Schematic = schematic;
             Index = index;
         }
 
-        private void OnDestroy()
+        public override void OnPlayerEntered(Player player)
         {
-            OnPlayerEntered -= OnTriggerEnter;
-            OnPlayerExited -= OnTriggerExit;
-        }
+            UpdateDictionary(player);
 
-        private void OnTriggerEnter(Player player, Collider other)
-        {
             foreach (PrimitiveObject prim in Schematic.GetClientObject<PrimitiveObject>())
             {
                 if (!PrimitivestoUnload.Contains(prim.PrimitiveType))
                     continue;
 
-                UpdateDictionary(player);
                 prim.SpawnForPlayer(player);
                 foreach (Player spectator in player.CurrentSpectators)
                 {
@@ -71,14 +64,15 @@ namespace ThaumielMapEditor.API.Components
             }
         }
 
-        private void OnTriggerExit(Player player, Collider other)
+        public override void OnPlayerExited(Player player)
         {
+            RemoveFromDictionary(player);
+
             foreach (PrimitiveObject prim in Schematic.GetClientObject<PrimitiveObject>())
             {
                 if (!PrimitivestoUnload.Contains(prim.PrimitiveType))
                     continue;
 
-                RemoveFromDictionary(player);
                 prim.DestroyForPlayer(player);
                 foreach (Player spectator in player.CurrentSpectators)
                 {

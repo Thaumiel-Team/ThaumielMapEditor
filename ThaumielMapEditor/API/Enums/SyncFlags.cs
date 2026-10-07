@@ -10,6 +10,7 @@ using System;
 namespace ThaumielMapEditor.API.Enums
 {
     [Flags]
+    [GitBookPage("Enums/Flags/SyncFlags")]
     public enum SyncFlags
     {
         None = 0,
@@ -38,5 +39,9 @@ namespace ThaumielMapEditor.API.Enums
 
         // Capybaras
         Collisions = 1 << 18,
+        
+        // Text
+        DisplaySize = 1 << 19,
+        TextFormat = 1 << 20,
     }
 }

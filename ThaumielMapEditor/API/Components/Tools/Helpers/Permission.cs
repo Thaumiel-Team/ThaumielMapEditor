@@ -15,6 +15,8 @@ namespace ThaumielMapEditor.API.Components.Tools.Helpers
     {
         public List<RoleTypeId> AllowedRoles { get; set; } = [];
 
+        public string LabAPIPermission { get; set; } = string.Empty;
+
         public DoorPermissionFlags KeycardPermissions { get; set; }
     }
 }

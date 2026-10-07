@@ -17,6 +17,7 @@ using ThaumielMapEditor.API.Helpers.BlockParser;
 
 namespace ThaumielMapEditor.API.Helpers
 {
+    [GitBookPage("BlockExecutor")]
     public class BlockExecutor
     {
         public BlockExecutor(SchematicData schematic)
@@ -101,7 +102,7 @@ namespace ThaumielMapEditor.API.Helpers
                     break;
 
                 case GetVariableBlock getVariableBlock:
-                    getVariableBlock.Executor = this;
+                    getVariableBlock.SetExecutorRecursive(this);
                     GetVariable(getVariableBlock);
                     break;
 
@@ -126,7 +127,7 @@ namespace ThaumielMapEditor.API.Helpers
                     break;
 
                 case BlockBase blockbase:
-                    blockbase.Executor = this;
+                    blockbase.SetExecutorRecursive(this);
                     blockbase.Execute();
                     blockbase.Execute(player);
                     ExecuteParamBlocks(blockbase);

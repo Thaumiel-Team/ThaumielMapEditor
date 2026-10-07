@@ -14,8 +14,12 @@ using System.Text.RegularExpressions;
 
 namespace ThaumielMapEditor.API.Helpers
 {
-    internal class LogManager
+    public class LogManager
     {
+        private const int MaxLogs = 10000;
+        private static readonly object LogLock = new();
+        private static readonly Regex PatchSuffixRegex = new(@"_Patch\d+", RegexOptions.Compiled);
+
         public class Log
         {
             public LogLevel LogLevel { get; set; }
@@ -25,6 +29,29 @@ namespace ThaumielMapEditor.API.Helpers
 
         public static List<Log> Logs = [];
         public static event Action<Log>? LogCreated;
+
+        private static void AddLog(Log log)
+        {
+            lock (LogLock)
+            {
+                Logs.Add(log);
+                if (Logs.Count > MaxLogs)
+                    Logs.RemoveRange(0, Logs.Count - MaxLogs);
+            }
+
+            LogCreated?.Invoke(log);
+        }
+
+        /// <summary>
+        /// Returns a thread-safe snapshot of all retained log entries.
+        /// </summary>
+        public static Log[] GetLogSnapshot()
+        {
+            lock (LogLock)
+            {
+                return Logs.ToArray();
+            }
+        }
 
         public static void Info(string message)
         {
@@ -37,14 +64,16 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
 
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
 
         public static void Debug(string message)
         {
+            if (Main.Instance.Config is not { Debug: true })
+                return;
+
             string formattedMessage = FormatLogMessage(message);
-            Logger.Debug(formattedMessage, Main.Instance.Config!.Debug);
+            Logger.Debug(formattedMessage, true);
             Log log = new()
             {
                 LogLevel = LogLevel.Debug,
@@ -52,8 +81,7 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
 
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
 
         public static void Warn(string message)
@@ -67,14 +95,13 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
 
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
 
         public static void Error(string message)
         {
             string formattedMessage = FormatLogMessage(message);
-            string msg = formattedMessage += "\n An error has occured! Please run the command 'tmelogs' and share the issued code in our discord";
+            string msg = formattedMessage + "\n An error has occured! Please run the command 'tmelogs' and share the issued code in our discord";
             Logger.Error(msg);
             Log log = new()
             {
@@ -83,8 +110,7 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
 
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
 
         public static void Updater(string message)
@@ -97,8 +123,7 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
             
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
         
         public static void LogShare(string message)
@@ -111,33 +136,39 @@ namespace ThaumielMapEditor.API.Helpers
                 LogTime = DateTime.Now
             };
             
-            Logs.Add(log);
-            LogCreated?.Invoke(log);
+            AddLog(log);
         }
 
         internal static string FormatLogMessage(string message)
         {
-            StackTrace stackTrace = new(true);
-            StackFrame? frame = stackTrace.GetFrame(2);
-            if (frame != null)
+            try
             {
-                MethodBase method = frame.GetMethod();
-                if (method?.DeclaringType != null)
+                StackTrace stackTrace = new(false);
+                StackFrame? frame = stackTrace.GetFrame(2);
+                if (frame != null)
                 {
-                    string className;
-                    if (method.IsStatic)
+                    MethodBase? method = frame.GetMethod();
+                    if (method?.DeclaringType != null)
                     {
-                        className = method.DeclaringType.FullName + $".{method.Name}()" ?? method.DeclaringType.Name + $".{method.Name}()";
-                    }
-                    else
-                        className = method.DeclaringType.FullName + $"::{method.Name}()" ?? method.DeclaringType.Name + $"::{method.Name}()";
+                        string className;
+                        if (method.IsStatic)
+                        {
+                            className = method.DeclaringType.FullName + $".{method.Name}()";
+                        }
+                        else
+                            className = method.DeclaringType.FullName + $"::{method.Name}()";
 
-                    message = Regex.Replace(message, @"_Patch\d+", "");
-                    return $"[{className}] {message}";
+                        message = PatchSuffixRegex.Replace(message, string.Empty);
+                        return $"[{className}] {message}";
+                    }
                 }
             }
+            catch
+            {
+                // Never let logging itself throw. Fall through to plain message.
+            }
 
-            message = Regex.Replace(message, @"_Patch\d+", "");
+            message = PatchSuffixRegex.Replace(message, string.Empty);
             return $"[Unknown] {message}";
         }
     }

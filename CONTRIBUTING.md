@@ -12,10 +12,9 @@ If you encounter a bug:
 ## Submitting Pull Requests (PRs)
 
 To submit a PR:
-1. Create a new branch for your changes
-2. Commit your changes with clear, concise messages.
-3. Push your branch and open a PR to the `Dev` branch.
-4. Include a description of your changes and reference any related issues.
+1. Commit your changes with clear, concise messages.
+2. Push your branch and open a PR to the `Dev` branch.
+3. Include a description of your changes and reference any related issues.
 
 ## License
 

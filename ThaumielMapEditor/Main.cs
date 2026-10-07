@@ -9,6 +9,7 @@ global using Logger = LabApi.Features.Console.Logger;
 global using Quaternion = UnityEngine.Quaternion;
 global using ThaumFileManager = ThaumielMapEditor.API.Helpers.FileManager;
 global using Vector3 = UnityEngine.Vector3;
+global using ThaumielMapEditor.API.Attributes;
 
 using HarmonyLib;
 using LabApi.Features;
@@ -17,7 +18,6 @@ using LabApi.Loader.Features.Plugins;
 using LabApi.Loader.Features.Plugins.Enums;
 using System;
 using System.IO;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.Events;
 
@@ -29,9 +29,9 @@ namespace ThaumielMapEditor
         public override string Name => "Thaumiel Map Editor";
         public override string Description => ":3";
         public override string Author => "Mr. Baguetter";
-        public override Version Version => new(0, 7, 0);
-        public override Version RequiredApiVersion => LabApiProperties.CurrentVersion;
-        public override LoadPriority Priority => LoadPriority.Medium;
+        public override Version Version { get; } = new(0, 9, 0);
+        public override Version RequiredApiVersion { get; } = LabApiProperties.CurrentVersion;
+        public override LoadPriority Priority { get; } = LoadPriority.Medium;
         public string HarmonyId { get; private set; } = string.Empty;
 
 #pragma warning disable CS8618
@@ -56,9 +56,23 @@ namespace ThaumielMapEditor
                 SaveConfig();
             }
             
-            HarmonyId = $"MrBaguetter_TME_{Guid.NewGuid()}";
-            harmony = new(HarmonyId);
-            harmony.PatchAll();
+            try
+            {
+                HarmonyId = $"MrBaguetter_TME_{Guid.NewGuid()}";
+                harmony = new(HarmonyId);
+                harmony.PatchAll();
+            }
+            catch (HarmonyException ex)
+            {
+                LogManager.Error($"Failed to enable Harmony patches! \nMessage: {ex.Message}\n InnerException: {ex.InnerException?.Message}\n Full Exception: {ex}\n");
+
+                if (ex.InnerException != null)
+                    LogManager.Error($"Inner Exception Details: \n{ex.InnerException}");
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"Unexpected error while enabling Harmony patches: \n{ex}");
+            }
         }
 
         public override void Disable()
@@ -66,9 +80,27 @@ namespace ThaumielMapEditor
             PlayerHandler.Unregister();
             ServerHandler.Unregister();
             PrimitiveHandler.Unregister();
-            
+            SchematicHandler.Unregister();
+
+            try
+            {
+                Loader.Cleanup();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"[ThaumielMapEditor] Exception during cleanup on disable: {ex.Message}");
+            }
+
+            try
+            {
+                harmony?.UnpatchAll(HarmonyId);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"[ThaumielMapEditor] Exception while unpatching Harmony on disable: {ex.Message}");
+            }
+
             Instance = null!;
-            harmony.UnpatchAll();
         }
     }
 }
