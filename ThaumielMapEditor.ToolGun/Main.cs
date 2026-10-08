@@ -33,7 +33,7 @@ namespace ThaumielMapEditor.ToolGun
 
         public override Version RequiredApiVersion { get; } = LabApiProperties.CurrentVersion;
 
-        public override LoadPriority Priority { get; } = LoadPriority.Low;
+        public override LoadPriority Priority { get; } = (LoadPriority)255;
 
         public static Main Instance { get; private set; } = null!;
 
