@@ -46,6 +46,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No doc changes to commit."
           else
-            git commit -m "docs: auto-update devdocs from ThaumielMapEditor@${{ github.sha }}"
+            git commit -m "docs: auto update devdocs from ThaumielMapEditor@${{ github.sha }}"
             git push origin main
           fi

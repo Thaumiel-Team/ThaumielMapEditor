@@ -29,7 +29,7 @@ namespace ThaumielMapEditor
         public override string Name => "Thaumiel Map Editor";
         public override string Description => ":3";
         public override string Author => "Mr. Baguetter";
-        public override Version Version { get; } = new(0, 9, 0);
+        public override Version Version { get; } = new(0, 9, 1);
         public override Version RequiredApiVersion { get; } = LabApiProperties.CurrentVersion;
         public override LoadPriority Priority { get; } = LoadPriority.Medium;
         public string HarmonyId { get; private set; } = string.Empty;
@@ -88,7 +88,7 @@ namespace ThaumielMapEditor
             }
             catch (Exception ex)
             {
-                Logger.Error($"[ThaumielMapEditor] Exception during cleanup on disable: {ex.Message}");
+                Logger.Error($"Exception during cleanup on disable: {ex.Message}");
             }
 
             try
@@ -97,7 +97,7 @@ namespace ThaumielMapEditor
             }
             catch (Exception ex)
             {
-                Logger.Error($"[ThaumielMapEditor] Exception while unpatching Harmony on disable: {ex.Message}");
+                Logger.Error($"Exception while unpatching Harmony on disable: {ex.Message}");
             }
 
             Instance = null!;
