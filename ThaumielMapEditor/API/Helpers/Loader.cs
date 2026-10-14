@@ -229,6 +229,12 @@ namespace ThaumielMapEditor.API.Helpers
             data.Destroy();
         }
 
+        private static bool IsYamlFile(string path)
+        {
+            string extension = Path.GetExtension(path);
+            return extension.Equals(".yml", StringComparison.OrdinalIgnoreCase) || extension.Equals(".yaml", StringComparison.OrdinalIgnoreCase);
+        }
+
         /// <summary>
         /// Loads the schematics
         /// </summary>
@@ -239,6 +245,9 @@ namespace ThaumielMapEditor.API.Helpers
 
             foreach (string path in ThaumFileManager.GetFilesInDirectory(schematicDir))
             {
+                if (!IsYamlFile(path))
+                    continue;
+
                 string name = Path.GetFileNameWithoutExtension(path);
 
                 try
@@ -295,6 +304,9 @@ namespace ThaumielMapEditor.API.Helpers
 
             foreach (string path in ThaumFileManager.GetFilesInDirectory(mapsDir))
             {
+                if (!IsYamlFile(path))
+                    continue;
+
                 string name = Path.GetFileNameWithoutExtension(path);
 
                 try
@@ -564,7 +576,7 @@ namespace ThaumielMapEditor.API.Helpers
                             LogManager.Info($"Schematic '{schematic.FileName}' fully spawned.");
                             SchematicsById[schematicData.Id] = schematicData;
 
-                            if (Main.Instance.Config!.SchematicAnimationPlayOnLoad.TryGetValue(schematicData.FileName, out var animationname))
+                            if (Main.Instance.Config.SchematicAnimationPlayOnLoad.TryGetValue(schematicData.FileName, out var animationname))
                             {
                                 try
                                 {
@@ -679,6 +691,9 @@ namespace ThaumielMapEditor.API.Helpers
 
             foreach (string filename in ThaumFileManager.GetFilesInDirectory(directory))
             {
+                if (!IsYamlFile(filename))
+                    continue;
+
                 try
                 {
                     SerializableSchematic schematic = Deserializer.Deserialize<SerializableSchematic>(File.ReadAllText(filename));
@@ -705,14 +720,16 @@ namespace ThaumielMapEditor.API.Helpers
                 return null;
             }
 
-            string path = Path.Combine(directory, $"{schematicName}.yml");
-            if (!File.Exists(path))
-            {
-                LogManager.Warn($"Schematic '{schematicName}' not found in directory '{directory}'.");
-                return null;
-            }
+            string ymlPath = Path.Combine(directory, $"{schematicName}.yml");
+            if (File.Exists(ymlPath))
+                return TryLoadSchematicFromPath(ymlPath);
 
-            return TryLoadSchematicFromPath(path);
+            string yamlPath = Path.Combine(directory, $"{schematicName}.yaml");
+            if (File.Exists(yamlPath))
+                return TryLoadSchematicFromPath(yamlPath);
+
+            LogManager.Warn($"Schematic '{schematicName}' not found in directory '{directory}'.");
+            return null;
         }
 
         /// <summary>
