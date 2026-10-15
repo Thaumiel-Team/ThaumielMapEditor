@@ -310,10 +310,16 @@ namespace ThaumielMapEditor.API.Blocks
         /// <param name="player"></param>
         public void ShowForPlayer(Player player)
         {
-            if (Object == null)
+            if (Object == null || player == null || player.IsDestroyed)
+                return;
+
+            if (player.Connection == null || !player.Connection.isReady)
                 return;
 
             if (!Object.TryGetComponent<NetworkIdentity>(out var network))
+                return;
+
+            if (network.observers.ContainsKey(player.Connection.connectionId))
                 return;
 
             NetworkServer.ShowForConnection(network, player.Connection);

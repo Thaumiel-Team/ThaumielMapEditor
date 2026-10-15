@@ -20,7 +20,7 @@ namespace ThaumielMapEditor.API.Helpers
     public static class ColliderHelper
     {
         /// <summary>
-        /// 
+        /// Collection of all the <see cref="Collider"/>s in a schematic.
         /// </summary>
         public static Dictionary<SchematicData, HashSet<Collider>> SchematicColliders = [];
 
@@ -39,17 +39,28 @@ namespace ThaumielMapEditor.API.Helpers
 
             if (prefab == null)
             {
-                LogManager.Warn($"Could not find prefab for client object of type '{clientObject.ObjectType}', skipping colliders.");
+                LogManager.Warn($"Could not find prefab for client object of type '{clientObject.ObjectType}', creating selection sphere as fallback.");
+                CreateSelectionSphere(clientObject, schematic);
                 return;
             }
 
             Collider[] prefabColliders = prefab.GetComponentsInChildren<Collider>(includeInactive: true);
             if (prefabColliders.Length == 0)
             {
-                LogManager.Debug($"No colliders found on prefab '{prefab.name}', skipping.");
+                LogManager.Debug($"No colliders found on prefab '{prefab.name}', creating selection sphere as fallback.");
+                CreateSelectionSphere(clientObject, schematic);
                 return;
             }
 
+            Transform? targetParent = ResolveServerParentTransform(clientObject.ParentId, schematic);
+            if (targetParent == null)
+            {
+                LogManager.Warn($"Failed to resolve parent for colliders of {clientObject.ObjectType} - {clientObject.ObjectId}, falling back to selection sphere.");
+                CreateSelectionSphere(clientObject, schematic);
+                return;
+            }
+
+            bool anyCopied = false;
             foreach (Collider col in prefabColliders)
             {
                 if (!col.enabled)
@@ -61,16 +72,17 @@ namespace ThaumielMapEditor.API.Helpers
 
                 GameObject colGo = new($"[ThaumielMapEditor] Collider_{clientObject.ObjectType}_{col.GetType().Name}");
 
-                colGo.transform.position = clientObject.Position + clientObject.Rotation * Vector3.Scale(localOffset, clientObject.Scale);
-                colGo.transform.rotation = clientObject.Rotation * localRotation;
+                colGo.transform.SetParent(targetParent, worldPositionStays: false);
+                colGo.transform.localPosition = clientObject.Position + clientObject.Rotation * Vector3.Scale(localOffset, clientObject.Scale);
+                colGo.transform.localRotation = clientObject.Rotation * localRotation;
                 colGo.transform.localScale = Vector3.Scale(clientObject.Scale, localScale);
 
                 if (TryCopyCollider(col, colGo))
                 {
                     Collider collider = colGo.GetComponent<Collider>();
                     colliders.Add(collider);
-                    colGo.transform.SetParent(schematic.Primitive?.Transform, worldPositionStays: true);
                     SchematicColliders[schematic].Add(collider);
+                    anyCopied = true;
                 }
                 else
                 {
@@ -79,8 +91,83 @@ namespace ThaumielMapEditor.API.Helpers
                 }
             }
 
+            if (!anyCopied)
+            {
+                LogManager.Debug($"No usable colliders on prefab '{prefab.name}', creating selection sphere as fallback.");
+                CreateSelectionSphere(clientObject, schematic);
+                return;
+            }
+
             clientObject.ServerColliders = colliders.ToArray();
         }
+
+        /// <summary>
+        /// Moves the server side colliders of the specified <see cref="ClientObject"/> to its current transform.
+        /// </summary>
+        /// <param name="clientObject">The <see cref="ClientObject"/> whose colliders will be synced.</param>
+        /// <param name="schematic">The <see cref="SchematicData"/> used to resolve the parent transform.</param>
+        public static void SyncClientObjectColliders(ClientObject clientObject, SchematicData? schematic)
+        {
+            if (clientObject?.ServerColliders == null || clientObject.ServerColliders.Length == 0 || schematic == null)
+                return;
+
+            if (!schematic.ServerSideTransforms.TryGetValue(clientObject.ParentId, out Transform parent) || parent == null)
+                parent = schematic.Primitive?.Transform!;
+
+            if (parent == null)
+                return;
+
+            GameObject? prefab = GetPrefabForClientObject(clientObject);
+            List<Collider> sources = [];
+            if (prefab != null)
+            {
+                foreach (Collider source in prefab.GetComponentsInChildren<Collider>(includeInactive: true))
+                {
+                    if (!source.enabled || !IsHandledColliderType(source))
+                        continue;
+
+                    sources.Add(source);
+                }
+            }
+
+            for (int i = 0; i < clientObject.ServerColliders.Length; i++)
+            {
+                Collider collider = clientObject.ServerColliders[i];
+                if (collider == null || collider.gameObject == null)
+                    continue;
+
+                if (collider.gameObject.name.StartsWith("[ThaumielMapEditor] Selection_", StringComparison.Ordinal))
+                {
+                    if (collider.transform.parent != parent)
+                        collider.transform.SetParent(parent, worldPositionStays: false);
+
+                    collider.transform.localPosition = clientObject.Position;
+                    collider.transform.localRotation = clientObject.Rotation;
+                    continue;
+                }
+
+                if (i >= sources.Count)
+                {
+                    if (collider.transform.parent != parent)
+                        collider.transform.SetParent(parent, worldPositionStays: false);
+
+                    collider.transform.localPosition = clientObject.Position;
+                    collider.transform.localRotation = clientObject.Rotation;
+                    continue;
+                }
+
+                Collider sourceCollider = sources[i];
+                if (collider.transform.parent != parent)
+                    collider.transform.SetParent(parent, worldPositionStays: false);
+
+                collider.transform.localPosition = clientObject.Position + clientObject.Rotation * Vector3.Scale(sourceCollider.transform.localPosition, clientObject.Scale);
+                collider.transform.localRotation = clientObject.Rotation * sourceCollider.transform.localRotation;
+                collider.transform.localScale = Vector3.Scale(clientObject.Scale, sourceCollider.transform.localScale);
+            }
+        }
+
+        private static bool IsHandledColliderType(Collider source) =>
+            source is BoxCollider or SphereCollider or CapsuleCollider or MeshCollider;
 
         public static void CreateSelectionSphere(ClientObject clientObject, SchematicData schematic, float radius = 0.5f)
         {

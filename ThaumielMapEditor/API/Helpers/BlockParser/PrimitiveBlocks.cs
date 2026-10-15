@@ -31,10 +31,12 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             }
             else
             {
-                PrimitiveObject client = new();
-                client.Name = Name;
-                client.NetId = NetworkIdentity.GetNextNetworkId();
-                client.Schematic = schematic;
+                PrimitiveObject client = new()
+                {
+                    Name = Name,
+                    NetId = NetworkIdentity.GetNextNetworkId(),
+                    Schematic = schematic
+                };
 
                 if (PrefabHelper.PrimitiveObject?.netIdentity != null)
                 {

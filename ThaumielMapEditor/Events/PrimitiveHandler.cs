@@ -36,6 +36,18 @@ namespace ThaumielMapEditor.Events
 
         private static void OnScaleUpdated(Vector3 scale, ClientObject client)
         {
+            if (client is CapybaraObject capy)
+            {
+                ColliderHelper.SyncClientObjectColliders(capy, capy.Schematic);
+                return;
+            }
+
+            if (client is ClientClutterObject clutter)
+            {
+                ColliderHelper.SyncClientObjectColliders(clutter, clutter.Schematic);
+                return;
+            }
+
             if (client is not PrimitiveObject primitive)
                 return;
 
@@ -50,6 +62,24 @@ namespace ThaumielMapEditor.Events
             if (client is LightObject light)
             {
                 ColliderHelper.SyncSelectionSpheres(light, light.Schematic);
+                return;
+            }
+
+            if (client is CapybaraObject capy)
+            {
+                ColliderHelper.SyncClientObjectColliders(capy, capy.Schematic);
+                return;
+            }
+
+            if (client is ClientClutterObject clutter)
+            {
+                ColliderHelper.SyncClientObjectColliders(clutter, clutter.Schematic);
+                return;
+            }
+
+            if (client is ClientCullingParentObject culling)
+            {
+                ColliderHelper.SyncSelectionSpheres(culling, culling.Schematic);
                 return;
             }
 
@@ -75,6 +105,24 @@ namespace ThaumielMapEditor.Events
                 return;
             }
 
+            if (client is CapybaraObject capy)
+            {
+                ColliderHelper.SyncClientObjectColliders(capy, capy.Schematic);
+                return;
+            }
+
+            if (client is ClientClutterObject clutter)
+            {
+                ColliderHelper.SyncClientObjectColliders(clutter, clutter.Schematic);
+                return;
+            }
+
+            if (client is ClientCullingParentObject culling)
+            {
+                ColliderHelper.SyncSelectionSpheres(culling, culling.Schematic);
+                return;
+            }
+
             if (client is not PrimitiveObject primitive)
                 return;
 
@@ -94,6 +142,15 @@ namespace ThaumielMapEditor.Events
             foreach (LightObject light in schematic.GetClientObject<LightObject>())
                 ColliderHelper.SyncSelectionSpheres(light, schematic);
 
+            foreach (ClientCullingParentObject culling in schematic.GetClientObject<ClientCullingParentObject>())
+                ColliderHelper.SyncSelectionSpheres(culling, schematic);
+
+            foreach (CapybaraObject capy in schematic.GetClientObject<CapybaraObject>())
+                ColliderHelper.SyncClientObjectColliders(capy, schematic);
+
+            foreach (ClientClutterObject clutter in schematic.GetClientObject<ClientClutterObject>())
+                ColliderHelper.SyncClientObjectColliders(clutter, schematic);
+
             foreach (PrimitiveObject primitive in schematic.GetClientObject<PrimitiveObject>())
             {
                 if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || schematic.Primitive == null)
@@ -112,6 +169,15 @@ namespace ThaumielMapEditor.Events
         {
             foreach (LightObject light in schematic.GetClientObject<LightObject>())
                 ColliderHelper.SyncSelectionSpheres(light, schematic);
+
+            foreach (ClientCullingParentObject culling in schematic.GetClientObject<ClientCullingParentObject>())
+                ColliderHelper.SyncSelectionSpheres(culling, schematic);
+
+            foreach (CapybaraObject capy in schematic.GetClientObject<CapybaraObject>())
+                ColliderHelper.SyncClientObjectColliders(capy, schematic);
+
+            foreach (ClientClutterObject clutter in schematic.GetClientObject<ClientClutterObject>())
+                ColliderHelper.SyncClientObjectColliders(clutter, schematic);
 
             foreach (PrimitiveObject primitive in schematic.GetClientObject<PrimitiveObject>())
             {

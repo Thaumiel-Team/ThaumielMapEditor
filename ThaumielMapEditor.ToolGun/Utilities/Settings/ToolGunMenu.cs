@@ -273,6 +273,32 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             return server != null || client != null;
         }
 
+        public static bool TryGetClutter(Player player, out ClutterObject? server, out ClientClutterObject? client)
+        {
+            server = null;
+            client = null;
+
+            if (!TryGetSelection(player, out _, out ServerObject? selectedServer, out ClientObject? selectedClient))
+                return false;
+
+            server = selectedServer as ClutterObject;
+            client = server != null ? null : selectedClient as ClientClutterObject;
+            return server != null || client != null;
+        }
+
+        public static bool TryGetCullingParent(Player player, out CullingParentObject? server, out ClientCullingParentObject? client)
+        {
+            server = null;
+            client = null;
+
+            if (!TryGetSelection(player, out _, out ServerObject? selectedServer, out ClientObject? selectedClient))
+                return false;
+
+            server = selectedServer as CullingParentObject;
+            client = server != null ? null : selectedClient as ClientCullingParentObject;
+            return server != null || client != null;
+        }
+
         public static Vector3 GetPosition(Player player)
         {
             if (!TryGetSelection(player, out _, out ServerObject? server, out ClientObject? client))
@@ -373,6 +399,8 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             LightObject light => light.Schematic,
             TextObject text => text.Schematic,
             CapybaraObject capy => capy.Schematic,
+            ClientClutterObject clutter => clutter.Schematic,
+            ClientCullingParentObject culling => culling.Schematic,
             _ => null,
         };
 
@@ -575,6 +603,10 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             {
                 PrimitiveObject prim => prim.Name,
                 CapybaraObject capy => capy.Name,
+                LightObject light => light.Schematic != null ? $"Light_{light.ObjectId}" : string.Empty,
+                TextObject text => $"Text_{text.ObjectId}",
+                ClientClutterObject clutter => clutter.Name,
+                ClientCullingParentObject culling => culling.Name,
                 _ => string.Empty,
             };
         }
@@ -599,6 +631,14 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
                 case CapybaraObject capy:
                     capy.Name = value;
                     break;
+
+                case ClientClutterObject clutter:
+                    clutter.Name = value;
+                    break;
+
+                case ClientCullingParentObject culling:
+                    culling.Name = value;
+                    break;
             }
         }
 
@@ -610,7 +650,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             if (server != null)
                 return true;
 
-            return client is PrimitiveObject or CapybaraObject;
+            return client is PrimitiveObject or CapybaraObject or ClientClutterObject or ClientCullingParentObject;
         }
 
         public static float Clamp(float value, float min, float max)

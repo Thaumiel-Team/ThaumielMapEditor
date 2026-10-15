@@ -72,7 +72,13 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <inheritdoc/>
         public override void SpawnForPlayer(Player player)
         {
-            if (player.IsHost)
+            if (player == null || player.IsDestroyed || player.IsHost || player.IsDummy)
+                return;
+
+            if (IsSpawnedForPlayer(player))
+                return;
+
+            if (player.Connection == null || !player.Connection.isReady)
                 return;
 
             if (!Enum.IsDefined(typeof(ClutterType), Type))
@@ -81,7 +87,23 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 return;
             }
 
-            GameObject prefab = ClutterObject.GetClutterPrefab(Type);
+            GameObject? prefab;
+            try
+            {
+                prefab = ClutterObject.GetClutterPrefab(Type);
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                LogManager.Warn($"Skipping client clutter '{Name}': {ex.Message}");
+                return;
+            }
+
+            if (prefab == null)
+            {
+                LogManager.Warn($"Skipping client clutter '{Name}': clutter prefab for type '{Type}' is not registered.");
+                return;
+            }
+
             uint assetId = PrefabHelper.GetAssetId(prefab);
             if (assetId == 0)
             {

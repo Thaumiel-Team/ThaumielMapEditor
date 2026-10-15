@@ -16,6 +16,7 @@ using LabApiExtensions.Extensions;
 using LabApiExtensions.FakeExtension;
 using Mirror;
 using ThaumielMapEditor.API.Attributes;
+using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Struct;
 
 namespace ThaumielMapEditor.API.Extensions
@@ -120,7 +121,7 @@ namespace ThaumielMapEditor.API.Extensions
             {
                 if (!MirrorWriterExtension.Write(obj.GetType(), obj, networkWriterPooled))
                 {
-                    Logger.Error($"Not found NetworkWriter for type {obj.GetType()}");
+                    LogManager.Error($"No NetworkWriter found for type {obj.GetType()}");
                     return;
                 }
             }

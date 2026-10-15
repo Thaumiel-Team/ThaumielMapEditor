@@ -570,6 +570,14 @@ namespace ThaumielMapEditor.API.Helpers
                             LogManager.Info($"Schematic '{schematic.FileName}' fully spawned.");
                             SchematicsById[schematicData.Id] = schematicData;
 
+                            foreach (Player player in Player.ReadyList.ToArray())
+                            {
+                                if (player == null || player.IsDestroyed || player.IsHost || player.IsDummy)
+                                    continue;
+                                
+                                schematicData.SyncWithPlayer(player);
+                            }
+
                             if (Main.Instance.Config.SchematicAnimationPlayOnLoad.TryGetValue(schematicData.FileName, out var animationname))
                             {
                                 try

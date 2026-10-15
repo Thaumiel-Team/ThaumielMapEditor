@@ -124,6 +124,10 @@ namespace ThaumielMapEditor.ToolGun.Utilities
                 {
                     PrimitiveObject prim when !string.IsNullOrEmpty(prim.Name) => ToolGunMenu.SanitizeDisplayText(prim.Name, MaxHintNameLength),
                     CapybaraObject capy when !string.IsNullOrEmpty(capy.Name) => ToolGunMenu.SanitizeDisplayText(capy.Name, MaxHintNameLength),
+                    ClientClutterObject clutter when !string.IsNullOrEmpty(clutter.Name) => ToolGunMenu.SanitizeDisplayText(clutter.Name, MaxHintNameLength),
+                    ClientCullingParentObject culling when !string.IsNullOrEmpty(culling.Name) => ToolGunMenu.SanitizeDisplayText(culling.Name, MaxHintNameLength),
+                    TextObject text => $"Text_{text.ObjectId}",
+                    LightObject => $"Light_{client.ObjectId}",
                     _ => $"id {client.ObjectId}",
                 };
 

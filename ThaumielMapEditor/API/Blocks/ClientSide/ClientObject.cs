@@ -222,7 +222,13 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <param name="player">The player to spawn the <see cref="ClientObject"/> instance to.</param>
         public virtual void SpawnForPlayer(Player player)
         {
-            if (player.IsHost)
+            if (player == null || player.IsDestroyed || player.IsHost || player.IsDummy)
+                return;
+
+            if (IsSpawnedForPlayer(player))
+                return;
+
+            if (player.Connection == null || !player.Connection.isReady)
                 return;
 
             using NetworkWriterPooled payloadWriter = NetworkWriterPool.Get();
