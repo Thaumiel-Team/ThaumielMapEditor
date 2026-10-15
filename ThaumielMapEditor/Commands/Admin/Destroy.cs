@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CommandSystem;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Interfaces;
@@ -23,11 +22,11 @@ namespace ThaumielMapEditor.Commands.Admin
     {
         public override string Name => "destroy";
 
-        public override string VisibleArgs => "<Schematic Id>";
+        public override string VisibleArgs => "<Schematic | Map> <Map Name | Schematic Id>";
 
-        public override int RequiredArgsCount => 1;
+        public override int RequiredArgsCount => 2;
 
-        public override string Description => "Destroys the specified schematic";
+        public override string Description => "Destroys the specified schematic or map";
 
         public override string[] Aliases => ["de", "delete", "remove", "del"];
 
@@ -35,27 +34,61 @@ namespace ThaumielMapEditor.Commands.Admin
 
         public override bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            if (arguments.Count < 1 || !uint.TryParse(arguments.At(0), out var id))
+            string type = arguments.At(0);
+            string idstr = arguments.At(1);
+
+            if (arguments.Count < 2)
             {
                 response = "Invalid ID. Run 'tme spawned' to get all spawned schematics.";
                 return false;
             }
 
-            if (!Loader.SchematicsById.TryGetValue(id, out var data))
+            if (type.Equals("schematic", StringComparison.InvariantCultureIgnoreCase))
             {
-                StringBuilder sb = new();
-                sb.AppendLine();
-                sb.AppendLine($"No schematic with id {arguments.At(0)} was found.");
-                sb.AppendLine($"Available schematics:");
-                foreach (KeyValuePair<uint, SchematicData> kvp in Loader.SchematicsById.ToArray())
-                    sb.AppendLine($"- [{kvp.Key}]: {kvp.Value.FileName}");
+                if (!uint.TryParse(idstr, out var id))
+                {
+                    response = $"Failed to parse {idstr} to a integer.";
+                    return false;
+                }
 
-                response = sb.ToString();
-                return false;
+                if (!Loader.SchematicsById.TryGetValue(id, out var data))
+                {
+                    StringBuilder sb = new();
+                    sb.AppendLine();
+                    sb.AppendLine($"No schematic with id {arguments.At(0)} was found.");
+                    sb.AppendLine($"Available schematics:");
+                    foreach (KeyValuePair<uint, SchematicData> kvp in Loader.SchematicsById.ToArray())
+                        sb.AppendLine($"- [{kvp.Key}]: {kvp.Value.FileName}");
+
+                    response = sb.ToString();
+                    return false;
+                }
+
+                Loader.DestroySchematic(data);
+            }
+            else if (type.Equals("map", StringComparison.InvariantCultureIgnoreCase))
+            {
+                MapData? map = Loader.SpawnedMaps.FirstOrDefault(m => m.FileName.Equals(idstr, StringComparison.InvariantCultureIgnoreCase));
+                if (map == null)
+                {
+                    StringBuilder sb = new();
+                    sb.AppendLine();
+                    sb.AppendLine($"Failed to find map with name {idstr}.");
+                    sb.AppendLine($"Available maps:");
+                    foreach (MapData data in Loader.SpawnedMaps.ToArray())
+                        sb.AppendLine($"- [{data.Id}]: {data.FileName}");
+
+                    response = sb.ToString();
+                    response = $"Failed to find map with name {idstr}";
+                    return false;
+                }
+
+                Loader.DestroyMap(map);
+                response = $"Destroyed map with name {idstr}";
+                return true;
             }
 
-            Loader.DestroySchematic(data);
-            response = $"Destroyed schematic {id} ({data.FileName}).";
+            response = $"Please specify type to destroy. Use 'Map' or 'Schematic'";
             return true;
         }
     }
