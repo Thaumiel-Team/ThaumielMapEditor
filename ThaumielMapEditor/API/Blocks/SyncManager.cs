@@ -315,6 +315,12 @@ namespace ThaumielMapEditor.API.Blocks
                 if (obj == null || obj.Object == null)
                     continue;
 
+                if (!obj.Object.TryGetComponent<NetworkIdentity>(out _))
+                {
+                    obj.ClearDirtyFlags();
+                    continue;
+                }
+
                 try
                 {
                     NetworkServer.UnSpawn(obj.Object);

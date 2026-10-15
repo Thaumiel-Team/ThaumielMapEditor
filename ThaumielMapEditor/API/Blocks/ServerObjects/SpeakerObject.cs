@@ -12,6 +12,7 @@ using SecretLabNAudio.Core;
 using SecretLabNAudio.Core.Extensions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
+using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using YamlDotNet.Serialization;
 
@@ -199,6 +200,22 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
             base.SpawnObject(schematic, serializable);
             SetWorldTransform(schematic);
+            Object = new();
+            Object.transform.SetPositionAndRotation(Position, Rotation);
+            Object.transform.localScale = Scale;
+            SelectionProxyHelper.AddTrigger(Object);
+            Player.Speaker.Position = Position;
+            Player.Speaker.Rotation = Rotation;
+            Player.Speaker.Scale = Scale;
+            NetId = Player.Speaker.Base.netId;
+        }
+
+        /// <inheritdoc/>
+        public override void DestroyObject(SchematicData schematic)
+        {
+            Player?.Destroy();
+            SelectionProxyHelper.DestroyProxy(this);
+            base.DestroyObject(schematic);
         }
 
         public void SpawnObject(SchematicData schematic)
@@ -223,6 +240,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             }
 
             SetWorldTransform(schematic);
+            Object = new();
+            Object.transform.SetPositionAndRotation(Position, Rotation);
+            Object.transform.localScale = Scale;
+            SelectionProxyHelper.AddTrigger(Object);
+
+            Player.Speaker.Position = Position;
+            Player.Speaker.Rotation = Rotation;
+            Player.Speaker.Scale = Scale;
+            NetId = Player.Speaker.Base.netId;
         }
     }
 }

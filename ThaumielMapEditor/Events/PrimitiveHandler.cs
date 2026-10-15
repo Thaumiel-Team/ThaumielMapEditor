@@ -9,6 +9,7 @@ using System;
 using AdminToys;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Data;
+using ThaumielMapEditor.API.Helpers;
 
 namespace ThaumielMapEditor.Events
 {
@@ -46,6 +47,12 @@ namespace ThaumielMapEditor.Events
 
         private static void OnPositionUpdated(Vector3 position, ClientObject client)
         {
+            if (client is LightObject light)
+            {
+                ColliderHelper.SyncSelectionSpheres(light, light.Schematic);
+                return;
+            }
+
             if (client is not PrimitiveObject primitive)
                 return;
 
@@ -62,6 +69,12 @@ namespace ThaumielMapEditor.Events
 
         private static void OnRotationUpdated(Quaternion rotation, ClientObject client)
         {
+            if (client is LightObject light)
+            {
+                ColliderHelper.SyncSelectionSpheres(light, light.Schematic);
+                return;
+            }
+
             if (client is not PrimitiveObject primitive)
                 return;
 
@@ -78,6 +91,9 @@ namespace ThaumielMapEditor.Events
 
         private static void OnSchematicPositionUpdated(SchematicData schematic)
         {
+            foreach (LightObject light in schematic.GetClientObject<LightObject>())
+                ColliderHelper.SyncSelectionSpheres(light, schematic);
+
             foreach (PrimitiveObject primitive in schematic.GetClientObject<PrimitiveObject>())
             {
                 if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || schematic.Primitive == null)
@@ -94,6 +110,9 @@ namespace ThaumielMapEditor.Events
 
         private static void OnSchematicRotationUpdated(SchematicData schematic)
         {
+            foreach (LightObject light in schematic.GetClientObject<LightObject>())
+                ColliderHelper.SyncSelectionSpheres(light, schematic);
+
             foreach (PrimitiveObject primitive in schematic.GetClientObject<PrimitiveObject>())
             {
                 if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null)
