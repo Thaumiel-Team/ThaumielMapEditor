@@ -5,6 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using InventorySystem.Items.Pickups;
 using LabApi.Features.Wrappers;
 using System;
 using System.Linq;
@@ -165,6 +166,9 @@ namespace ThaumielMapEditor.ToolGun.Utilities
                 }
             }
 
+            if (TryGetSpawnerFromVisual(collider, start, out server))
+                return true;
+
             foreach (SchematicData schematic in Loader.SpawnedSchematics.ToArray())
             {
                 if (schematic == null)
@@ -188,6 +192,43 @@ namespace ThaumielMapEditor.ToolGun.Utilities
                     if (Array.IndexOf(colliders, collider) >= 0)
                     {
                         client = obj;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetSpawnerFromVisual(Collider collider, Transform start, out ServerObject? server)
+        {
+            server = null;
+
+            ItemPickupBase? itemBase = collider.GetComponentInParent<ItemPickupBase>();
+            if (itemBase != null)
+            {
+                Pickup? worldPickup = Pickup.Get(itemBase);
+                if (worldPickup != null && PickupObject.IsPickup(worldPickup, out PickupObject? pickupSpawner) && pickupSpawner != null)
+                {
+                    server = pickupSpawner;
+                    return true;
+                }
+            }
+
+            foreach (ServerObject obj in ServerObject.SpawnedObjects.ToArray())
+            {
+                if (obj is not RagdollSpawner ragdoll)
+                    continue;
+
+                GameObject? candidate = ragdoll.Base?.Base.gameObject;
+                if (candidate == null)
+                    continue;
+
+                for (Transform? t = start; t != null; t = t.parent)
+                {
+                    if (t.gameObject == candidate)
+                    {
+                        server = obj;
                         return true;
                     }
                 }

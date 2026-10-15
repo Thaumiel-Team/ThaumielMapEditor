@@ -13,6 +13,7 @@ using Mirror;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
+using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Serialization;
 using ThaumielMapEditor.Events.EventArgs.Handlers;
 using UnityEngine;
@@ -62,7 +63,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Gets the parent id from the <see cref="SerializableObject"/> this <see cref="ClientObject"/> instance was generated from.
         /// </summary>
-        public int ParentId
+        public virtual int ParentId
         {
             get;
             set
@@ -292,15 +293,14 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// </summary>
         /// <param name="player">The <see cref="Player"/> that will recive the parent message=</param>
         /// <param name="parentId">The <see cref="NetworkBehaviour.netId"/> of the parent</param>
-        public void SetParent(Player player, int parentId)
+        public virtual void SetParent(Player player, int parentId)
         {
             player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, parentId);
 
             ParentNetId = (uint)parentId;
-            GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
-            if (go != null)
+            if (TryFindParentGameObject(ParentNetId, out GameObject? found))
             {
-                Parent = go;
+                Parent = found;
             }
             else
                 LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
@@ -311,18 +311,12 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// </summary>
         /// <param name="network">The <see cref="NetworkBehaviour"/> of the parent</param>
         /// <param name="player">The <see cref="Player"/> that will recive the parent message=</param>
-        public void SetParent(Player player, NetworkBehaviour network)
+        public virtual void SetParent(Player player, NetworkBehaviour network)
         {
             player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
 
             ParentNetId = network.netId;
-            GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
-            if (go != null)
-            {
-                Parent = go;
-            }
-            else
-                LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
+            Parent = network.gameObject;
         }
 
         /// <summary>
@@ -331,7 +325,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <param name="gameObject">The <see cref="GameObject"/> of the parent</param>
         /// <param name="player">The <see cref="Player"/> that will recive the parent message=</param>
         /// <returns><see langword="true"/> if the <see cref="ClientObject"/> was parented</returns>
-        public bool SetParent(Player player, GameObject gameObject)
+        public virtual bool SetParent(Player player, GameObject gameObject)
         {
             if (!gameObject.TryGetComponent<NetworkBehaviour>(out var network))
                 return false;
@@ -346,7 +340,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Sets the parent of the <see cref="ClientObject"/>.
         /// </summary>
         /// <param name="parentId">The <see cref="NetworkBehaviour.netId"/> of the parent</param>
-        public void SetParent(int parentId)
+        public virtual void SetParent(int parentId)
         {
             foreach (Player player in SpawnedPlayers)
             {
@@ -354,10 +348,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             }
 
             ParentNetId = (uint)parentId;
-            GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
-            if (go != null)
+            if (TryFindParentGameObject(ParentNetId, out GameObject? foundAll))
             {
-                Parent = go;
+                Parent = foundAll;
             }
             else
                 LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
@@ -367,7 +360,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Sets the parent of the <see cref="ClientObject"/>.
         /// </summary>
         /// <param name="network">The <see cref="NetworkBehaviour"/> of the parent</param>
-        public void SetParent(NetworkBehaviour network)
+        public virtual void SetParent(NetworkBehaviour network)
         {
             foreach (Player player in SpawnedPlayers)
             {
@@ -375,13 +368,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             }
 
             ParentNetId = network.netId;
-            GameObject? go = NetworkServer.spawned.TryGetValue(ParentNetId, out NetworkIdentity identity) ? identity.gameObject : null;
-            if (go != null)
-            {
-                Parent = go;
-            }
-            else
-                LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
+            Parent = network.gameObject;
         }
 
         /// <summary>
@@ -389,7 +376,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// </summary>
         /// <param name="gameObject">The <see cref="GameObject"/> of the parent</param>
         /// <returns><see langword="true"/> if the <see cref="ClientObject"/> was parented</returns>
-        public bool SetParent(GameObject gameObject)
+        public virtual bool SetParent(GameObject gameObject)
         {
             if (!gameObject.TryGetComponent<NetworkBehaviour>(out var network))
                 return false;
@@ -402,6 +389,30 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             ParentNetId = network.netId;
             Parent = gameObject;
             return true;
+        }
+
+        protected static bool TryFindParentGameObject(uint netId, out GameObject? gameObject)
+        {
+            if (NetworkServer.spawned.TryGetValue(netId, out NetworkIdentity identity) && identity?.gameObject != null)
+            {
+                gameObject = identity.gameObject;
+                return true;
+            }
+
+            foreach (SchematicData schematic in Loader.SpawnedSchematics)
+            {
+                foreach (ClientObject client in schematic.SpawnedClientObjects)
+                {
+                    if (client.NetId == netId)
+                    {
+                        gameObject = null;
+                        return true;
+                    }
+                }
+            }
+
+            gameObject = null;
+            return false;
         }
 
         /// <summary>
@@ -489,7 +500,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Falls back to <see cref="SpawnForPlayer(Player)"/> if this object was not spawned for the player yet.
         /// </remarks>
         /// <param name="player">The <see cref="Player"/> to sync to.</param>
-        public void SyncForPlayer(Player player)
+        public virtual void SyncForPlayer(Player player)
         {
             if (player.IsHost)
                 return;
@@ -508,7 +519,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// </summary>
         /// <param name="player">The <see cref="Player"/> to send the message to. Must already have this object spawned.</param>
         /// <param name="flags">The changes to include in the message.</param>
-        public void SendDeltaUpdate(Player player, SyncFlags flags)
+        public virtual void SendDeltaUpdate(Player player, SyncFlags flags)
         {
             if (player.IsHost)
                 return;

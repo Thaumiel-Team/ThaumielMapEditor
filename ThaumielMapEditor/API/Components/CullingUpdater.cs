@@ -69,7 +69,6 @@ namespace ThaumielMapEditor.API.Components
             LastTarget = current;
 
             SyncSpectatorLod(previous, current, spectator);
-            SyncSpectatorCulling(previous, current, spectator);
         }
 
         private void ClearSpectatedState(Player spectator)
@@ -101,32 +100,6 @@ namespace ThaumielMapEditor.API.Components
                     if (primitive.IsSpawnedForPlayer(spectator))
                         primitive.DespawnForPlayer(spectator);
                 }
-            }
-
-            if (CullingObject.AllInstances.Count == 0)
-                return;
-
-            foreach (CullingObject zone in CullingObject.AllInstances.ToArray())
-            {
-                if (zone.PlayersInside.Contains(stale) && !zone.PlayersInside.Contains(spectator))
-                    zone.ToggleVisibility(spectator, false);
-            }
-        }
-
-        private static void SyncSpectatorCulling(Player? oldTarget, Player? newTarget, Player spectator)
-        {
-            if (oldTarget == newTarget || CullingObject.AllInstances.Count == 0)
-                return;
-
-            foreach (CullingObject zone in CullingObject.AllInstances.ToArray())
-            {
-                bool wasShown = oldTarget != null && zone.PlayersInside.Contains(oldTarget);
-                bool shouldShow = newTarget != null && zone.PlayersInside.Contains(newTarget);
-
-                if (wasShown == shouldShow)
-                    continue;
-
-                zone.ToggleVisibility(spectator, shouldShow);
             }
         }
 

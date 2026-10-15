@@ -33,5 +33,6 @@ namespace ThaumielMapEditor.API.Enums
         Speaker = 17,
         PlayerSpawnPoint = 18,
         RagdollSpawner = 19,
+        CullingParent = 20,
     }
 }
