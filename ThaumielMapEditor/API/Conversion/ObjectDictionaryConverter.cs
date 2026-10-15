@@ -36,10 +36,8 @@ namespace ThaumielMapEditor.API.Conversion
                 string key = reader.GetString() ?? string.Empty;
 
                 reader.Read();
-                using (JsonDocument document = JsonDocument.ParseValue(ref reader))
-                {
-                    dict[key] = document.RootElement.ToObject()!;
-                }
+                using JsonDocument document = JsonDocument.ParseValue(ref reader);
+                dict[key] = document.RootElement.ToObject()!;
             }
 
             return dict;
