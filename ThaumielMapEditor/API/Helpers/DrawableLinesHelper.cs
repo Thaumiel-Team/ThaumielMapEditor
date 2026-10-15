@@ -606,6 +606,14 @@ namespace ThaumielMapEditor.API.Helpers
 
             switch (obj)
             {
+                case ClientCullingParentObject culling when IsValidSize(culling.BoundsSize) && culling.BoundsSize != Vector3.zero:
+                    (Vector3 cullingPosition, _) = culling.ResolveWorldTransform();
+                    if (!IsValidVector(cullingPosition))
+                        break;
+
+                    player.SendBoundsToPlayer(new Bounds(cullingPosition, ClampSize(culling.BoundsSize)), duration, color);
+                    break;
+
                 case PrimitiveObject prim when prim.PrimitiveType == PrimitiveType.Sphere && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) > 0f:
                     player.SendSphereToPlayer(position, ClampRadius(Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) * 0.5f), duration, color);
                     break;

@@ -53,6 +53,10 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         {
             base.SpawnObject(schematic, serializable);
             SetWorldTransform(schematic);
+            Object = new();
+            Object.transform.SetPositionAndRotation(Position, Rotation);
+            Object.transform.localScale = Scale;
+            SelectionProxyHelper.AddTrigger(Object);
             Schematic = schematic;
             NetId = 0;
             Instances.Add(this);
@@ -62,6 +66,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         public override void DestroyObject(SchematicData schematic)
         {
             Instances.Remove(this);
+            SelectionProxyHelper.DestroyProxy(this);
             base.DestroyObject(schematic);
         }
 

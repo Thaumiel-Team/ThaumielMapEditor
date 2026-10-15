@@ -39,6 +39,7 @@ namespace ThaumielMapEditor.API.Helpers
         public static WorkstationController? Workstation { get; private set; }
         public static InvisibleInteractableToy? Interactable { get; private set; }
         public static CapybaraToy? Capybara { get; private set; }
+        public static SpawnableCullingParent? CullingParent { get; private set; }
         public static TextToy? TextToy { get; private set; }
         public static WaypointToy? WaypointToy { get; private set; }
         public static ShootingTarget? ShootingTargetSport { get; private set; }
@@ -132,6 +133,12 @@ namespace ThaumielMapEditor.API.Helpers
                 if (prefab.TryGetComponent<CapybaraToy>(out var capybara))
                 {
                     Capybara = capybara;
+                    continue;
+                }
+
+                if (prefab.TryGetComponent<SpawnableCullingParent>(out var cullingParent))
+                {
+                    CullingParent = cullingParent;
                     continue;
                 }
 

@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using AdminToys;
 using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using UnityEngine;
@@ -79,6 +80,98 @@ namespace ThaumielMapEditor.API.Helpers
             }
 
             clientObject.ServerColliders = colliders.ToArray();
+        }
+
+        public static void CreateSelectionSphere(ClientObject clientObject, SchematicData schematic, float radius = 0.5f)
+        {
+            if (clientObject == null || schematic == null)
+                return;
+
+            Transform? targetParent = ResolveServerParentTransform(clientObject.ParentId, schematic);
+            if (targetParent == null)
+            {
+                LogManager.Warn($"Failed to get parent for selection sphere of {clientObject.ObjectType} - {clientObject.ObjectId}");
+                return;
+            }
+
+            GameObject go = new($"[ThaumielMapEditor] Selection_{clientObject.ObjectType}");
+            go.transform.SetParent(targetParent, worldPositionStays: false);
+            go.transform.localPosition = clientObject.Position;
+            go.transform.localRotation = clientObject.Rotation;
+
+            SphereCollider sphere = go.AddComponent<SphereCollider>();
+            sphere.isTrigger = true;
+            sphere.radius = radius;
+
+            clientObject.ServerColliders = [.. clientObject.ServerColliders, sphere];
+
+            if (!SchematicColliders.TryGetValue(schematic, out var value))
+            {
+                value = [];
+                SchematicColliders.Add(schematic, value);
+            }
+
+            value.Add(sphere);
+            LogManager.Debug($"Created selection sphere for {clientObject.ObjectType} {clientObject.ObjectId}.");
+        }
+
+        /// <summary>
+        /// Moves the selection spheres of the specified <see cref="ClientObject"/> to its current transform.
+        /// </summary>
+        /// <param name="clientObject">The <see cref="ClientObject"/> whose selection spheres will be synced.</param>
+        /// <param name="schematic">The <see cref="SchematicData"/> used to resolve the parent transform.</param>
+        public static void SyncSelectionSpheres(ClientObject clientObject, SchematicData? schematic)
+        {
+            if (clientObject?.ServerColliders == null || clientObject.ServerColliders.Length == 0 || schematic?.Primitive?.Transform == null)
+                return;
+
+            Transform root = schematic.ServerSideTransforms.TryGetValue(clientObject.ParentId, out Transform transform) && transform != null ? transform : schematic.Primitive.Transform;
+            foreach (Collider collider in clientObject.ServerColliders)
+            {
+                if (collider == null)
+                    continue;
+
+                collider.transform.position = root.TransformPoint(clientObject.Position);
+                collider.transform.rotation = root.rotation * clientObject.Rotation;
+            }
+        }
+
+        /// <summary>
+        /// Destroys the server side colliders of the specified <see cref="ClientObject"/>.
+        /// </summary>
+        /// <param name="clientObject">The <see cref="ClientObject"/> whose colliders will be destroyed.</param>
+        /// <param name="schematic">The <see cref="SchematicData"/> the colliders were tracked under.</param>
+        public static void DestroyClientObjectColliders(ClientObject clientObject, SchematicData schematic)
+        {
+            if (clientObject?.ServerColliders == null)
+                return;
+
+            foreach (Collider collider in clientObject.ServerColliders)
+            {
+                if (collider == null)
+                    continue;
+
+                if (schematic != null && SchematicColliders.TryGetValue(schematic, out HashSet<Collider>? set))
+                    set.Remove(collider);
+
+                if (collider.gameObject != null)
+                    UnityEngine.Object.Destroy(collider.gameObject);
+            }
+
+            clientObject.ServerColliders = [];
+
+            if (clientObject is PrimitiveObject primitive && primitive.ServerCollider != null)
+            {
+                if (schematic != null && SchematicColliders.TryGetValue(schematic, out HashSet<Collider>? primitiveSet))
+                    primitiveSet.Remove(primitive.ServerCollider);
+
+                if (primitive.ServerCollider.gameObject != null)
+                    UnityEngine.Object.Destroy(primitive.ServerCollider.gameObject);
+
+                primitive.ServerCollider = null;
+            }
+            else if (clientObject is PrimitiveObject primitiveNull)
+                primitiveNull.ServerCollider = null;
         }
 
         /// <summary>
@@ -179,8 +272,7 @@ namespace ThaumielMapEditor.API.Helpers
         }
 
         /// <summary>
-        /// Resolves the source prefab <see cref="GameObject"/> for a given client-side object,
-        /// used to extract its collider hierarchy.
+        /// Resolves the source prefab <see cref="GameObject"/> for a given client side object.
         /// </summary>
         private static GameObject? GetPrefabForClientObject(ClientObject clientObject)
         {
@@ -188,8 +280,25 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 ObjectType.Primitive => PrefabHelper.PrimitiveObject?.gameObject,
                 ObjectType.Capybara => PrefabHelper.Capybara?.gameObject,
+                ObjectType.Clutter => clientObject is ClientClutterObject clutter ? TryGetClutterPrefab(clutter) : null,
                 _ => null
             };
+        }
+
+        /// <summary>
+        /// Resolves the clutter prefab for the given <see cref="ClientClutterObject"/>, returning <see langword="null"/> when its type is unknown.
+        /// </summary>
+        private static GameObject? TryGetClutterPrefab(ClientClutterObject clutter)
+        {
+            try
+            {
+                return ClutterObject.GetClutterPrefab(clutter.Type);
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                LogManager.Warn($"Could not resolve clutter prefab for type '{clutter.Type}': {ex.Message}");
+                return null;
+            }
         }
 
         /// <summary>
@@ -199,6 +308,9 @@ namespace ThaumielMapEditor.API.Helpers
         public static void CreateCollisionMesh(PrimitiveObject primitive)
         {
             if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.Schematic == null)
+                return;
+
+            if (primitive.ServerCollider != null)
                 return;
 
             GameObject collider = new();

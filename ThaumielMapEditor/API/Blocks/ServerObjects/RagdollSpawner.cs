@@ -6,10 +6,12 @@
 // -----------------------------------------------------------------------
 
 using LabApi.Features.Wrappers;
+using Mirror;
 using PlayerRoles;
 using PlayerStatsSystem;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
+using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using UnityEngine;
 using YamlDotNet.Serialization;
@@ -44,8 +46,19 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
             CustomReasonDamageHandler handler = new(DeathReason);
             Base = Ragdoll.SpawnRagdoll(RoleType, Position, Rotation, handler, Name, Scale);
-            Object = Base?.Base.gameObject;
+            Object = new();
+            Object.transform.SetPositionAndRotation(Position, Rotation);
+            Object.transform.localScale = Scale;
+            SelectionProxyHelper.AddTrigger(Object);
             base.SpawnObject(schematic, serializable);
+        }
+
+        /// <inheritdoc/>
+        public override void DestroyObject(SchematicData schematic)
+        {
+            Base?.Destroy();
+            SelectionProxyHelper.DestroyProxy(this);
+            base.DestroyObject(schematic);
         }
     }
 }

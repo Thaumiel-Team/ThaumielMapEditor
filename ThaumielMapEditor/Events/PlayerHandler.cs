@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using LabApi.Events.Arguments.PlayerEvents;
-using LabApi.Events.Arguments.Scp079Events;
 using LabApi.Events.Handlers;
 using LabApi.Features.Wrappers;
 using MEC;
@@ -30,7 +29,7 @@ namespace ThaumielMapEditor.Events
         {
             PlayerEvents.Joined += OnPlayerJoined;
             PlayerEvents.Spawned += PlayerSpawnPoint.OnPlayerSpawned;
-            Scp079Events.ChangedCamera += OnScp079ChangedCamera;
+            PlayerEvents.PickedUpItem += OnPlayerPickedUpItem;
             ReferenceHub.OnBeforePlayerDestroyed += OnPlayerLeft;
         }
 
@@ -38,18 +37,19 @@ namespace ThaumielMapEditor.Events
         {
             PlayerEvents.Joined -= OnPlayerJoined;
             PlayerEvents.Spawned -= PlayerSpawnPoint.OnPlayerSpawned;
-            Scp079Events.ChangedCamera -= OnScp079ChangedCamera;
+            PlayerEvents.PickedUpItem -= OnPlayerPickedUpItem;
             ReferenceHub.OnBeforePlayerDestroyed -= OnPlayerLeft;
         }
 
-        private static void OnScp079ChangedCamera(Scp079ChangedCameraEventArgs ev)
+        private static void OnPlayerPickedUpItem(PlayerPickedUpItemEventArgs ev)
         {
-            if (ev.Player == null || ev.Camera == null)
+            if (ev.Item == null)
                 return;
 
-            foreach (CullingObject cullingZone in CullingObject.AllInstances.ToArray())
+            if (PickupObject.IsItem(ev.Item, out PickupObject? instance) && instance != null)
             {
-                cullingZone.ToggleVisibility(ev.Player, cullingZone.IsInsideCollider(ev.Camera.Position));
+                if (instance.IsInfinite)
+                    instance.SpawnPickup();
             }
         }
 
@@ -76,7 +76,6 @@ namespace ThaumielMapEditor.Events
                 }
             }
 
-            CullingObject.RemovePlayer(player);
             PlayerExtensions.EffectCache.Remove(player);
             LODHelper.PlayersInLODZones.Remove(player);
             Grab.ReleasePlayer(player);

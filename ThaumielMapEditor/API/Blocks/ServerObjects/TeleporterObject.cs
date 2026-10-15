@@ -77,15 +77,14 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         {
             SetWorldTransform(schematic);
 
-            GameObject triggerObj = new($"Teleporter_{Id}");
-            triggerObj.transform.position = Position;
-            triggerObj.transform.rotation = Rotation;
-            triggerObj.transform.localScale = Scale;
+            Object = new($"Teleporter_{Id}");
+            Object.transform.SetPositionAndRotation(Position, Rotation);
+            Object.transform.localScale = Scale;
 
-            BoxCollider collider = triggerObj.AddComponent<BoxCollider>();
+            BoxCollider collider = Object.AddComponent<BoxCollider>();
             collider.isTrigger = true;
 
-            TeleporterHandler = triggerObj.AddComponent<TeleporterHandler>();
+            TeleporterHandler = Object.AddComponent<TeleporterHandler>();
             TeleporterHandler.Init(this);
             RegisteredTeleporters[Id] = this;
 

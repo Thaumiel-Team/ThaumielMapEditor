@@ -185,12 +185,6 @@ namespace ThaumielMapEditor.API.Helpers
 
             try
             {
-                CullingObject.AllInstances.Clear();
-            }
-            catch { }
-
-            try
-            {
                 LODHelper.PlayersInLODZones.Clear();
             }
             catch { }
@@ -998,7 +992,7 @@ namespace ThaumielMapEditor.API.Helpers
         /// <returns><see langword="true"/> if scale affects the spawned object.</returns>
         public static bool SupportsScale(ObjectType type) => type switch
         {
-            ObjectType.Primitive or ObjectType.Light or ObjectType.TextToy or ObjectType.Capybara or ObjectType.GameObject or ObjectType.Interactable or ObjectType.Teleporter or ObjectType.Waypoint or ObjectType.RagdollSpawner => true,
+            ObjectType.Primitive or ObjectType.Light or ObjectType.TextToy or ObjectType.Capybara or ObjectType.Clutter or ObjectType.GameObject or ObjectType.Interactable or ObjectType.Teleporter or ObjectType.Waypoint or ObjectType.RagdollSpawner => true,
             _ => false,
         };
 
@@ -1009,7 +1003,7 @@ namespace ThaumielMapEditor.API.Helpers
         /// <returns><see langword="true"/> if <paramref name="type"/> can be spawned with either side.</returns>
         public static bool IsDualType(ObjectType type) => type switch
         {
-            ObjectType.Primitive or ObjectType.Light or ObjectType.TextToy or ObjectType.Capybara or ObjectType.GameObject => true,
+            ObjectType.Primitive or ObjectType.Light or ObjectType.TextToy or ObjectType.Capybara or ObjectType.Clutter or ObjectType.CullingParent or ObjectType.GameObject => true,
             _ => false,
         };
 
@@ -1147,6 +1141,10 @@ namespace ThaumielMapEditor.API.Helpers
 
                 case ObjectType.Locker:
                     EnsureValue(values, "LockerType", LockerType.Misc);
+                    break;
+
+                case ObjectType.CullingParent:
+                    EnsureValue(values, "BoundsSize", new Vector3(10f, 10f, 10f));
                     break;
             }
         }
@@ -1287,20 +1285,64 @@ namespace ThaumielMapEditor.API.Helpers
 
         private static void GetGameObjectTransforms(SerializableSchematic schematic, SchematicData schematicData)
         {
+            Dictionary<int, SerializableObject> objectsById = [];
             foreach (SerializableObject obj in schematic.Objects)
+                objectsById[obj.ObjectId] = obj;
+
+            foreach (SerializableObject obj in schematic.ServerSideObjects)
+                objectsById[obj.ObjectId] = obj;
+
+            HashSet<int> serverIds = [];
+            foreach (SerializableObject obj in schematic.ServerSideObjects)
             {
-                CreateGameObjectTransform(obj, schematicData);
+                if (obj.ObjectType == ObjectType.CullingParent)
+                    serverIds.Add(obj.ObjectId);
             }
+
+            HashSet<int> visiting = [];
+            foreach (SerializableObject obj in schematic.Objects)
+                EnsureServerSideTransform(obj, objectsById, schematicData, visiting, serverIds);
 
             foreach (SerializableObject obj in schematic.ServerSideObjects)
             {
-                CreateGameObjectTransform(obj, schematicData);
+                if (obj.ObjectType == ObjectType.GameObject)
+                    EnsureServerSideTransform(obj, objectsById, schematicData, visiting, serverIds);
+            }
+        }
+
+        private static void EnsureServerSideTransform(SerializableObject obj, Dictionary<int, SerializableObject> objectsById, SchematicData schematicData, HashSet<int> visiting, HashSet<int> serverIds)
+        {
+            if (schematicData.ServerSideTransforms.ContainsKey(obj.ObjectId))
+                return;
+
+            if (obj.ObjectType != ObjectType.GameObject && obj.ObjectType != ObjectType.CullingParent)
+                return;
+
+            if (obj.ObjectType == ObjectType.CullingParent && serverIds.Contains(obj.ObjectId))
+                return;
+
+            if (!visiting.Add(obj.ObjectId))
+                return;
+
+            try
+            {
+                if (objectsById.TryGetValue(obj.ParentId, out SerializableObject? parent) && (parent.ObjectType == ObjectType.GameObject || parent.ObjectType == ObjectType.CullingParent) && !schematicData.ServerSideTransforms.ContainsKey(parent.ObjectId))
+                    EnsureServerSideTransform(parent, objectsById, schematicData, visiting, serverIds);
+
+                if (obj.ObjectType is ObjectType.GameObject or ObjectType.CullingParent)
+                {
+                    CreateGameObjectTransform(obj, schematicData);
+                }
+            }
+            finally
+            {
+                visiting.Remove(obj.ObjectId);
             }
         }
 
         private static void CreateGameObjectTransform(SerializableObject obj, SchematicData schematicData)
         {
-            if (obj.ObjectType != ObjectType.GameObject)
+            if (obj.ObjectType != ObjectType.GameObject && obj.ObjectType != ObjectType.CullingParent)
                 return;
 
             GameObject dummyNode = new($"[SchematicNode] {obj.Name}");
@@ -1316,6 +1358,32 @@ namespace ThaumielMapEditor.API.Helpers
             dummyNode.transform.localRotation = obj.Rotation;
             dummyNode.transform.localScale = obj.Scale;
             schematicData.ServerSideTransforms[obj.ObjectId] = dummyNode.transform;
+        }
+
+        private static void EnsureGameObjectNode(SerializableObject serializable, SchematicData schematicData)
+        {
+            if (serializable.ObjectType != ObjectType.GameObject && serializable.ObjectType != ObjectType.CullingParent)
+                return;
+
+            if (!schematicData.ServerSideTransforms.TryGetValue(serializable.ObjectId, out Transform? existing) || existing == null)
+            {
+                CreateGameObjectTransform(serializable, schematicData);
+                return;
+            }
+
+            if (!schematicData.ServerSideTransforms.TryGetValue(serializable.ParentId, out Transform? parent) || parent == null)
+                return;
+
+            if (existing.parent == parent)
+                return;
+
+            Vector3 localPosition = existing.localPosition;
+            Quaternion localRotation = existing.localRotation;
+            Vector3 localScale = existing.localScale;
+            existing.SetParent(parent, false);
+            existing.localPosition = localPosition;
+            existing.localRotation = localRotation;
+            existing.localScale = localScale;
         }
 
         private static bool TryLoadAnimatorController(string schematicFileName, string animatorName, out RuntimeAnimatorController controller, out AssetBundle? outbundle)
@@ -1617,7 +1685,6 @@ namespace ThaumielMapEditor.API.Helpers
                             serverprim.Object?.transform.SetParent(identity.transform, false);
 
                         serverprim.Name = serializable.Name;
-                        SetupCulling(serializable, serverprim);
                         return serverprim.NetId;
                     }
                     else
@@ -1667,7 +1734,6 @@ namespace ThaumielMapEditor.API.Helpers
                             }
                         }
 
-                        SetupCulling(serializable, primitive, schematicData);
                         ColliderHelper.CreateCollisionMesh(primitive);
                         return primitive.NetId;
                     }
@@ -1676,14 +1742,13 @@ namespace ThaumielMapEditor.API.Helpers
                     if (serverside)
                     {
                         PrimitiveObjectServer serverprim = DeserializeObject<PrimitiveObjectServer>(serializable);
-                        SetupCulling(serializable, serverprim);
 
                         serverprim.SpawnObject(schematicData, serializable);
                         if (identity != null)
                             serverprim.Object?.transform.SetParent(identity.transform, false);
 
                         serverprim.Name = serializable.Name;
-                        SetupCulling(serializable, serverprim);
+                        EnsureGameObjectNode(serializable, schematicData);
                         return serverprim.NetId;
                     }
                     else
@@ -1706,12 +1771,12 @@ namespace ThaumielMapEditor.API.Helpers
                         gameObject.ParentId = serializable.ParentId;
 
                         schematicData.SpawnedClientObjects.Add(gameObject);
+                        EnsureGameObjectNode(serializable, schematicData);
                         foreach (Player player in Player.ReadyList)
                         {
                             gameObject.SpawnForPlayer(player);
                         }
 
-                        SetupCulling(serializable, gameObject, schematicData);
                         return gameObject.NetId;
                     }
 
@@ -1727,7 +1792,6 @@ namespace ThaumielMapEditor.API.Helpers
                             servercapy.Object?.transform.SetParent(identity.transform, false);
 
                         servercapy.Name = serializable.Name;
-                        SetupCulling(serializable, servercapy);
                         return servercapy.NetId;
                     }
                     else
@@ -1755,7 +1819,6 @@ namespace ThaumielMapEditor.API.Helpers
                         if (capybara.CollisionsEnabled)
                             ColliderHelper.CreateClientObjectColliders(capybara, schematicData);
 
-                        SetupCulling(serializable, capybara, schematicData);
                         return capybara.NetId;
                     }
 
@@ -1771,7 +1834,6 @@ namespace ThaumielMapEditor.API.Helpers
                             serverlight.Object?.transform.SetParent(identity.transform, false);
 
                         serverlight.Name = serializable.Name;
-                        SetupCulling(serializable, serverlight);
                         return serverlight.NetId;
                     }
                     else
@@ -1796,25 +1858,150 @@ namespace ThaumielMapEditor.API.Helpers
                         light.ParentId = serializable.ParentId;
 
                         schematicData.SpawnedClientObjects.Add(light);
+                        ColliderHelper.CreateSelectionSphere(light, schematicData);
 
                         foreach (Player player in Player.ReadyList.ToArray())
                         {
                             light.SpawnForPlayer(player);
                         }
 
-                        SetupCulling(serializable, light, schematicData);
                         return light.NetId;
                     }
 
                 case ObjectType.Clutter:
-                    ClutterObject clutter = DeserializeObject<ClutterObject>(serializable);
+                    if (serverside)
+                    {
+                        ClutterObject clutter = DeserializeObject<ClutterObject>(serializable);
 
-                    SetServerObjectProperties(clutter, serializable);
+                        SetServerObjectProperties(clutter, serializable);
 
-                    clutter.SpawnObject(schematicData, serializable);
-                    clutter.Name = serializable.Name;
-                    SetupCulling(serializable, clutter);
-                    return clutter.NetId;
+                        clutter.SpawnObject(schematicData, serializable);
+                        clutter.Name = serializable.Name;
+                        return clutter.NetId;
+                    }
+                    else
+                    {
+                        ClientClutterObject clientClutter = DeserializeObject<ClientClutterObject>(serializable);
+
+                        uint clutterAssetId;
+                        try
+                        {
+                            clutterAssetId = PrefabHelper.GetAssetId(ClutterObject.GetClutterPrefab(clientClutter.Type));
+                        }
+                        catch (ArgumentOutOfRangeException ex)
+                        {
+                            LogManager.Warn($"Skipping client clutter '{serializable.Name}': {ex.Message}");
+                            return parentNetId;
+                        }
+
+                        if (clutterAssetId == 0)
+                        {
+                            LogManager.Warn($"Skipping client clutter '{serializable.Name}': clutter prefab has no NetworkIdentity.");
+                            return parentNetId;
+                        }
+
+                        clientClutter.Name = serializable.Name;
+                        clientClutter.ParentNetId = parentNetId;
+                        clientClutter.NetId = NetworkIdentity.GetNextNetworkId();
+                        clientClutter.Scale = serializable.Scale;
+                        clientClutter.IsStatic = serializable.IsStatic;
+                        clientClutter.Position = serializable.Position;
+                        clientClutter.Rotation = serializable.Rotation;
+                        clientClutter.MovementSmoothing = serializable.MovementSmoothing;
+                        clientClutter.AssetId = clutterAssetId;
+                        clientClutter.Schematic = schematicData;
+                        clientClutter.ObjectId = serializable.ObjectId;
+                        clientClutter.ParentId = serializable.ParentId;
+
+                        schematicData.SpawnedClientObjects.Add(clientClutter);
+
+                        foreach (Player player in Player.ReadyList.ToArray())
+                        {
+                            clientClutter.SpawnForPlayer(player);
+                        }
+
+                        ColliderHelper.CreateClientObjectColliders(clientClutter, schematicData);
+
+                        clientClutter.ClearDirtyFlags();
+                        SyncManager.RemoveFromPending(clientClutter);
+
+                        return clientClutter.NetId;
+                    }
+
+                case ObjectType.CullingParent:
+                    if (serverside)
+                    {
+                        CullingParentObject serverculling = DeserializeObject<CullingParentObject>(serializable);
+
+                        if (PrefabHelper.CullingParent == null)
+                        {
+                            LogManager.Warn($"Skipping culling parent '{serializable.Name}': culling parent prefab not registered.");
+                            return parentNetId;
+                        }
+
+                        if (serverculling.BoundsSize == Vector3.zero)
+                        {
+                            LogManager.Warn($"Skipping culling parent '{serializable.Name}': BoundsSize is zero.");
+                            return parentNetId;
+                        }
+
+                        serverculling.Name = serializable.Name;
+                        serverculling.Position = serializable.Position;
+                        serverculling.Rotation = serializable.Rotation;
+                        serverculling.Scale = serializable.Scale;
+                        serverculling.IsStatic = serializable.IsStatic;
+
+                        serverculling.SpawnObject(schematicData, serializable);
+                        if (serverculling.Object == null)
+                            return parentNetId;
+
+                        schematicData.ServerSideTransforms[serializable.ObjectId] = serverculling.Object.transform;
+                        LogManager.Debug($"Spawned server culling parent '{serverculling.Name}' with NetId {serverculling.NetId}.");
+                        return serverculling.NetId;
+                    }
+                    else
+                    {
+                        ClientCullingParentObject clientculling = DeserializeObject<ClientCullingParentObject>(serializable);
+
+                        if (PrefabHelper.CullingParent?.netIdentity == null)
+                        {
+                            LogManager.Warn($"Skipping client culling parent '{serializable.Name}': culling parent prefab not registered.");
+                            return parentNetId;
+                        }
+
+                        if (clientculling.BoundsSize == Vector3.zero)
+                        {
+                            LogManager.Warn($"Skipping client culling parent '{serializable.Name}': BoundsSize is zero.");
+                            return parentNetId;
+                        }
+
+                        clientculling.Name = serializable.Name;
+                        clientculling.ParentNetId = parentNetId;
+                        clientculling.NetId = NetworkIdentity.GetNextNetworkId();
+                        clientculling.AssetId = PrefabHelper.CullingParent.netIdentity.assetId;
+                        clientculling.Position = serializable.Position;
+                        clientculling.Rotation = serializable.Rotation;
+                        clientculling.Scale = Vector3.one;
+                        clientculling.IsStatic = serializable.IsStatic;
+                        clientculling.MovementSmoothing = serializable.MovementSmoothing;
+                        clientculling.ObjectId = serializable.ObjectId;
+                        clientculling.ParentId = serializable.ParentId;
+                        clientculling.Schematic = schematicData;
+
+                        schematicData.SpawnedClientObjects.Add(clientculling);
+                        EnsureGameObjectNode(serializable, schematicData);
+
+                        foreach (Player player in Player.ReadyList.ToArray())
+                        {
+                            clientculling.SpawnForPlayer(player);
+                        }
+
+                        clientculling.ClearDirtyFlags();
+                        SyncManager.RemoveFromPending(clientculling);
+
+                        LogManager.Debug($"Spawned client culling parent '{clientculling.Name}' with NetId {clientculling.NetId} at {clientculling.ResolveWorldTransform().Position} (local {clientculling.Position}).");
+                        return clientculling.NetId;
+                    }
 
                 case ObjectType.Door:
                     DoorObject door = DeserializeObject<DoorObject>(serializable);
@@ -1823,7 +2010,6 @@ namespace ThaumielMapEditor.API.Helpers
 
                     door.SpawnObject(schematicData, serializable);
                     door.Name = serializable.Name;
-                    SetupCulling(serializable, door);
                     return door.NetId;
 
                 case ObjectType.TextToy:
@@ -1835,7 +2021,6 @@ namespace ThaumielMapEditor.API.Helpers
 
                         textToy.SpawnObject(schematicData, serializable);
                         textToy.Name = serializable.Name;
-                        SetupCulling(serializable, textToy);
                         return textToy.NetId;
                     }
                     else
@@ -1866,7 +2051,6 @@ namespace ThaumielMapEditor.API.Helpers
                             textObject.SpawnForPlayer(player);
                         }
 
-                        SetupCulling(serializable, textObject, schematicData);
                         return textObject.NetId;
                     }
 
@@ -1877,7 +2061,6 @@ namespace ThaumielMapEditor.API.Helpers
 
                     workstation.SpawnObject(schematicData, serializable);
                     workstation.Name = serializable.Name;
-                    SetupCulling(serializable, workstation);
                     return workstation.NetId;
 
                 case ObjectType.Camera:
@@ -1889,7 +2072,6 @@ namespace ThaumielMapEditor.API.Helpers
 
                     camera.SpawnObject(schematicData, serializable);
                     camera.Name = serializable.Name;
-                    SetupCulling(serializable, camera);
                     return camera.NetId;
 
                 case ObjectType.Interactable:
@@ -1899,7 +2081,6 @@ namespace ThaumielMapEditor.API.Helpers
 
                     interaction.SpawnObject(schematicData, serializable);
                     interaction.Name = serializable.Name;
-                    SetupCulling(serializable, interaction);
                     return interaction.NetId;
 
                 case ObjectType.Waypoint:
@@ -1909,7 +2090,6 @@ namespace ThaumielMapEditor.API.Helpers
 
                     waypoint.SpawnObject(schematicData, serializable);
                     waypoint.Name = serializable.Name;
-                    SetupCulling(serializable, waypoint);
                     return waypoint.NetId;
 
                 case ObjectType.Locker:
@@ -1919,7 +2099,6 @@ namespace ThaumielMapEditor.API.Helpers
 
                     locker.SpawnObject(schematicData, serializable);
                     locker.Name = serializable.Name;
-                    SetupCulling(serializable, locker);
                     return locker.NetId;
 
                 case ObjectType.Pickup:
@@ -1938,7 +2117,6 @@ namespace ThaumielMapEditor.API.Helpers
 
                     target.SpawnObject(schematicData, serializable);
                     target.Name = serializable.Name;
-                    SetupCulling(serializable, target);
                     return target.NetId;
 
                 case ObjectType.Teleporter:
@@ -1980,57 +2158,6 @@ namespace ThaumielMapEditor.API.Helpers
                 default:
                     LogManager.Warn($"Unhandled ObjectType '{serializable.ObjectType}' on object '{serializable.Name}', skipping.");
                     return 0;
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="serializable"></param>
-        /// <param name="obj"></param>
-        public static void SetupCulling(SerializableObject serializable, ServerObject obj)
-        {
-            if (serializable.CullingSettings.Bounds != Vector3.zero)
-            {
-                if (obj.Object == null)
-                {
-                    LogManager.Warn($"Skipping culling setup for '{obj.Name}': GameObject is null.");
-                    return;
-                }
-
-                GameObject gameObject = new($"{obj.Name} - Culling Object");
-                gameObject.transform.SetParent(obj.Object.transform, false);
-                CullingObject culling = gameObject.AddComponent<CullingObject>();
-                culling.Init(obj, serializable.CullingSettings.Bounds);
-                culling.Setup();
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="serializable"></param>
-        /// <param name="obj"></param>
-        /// <param name="schematic"></param>
-        public static void SetupCulling(SerializableObject serializable, ClientObject obj, SchematicData schematic)
-        {
-            if (serializable.CullingSettings.Bounds != Vector3.zero)
-            {
-                Transform? targetParent = ColliderHelper.ResolveServerParentTransform(serializable.ParentId, schematic);
-                if (targetParent == null)
-                {
-                    LogManager.Warn($"Skipping culling setup for '{serializable.Name}': parent transform is null.");
-                    return;
-                }
-
-                GameObject gameObject = new($"{serializable.Name} - Culling Object");
-                gameObject.transform.SetParent(targetParent, false);
-                gameObject.transform.localPosition = serializable.Position;
-                gameObject.transform.localRotation = serializable.Rotation;
-                gameObject.transform.localScale = new Vector3(Math.Abs(serializable.Scale.x), Math.Abs(serializable.Scale.y), Math.Abs(serializable.Scale.z));
-                CullingObject culling = gameObject.AddComponent<CullingObject>();
-                culling.Init(obj, serializable.CullingSettings.Bounds);
-                culling.Setup();
             }
         }
 

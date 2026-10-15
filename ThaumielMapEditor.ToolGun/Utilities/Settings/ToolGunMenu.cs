@@ -295,6 +295,8 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             if (server != null)
             {
                 server.Position = value;
+                if (server is SpeakerObject speaker)
+                    speaker.Player?.Speaker.Position = value;
             }
             else if (client != null)
                 SetClientWorldPosition(client, value);
@@ -325,6 +327,8 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             if (server != null)
             {
                 server.Rotation = value;
+                if (server is SpeakerObject speaker)
+                    speaker.Player?.Speaker.Rotation = value;
             }
             else if (client != null)
                 SetClientWorldRotation(client, value);

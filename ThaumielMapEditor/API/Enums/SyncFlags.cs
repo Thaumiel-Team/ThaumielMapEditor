@@ -43,5 +43,9 @@ namespace ThaumielMapEditor.API.Enums
         // Text
         DisplaySize = 1 << 19,
         TextFormat = 1 << 20,
+
+        // Culling parents
+        BoundsPosition = 1 << 21,
+        BoundsSize = 1 << 22,
     }
 }

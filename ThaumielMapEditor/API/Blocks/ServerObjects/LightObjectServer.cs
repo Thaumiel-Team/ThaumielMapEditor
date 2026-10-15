@@ -143,6 +143,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             light.gameObject.transform.position = Position;
             light.gameObject.transform.rotation = Rotation;
             light.gameObject.transform.localScale = Scale;
+            SelectionProxyHelper.EnsureChild(light.gameObject);
             NetworkServer.Spawn(light.gameObject);
             NetId = light.netId;
             base.SpawnObject(schematic, serializable);
