@@ -177,32 +177,22 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
             base.DestroyObject(schematic);
         }
 
-        private void HandleInteracted(ReferenceHub hub)
-        {
+        private void HandleInteracted(ReferenceHub hub) =>
             OnInteracted?.Invoke(this, Player.Get(hub));
-        }
 
-        private void HandleSearching(ReferenceHub hub)
-        {
+        private void HandleSearching(ReferenceHub hub) =>
             OnSearching?.Invoke(this, Player.Get(hub));
-        }
 
-        private void HandleSearched(ReferenceHub hub)
-        {
+        private void HandleSearched(ReferenceHub hub) =>
             OnSearched?.Invoke(this, Player.Get(hub));
-        }
 
-        private void HandleSearchAborted(ReferenceHub hub)
-        {
+        private void HandleSearchAborted(ReferenceHub hub) =>
             OnSearchAborted?.Invoke(this, Player.Get(hub));
-        }
 
-        public static bool TryGetInteractionObject(InvisibleInteractableToy toy, out InteractionObject interactionobj)
-            => InteractionCache.TryGetValue(toy, out interactionobj!);
+        public static bool TryGetInteractionObject(InvisibleInteractableToy toy, out InteractionObject interactionobj) =>
+            InteractionCache.TryGetValue(toy, out interactionobj!);
 
-        public void DrawLines()
-        {
+        public void DrawLines() => 
             DrawableLines.GenerateBounds(Base._collider.bounds);
-        }
     }
 }
