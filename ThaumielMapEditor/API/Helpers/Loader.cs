@@ -1718,10 +1718,9 @@ namespace ThaumielMapEditor.API.Helpers
                         primitive.ParentId = serializable.ParentId;
 
                         schematicData.SpawnedClientObjects.Add(primitive);
-                        Player[] readyPlayers = Player.ReadyList.ToArray();
                         if (lodZones.IsEmpty())
                         {
-                            foreach (Player player in readyPlayers)
+                            foreach (Player player in Player.ReadyList.ToArray())
                             {
                                 primitive.SpawnForPlayer(player);
                             }
@@ -1734,7 +1733,7 @@ namespace ThaumielMapEditor.API.Helpers
                                     continue;
 
                                 Bounds zoneBounds = zone.Collider.bounds;
-                                foreach (Player player in readyPlayers)
+                                foreach (Player player in Player.ReadyList.ToArray())
                                 {
                                     if (zoneBounds.Contains(player.Position))
                                         primitive.SpawnForPlayer(player);
