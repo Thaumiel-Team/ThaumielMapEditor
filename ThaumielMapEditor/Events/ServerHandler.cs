@@ -105,6 +105,7 @@ namespace ThaumielMapEditor.Events
             PrefabHelper.RegisterPrefabs();
             Loader.Cleanup();
             PickupObject.Cleanup();
+            NetworkRequest.Cleanup();
 
             if (!RanUpdateCheck)
             {
