@@ -25,16 +25,8 @@ namespace ThaumielMapEditor.Commands.Console
 
         protected override bool ExecuteParent(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            LogsUploader.SendRequest(uploaded =>
-            {
-                if (uploaded == null)
-                {
-                    LogManager.LogShare("[Error]: Failed to get response from endpoint.");
-                    return;
-                }
-
-                LogManager.LogShare($"[Info]: Please share this with the developers. [Id: {uploaded.Id}] Success: {uploaded.Success}, Created: {uploaded.CreatedAt}");
-            });
+            LogUploadRequest request = new();
+            request.SendRequest();
 
             response = "Please wait for the log.";
             return true;

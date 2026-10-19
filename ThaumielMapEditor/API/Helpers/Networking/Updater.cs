@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="UpdateHelper.cs" company="Thaumiel Team">
+// <copyright file="Updater.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
@@ -13,7 +13,9 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LabApi.Features.Wrappers;
+using LabApi.Loader;
 using LabApi.Loader.Features.Paths;
+using LabApi.Loader.Features.Plugins;
 using MEC;
 using UnityEngine.Networking;
 
@@ -47,8 +49,11 @@ namespace ThaumielMapEditor.API.Helpers.Networking
 
         private const string PluginName = "ThaumielMapEditor.dll";
         private const string DependenciesZipName = "Dependencies.zip";
-        private const string UserAgent = "ThaumielMapEditor-Updater/1.0.0";
-        private const string ReleasesApiUrl = "https://api.github.com/repos/Mr-Baguetter/ThaumielMapEditor/releases";
+        private const string ToolGunPluginName = "ThaumielMapEditor.ToolGun.dll";
+        private const string ToolGunPluginDisplayName = "Thaumiel ToolGun";
+        private const string ToolGunDependenciesZipName = "Toolgun-Dependencies.zip";
+        private const string UserAgent = "ThaumielMapEditor-Updater/2.0.0";
+        private const string ReleasesApiUrl = "https://api.github.com/repos/Thaumiel-Team/ThaumielMapEditor/releases";
 
         public static IEnumerator<float> CheckForUpdatesCoroutine(bool prerelease)
         {
@@ -113,6 +118,99 @@ namespace ThaumielMapEditor.API.Helpers.Networking
             if (!string.IsNullOrWhiteSpace(latestRelease.Body))
                 LogManager.Updater($"Changes for this version: \n {latestRelease.Body}");
 
+            byte[]? pluginBytes = null;
+            yield return Timing.WaitUntilDone(DownloadAssetCoroutine(asset, bytes => pluginBytes = bytes));
+
+            if (pluginBytes == null)
+                yield break;
+
+            try
+            {
+                LogManager.Updater($"{PluginName} downloaded successfully ({pluginBytes.Length} bytes). Applying update...");
+                File.WriteAllBytes(Main.Instance.FilePath, pluginBytes);
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"Failed to write plugin file: {ex}");
+                yield break;
+            }
+
+            GitHubAssetInfo? depsAsset = latestRelease.Assets?.FirstOrDefault(a => a.Name.Equals(DependenciesZipName, StringComparison.OrdinalIgnoreCase));
+            if (depsAsset == null || string.IsNullOrEmpty(depsAsset.BrowserDownloadUrl))
+            {
+                LogManager.Updater($"No {DependenciesZipName} found in release, skipping dependency update.");
+            }
+            else
+            {
+                LogManager.Updater($"Downloading {DependenciesZipName}...");
+                byte[]? depsBytes = null;
+                yield return Timing.WaitUntilDone(DownloadAssetCoroutine(depsAsset, bytes => depsBytes = bytes));
+
+                if (depsBytes != null)
+                {
+                    string dependenciesPath = Path.Combine(PathManager.Dependencies.FullName, Server.Port.ToString());
+                    ExtractZip(depsBytes, dependenciesPath, DependenciesZipName);
+                }
+            }
+
+            if (!TryGetToolGun(out Plugin? toolGunPlugin))
+            {
+                LogManager.Updater($"The '{ToolGunPluginDisplayName}' plugin is not loaded and enabled, skipping its update.");
+            }
+            else
+            {
+                yield return Timing.WaitUntilDone(UpdateToolGunCoroutine(latestRelease, toolGunPlugin!));
+            }
+
+            Server.RunCommand("rnr");
+        }
+
+        private static IEnumerator<float> UpdateToolGunCoroutine(GitHubReleaseInfo latestRelease, Plugin toolGunPlugin)
+        {
+            GitHubAssetInfo? toolGunAsset = latestRelease.Assets?.FirstOrDefault(a => a.Name.Equals(ToolGunPluginName, StringComparison.OrdinalIgnoreCase));
+            if (toolGunAsset == null || string.IsNullOrEmpty(toolGunAsset.BrowserDownloadUrl))
+            {
+                LogManager.Error($"Could not find the ToolGun DLL ('{ToolGunPluginName}') in the latest GitHub release.");
+            }
+            else
+            {
+                LogManager.Updater($"Downloading {ToolGunPluginName}...");
+                byte[]? toolGunBytes = null;
+                yield return Timing.WaitUntilDone(DownloadAssetCoroutine(toolGunAsset, bytes => toolGunBytes = bytes));
+
+                if (toolGunBytes != null)
+                {
+                    string toolGunPath = string.IsNullOrWhiteSpace(toolGunPlugin.FilePath) ? Path.Combine(PathManager.Plugins.FullName, "global", ToolGunPluginName) : toolGunPlugin.FilePath;
+
+                    try
+                    {
+                        File.WriteAllBytes(toolGunPath, toolGunBytes);
+                        LogManager.Updater($"{ToolGunPluginName} updated successfully at '{toolGunPath}'.");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"Failed to write ToolGun plugin file: {ex}");
+                    }
+                }
+            }
+
+            GitHubAssetInfo? toolGunDepsAsset = latestRelease.Assets?.FirstOrDefault(a => a.Name.Equals(ToolGunDependenciesZipName, StringComparison.OrdinalIgnoreCase));
+            if (toolGunDepsAsset == null || string.IsNullOrEmpty(toolGunDepsAsset.BrowserDownloadUrl))
+            {
+                LogManager.Updater($"No {ToolGunDependenciesZipName} found in release, skipping ToolGun dependency update.");
+                yield break;
+            }
+
+            LogManager.Updater($"Downloading {ToolGunDependenciesZipName}...");
+            byte[]? toolGunDepsBytes = null;
+            yield return Timing.WaitUntilDone(DownloadAssetCoroutine(toolGunDepsAsset, bytes => toolGunDepsBytes = bytes));
+
+            if (toolGunDepsBytes != null)
+                ExtractZip(toolGunDepsBytes, PathManager.LabApi.FullName, ToolGunDependenciesZipName);
+        }
+
+        private static IEnumerator<float> DownloadAssetCoroutine(GitHubAssetInfo asset, Action<byte[]> onComplete)
+        {
             UnityWebRequest req = UnityWebRequest.Get(asset.BrowserDownloadUrl);
             req.SetRequestHeader("User-Agent", UserAgent);
             if (!string.IsNullOrEmpty(Main.Instance.Config!?.GithubToken))
@@ -121,98 +219,65 @@ namespace ThaumielMapEditor.API.Helpers.Networking
             req.downloadHandler = new DownloadHandlerBuffer();
             yield return Timing.WaitUntilDone(req.SendWebRequest());
 
-            if (req.result != UnityWebRequest.Result.Success)
-            {
-                LogManager.Error($"Failed to download plugin: {req.error} ({req.responseCode})");
-                req.Dispose();
-                yield break;
-            }
-
             try
             {
-                byte[] fileBytes = req.downloadHandler.data ?? [];
-                LogManager.Updater($"{PluginName} downloaded successfully ({fileBytes.Length} bytes). Applying update...");
+                if (req.result != UnityWebRequest.Result.Success)
+                {
+                    LogManager.Error($"Failed to download '{asset.Name}': {req.error} ({req.responseCode})");
+                    yield break;
+                }
 
-                File.WriteAllBytes(Main.Instance.FilePath, fileBytes);
-            }
-            catch (Exception ex)
-            {
-                LogManager.Error($"Failed to write plugin file: {ex}");
-                yield break;
+                onComplete(req.downloadHandler.data ?? []);
             }
             finally
             {
                 req.Dispose();
             }
+        }
 
-            GitHubAssetInfo? depsAsset = latestRelease.Assets?.FirstOrDefault(a => a.Name.Equals(DependenciesZipName, StringComparison.OrdinalIgnoreCase));
-            if (depsAsset == null || string.IsNullOrEmpty(depsAsset.BrowserDownloadUrl))
+        private static bool TryGetToolGun(out Plugin? plugin)
+        {
+            plugin = PluginLoader.EnabledPlugins.FirstOrDefault(p => p.Name.Equals(ToolGunPluginDisplayName, StringComparison.OrdinalIgnoreCase)) ?? PluginLoader.EnabledPlugins.FirstOrDefault(p => Path.GetFileName(p.FilePath).Equals(ToolGunPluginName, StringComparison.OrdinalIgnoreCase));
+            return plugin != null;
+        }
+
+        private static void ExtractZip(byte[] zipBytes, string destinationPath, string zipName)
+        {
+            try
             {
-                LogManager.Updater("No Dependencies.zip found in release, skipping dependency update.");
+                Directory.CreateDirectory(destinationPath);
+
+                using MemoryStream zipStream = new(zipBytes);
+                using ZipArchive archive = new(zipStream, ZipArchiveMode.Read);
+                foreach (ZipArchiveEntry entry in archive.Entries)
+                {
+                    string entryPath = entry.FullName.Replace('\\', '/');
+                    if (Path.IsPathRooted(entry.FullName) || entryPath.Contains(".."))
+                    {
+                        LogManager.Warn($"Skipping unsafe zip entry: '{entry.FullName}'");
+                        continue;
+                    }
+
+                    string destinationFile = Path.Combine(destinationPath, entryPath);
+                    if (string.IsNullOrEmpty(entry.Name))
+                    {
+                        Directory.CreateDirectory(destinationFile);
+                        continue;
+                    }
+
+                    string? destinationDir = Path.GetDirectoryName(destinationFile);
+                    if (!string.IsNullOrEmpty(destinationDir))
+                        Directory.CreateDirectory(destinationDir);
+
+                    entry.ExtractToFile(destinationFile, overwrite: true);
+                }
+
+                LogManager.Updater($"{zipName} extracted successfully to '{destinationPath}'.");
             }
-            else
+            catch (Exception ex)
             {
-                LogManager.Updater($"Downloading {DependenciesZipName}...");
-
-                UnityWebRequest depsReq = UnityWebRequest.Get(depsAsset.BrowserDownloadUrl);
-                depsReq.SetRequestHeader("User-Agent", UserAgent);
-                if (!string.IsNullOrEmpty(Main.Instance.Config!?.GithubToken))
-                    depsReq.SetRequestHeader("Authorization", $"token {Main.Instance.Config!?.GithubToken}");
-
-                depsReq.downloadHandler = new DownloadHandlerBuffer();
-                yield return Timing.WaitUntilDone(depsReq.SendWebRequest());
-
-                if (depsReq.result != UnityWebRequest.Result.Success)
-                {
-                    LogManager.Error($"Failed to download {DependenciesZipName}: {depsReq.error} ({depsReq.responseCode})");
-                    depsReq.Dispose();
-                }
-                else
-                {
-                    try
-                    {
-                        byte[] zipBytes = depsReq.downloadHandler.data ?? [];
-                        string dependenciesPath = Path.Combine(PathManager.Dependencies.FullName, Server.Port.ToString());
-
-                        using MemoryStream zipStream = new(zipBytes);
-                        using ZipArchive archive = new(zipStream, ZipArchiveMode.Read);
-                        foreach (ZipArchiveEntry entry in archive.Entries)
-                        {
-                            string entryPath = entry.FullName.Replace('\\', '/');
-                            if (Path.IsPathRooted(entry.FullName) || entryPath.Contains(".."))
-                            {
-                                LogManager.Warn($"Skipping unsafe zip entry: '{entry.FullName}'");
-                                continue;
-                            }
-
-                            string destinationPath = Path.Combine(dependenciesPath, entryPath);
-                            if (string.IsNullOrEmpty(entry.Name))
-                            {
-                                Directory.CreateDirectory(destinationPath);
-                                continue;
-                            }
-
-                            string? destinationDir = Path.GetDirectoryName(destinationPath);
-                            if (!string.IsNullOrEmpty(destinationDir))
-                                Directory.CreateDirectory(destinationDir);
-
-                            entry.ExtractToFile(destinationPath, overwrite: true);
-                        }
-
-                        LogManager.Updater($"{DependenciesZipName} extracted successfully to '{dependenciesPath}'.");
-                    }
-                    catch (Exception ex)
-                    {
-                        LogManager.Error($"Failed to extract {DependenciesZipName}: {ex}");
-                    }
-                    finally
-                    {
-                        depsReq.Dispose();
-                    }
-                }
+                LogManager.Error($"Failed to extract {zipName}: {ex}");
             }
-
-            Server.RunCommand("rnr");
         }
 
         private static IEnumerator<float> GetLatestReleaseCoroutine(bool prerelease, Action<GitHubReleaseInfo> onComplete)

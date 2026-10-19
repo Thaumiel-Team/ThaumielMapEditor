@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="LogsUploader.cs" company="Thaumiel Team">
+// <copyright file="LogUploadRequest.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
@@ -7,49 +7,21 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using LabApi.Features;
 using LabApi.Features.Wrappers;
-using MEC;
-using UnityEngine.Networking;
-using System.IO;
 using LabApi.Loader.Features.Paths;
-using System.Text.RegularExpressions;
+using ThaumielMapEditor.API.Enums;
+using UnityEngine.Networking;
 
 namespace ThaumielMapEditor.API.Helpers.Networking
 {
-    internal class LogsUploader
+    public class LogUploadRequest : NetworkRequest
     {
-        private class AutoPayload
-        {
-            [JsonPropertyName("plugin_version")]
-            public string PluginVersion { get; set; } = string.Empty;
-
-            [JsonPropertyName("log_data")]
-            public string LogData { get; set; } = string.Empty;
-        }
-
-        private class LogPayload
-        {
-            [JsonPropertyName("port")]
-            public int Port { get; set; }
-
-            [JsonPropertyName("labapi_version")]
-            public string LabApiVersion { get; set; } = string.Empty;
-
-            [JsonPropertyName("plugin_version")]
-            public string PluginVersion { get; set; } = string.Empty;
-
-            [JsonPropertyName("log_data")]
-            public string LogData { get; set; } = string.Empty;
-
-            [JsonPropertyName("local_admin_log_data")]
-            public string LocalAdminLog { get; set; } = string.Empty;
-        }
-
         public class LogUploadResponse
         {
             [JsonPropertyName("success")]
@@ -64,6 +36,12 @@ namespace ThaumielMapEditor.API.Helpers.Networking
             [JsonPropertyName("created_at")]
             public string CreatedAt { get; set; } = string.Empty;
         }
+
+        public override string Name => nameof(LogUploadRequest);
+
+        public override RequestType Method => RequestType.Post;
+
+        public override string Endpoint => "upload";
 
         public static bool GetLocalAdminConfig()
         {
@@ -151,71 +129,32 @@ namespace ThaumielMapEditor.API.Helpers.Networking
                 return $"Error processing logs: {ex.Message}";
             }
         }
-        
-        public static CoroutineHandle SendRequest(Action<LogUploadResponse?> onComplete)
-        {
-            MECHelper.TryRunCoroutine(SendLogsCoroutine(onComplete), out var handle);
-            return handle;
-        }
 
-        internal static void SendAutoRequest(string log)
+        public override void SendRequest(Action<UnityWebRequest>? onComplete = null)
         {
-            if (!Main.Instance.Config.AutomaticErrorUpload)
-                return;
-
-            Timing.RunCoroutine(AutoErrorLogCoroutine(log));
-        }
-
-        private static IEnumerator<float> AutoErrorLogCoroutine(string log)
-        {
-            AutoPayload payload = new()
+            Payload = new()
             {
-                PluginVersion = Main.Instance.Version.ToString(3),
-                LogData = log,
+                ["port"] = Server.Port,
+                ["labapi_version"] = LabApiProperties.CurrentVersion.ToString(),
+                ["plugin_version"] = Main.Instance.Version.ToString(),
+                ["log_data"] = string.Join("\n", LogManager.GetLogSnapshot().Select(l => $"[{l.LogTime}] [{l.LogLevel}] {l.Message}")),
+                ["local_admin_log_data"] = ProcessLocalAdminLogs()
             };
 
-            using UnityWebRequest request = new("https://tmelogs.thaumiel-servers.workers.dev/auto/upload", "POST");
-            request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload)));
-            request.downloadHandler = new DownloadHandlerBuffer();
-            request.SetRequestHeader("Content-Type", "application/json");
-
-            yield return Timing.WaitUntilDone(request.SendWebRequest());
+            base.SendRequest(onComplete);
         }
 
-        private static IEnumerator<float> SendLogsCoroutine(Action<LogUploadResponse?> onComplete)
+        public override void OnRequestCompleted(UnityWebRequest request)
         {
-            LogPayload payload = new()
-            {
-                Port = Server.Port,
-                LabApiVersion = LabApiProperties.CompiledVersion,
-                PluginVersion = Main.Instance.Version.ToString(),
-                LogData = string.Join("\n", LogManager.GetLogSnapshot().Select(l => $"[{l.LogTime}] [{l.LogLevel}] {l.Message}")),
-                LocalAdminLog = ProcessLocalAdminLogs()
-            };
-
-            using UnityWebRequest request = new("https://tmelogs.thaumiel-servers.workers.dev/upload", "POST");
-            request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload)));
-            request.downloadHandler = new DownloadHandlerBuffer();
-            request.SetRequestHeader("Content-Type", "application/json");
-
-            yield return Timing.WaitUntilDone(request.SendWebRequest());
-
-            if (request.result != UnityWebRequest.Result.Success)
-            {
-                LogManager.LogShare($"[Error]: Failed to send logs: {request.error}");
-                onComplete?.Invoke(null);
-                yield break;
-            }
-
             LogUploadResponse? response = JsonSerializer.Deserialize<LogUploadResponse>(request.downloadHandler.text);
             if (response == null || !response.Success)
             {
                 LogManager.LogShare("[Error]: Failed to upload logs, server returned unsuccessful response");
-                onComplete?.Invoke(null);
-                yield break;
+                return;
             }
-
-            onComplete?.Invoke(response);
+            
+            LogManager.LogShare($"[Info]: Please share this with the developers. [Id: {response.Id}] Success: {response.Success}, Created: {response.CreatedAt}");
+            base.OnRequestCompleted(request);
         }
     }
 }

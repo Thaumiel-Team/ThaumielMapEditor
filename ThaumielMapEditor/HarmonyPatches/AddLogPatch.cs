@@ -29,7 +29,8 @@ namespace ThaumielMapEditor.HarmonyPatches
                     return;
 
                 q = PatchSuffixRegex.Replace(q, string.Empty);
-                LogsUploader.SendAutoRequest($"{q.Replace("MonoMod.Utils.DynamicMethodDefinition.", "")}");
+                AutoLogRequest request = new(q.Replace("MonoMod.Utils.DynamicMethodDefinition.", ""));
+                request.SendRequest();
             }
             catch
             {

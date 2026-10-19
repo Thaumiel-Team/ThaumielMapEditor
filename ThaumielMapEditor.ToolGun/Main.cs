@@ -29,7 +29,7 @@ namespace ThaumielMapEditor.ToolGun
 
         public override string Author => "Mr. Baguetter";
 
-        public override Version Version { get; } = new(0, 1, 0);
+        public override Version Version { get; } = new(0, 9, 4);
 
         public override Version RequiredApiVersion { get; } = LabApiProperties.CurrentVersion;
 

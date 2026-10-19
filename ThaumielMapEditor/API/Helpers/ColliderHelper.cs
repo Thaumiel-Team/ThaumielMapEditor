@@ -44,10 +44,10 @@ namespace ThaumielMapEditor.API.Helpers
                 return;
             }
 
-            Collider[] prefabColliders = prefab.GetComponentsInChildren<Collider>(includeInactive: true);
-            if (prefabColliders.Length == 0)
+            List<Collider> usableColliders = GetUsablePrefabColliders(prefab);
+            if (usableColliders.Count == 0)
             {
-                LogManager.Debug($"No colliders found on prefab '{prefab.name}', creating selection sphere as fallback.");
+                LogManager.Debug($"No usable colliders found on prefab '{prefab.name}', creating selection sphere as fallback.");
                 CreateSelectionSphere(clientObject, schematic);
                 return;
             }
@@ -61,14 +61,10 @@ namespace ThaumielMapEditor.API.Helpers
             }
 
             bool anyCopied = false;
-            foreach (Collider col in prefabColliders)
-            {
-                if (!col.enabled)
-                    continue;
 
-                Vector3 localOffset = col.transform.localPosition;
-                Quaternion localRotation = col.transform.localRotation;
-                Vector3 localScale = col.transform.localScale;
+            foreach (Collider col in usableColliders)
+            {
+                GetPrefabSpaceTransform(prefab, col.transform, out Vector3 localOffset, out Quaternion localRotation, out Vector3 localScale);
 
                 GameObject colGo = new($"[ThaumielMapEditor] Collider_{clientObject.ObjectType}_{col.GetType().Name}");
 
@@ -118,17 +114,7 @@ namespace ThaumielMapEditor.API.Helpers
                 return;
 
             GameObject? prefab = GetPrefabForClientObject(clientObject);
-            List<Collider> sources = [];
-            if (prefab != null)
-            {
-                foreach (Collider source in prefab.GetComponentsInChildren<Collider>(includeInactive: true))
-                {
-                    if (!source.enabled || !IsHandledColliderType(source))
-                        continue;
-
-                    sources.Add(source);
-                }
-            }
+            List<Collider> sources = prefab != null ? GetUsablePrefabColliders(prefab) : [];
 
             for (int i = 0; i < clientObject.ServerColliders.Length; i++)
             {
@@ -160,14 +146,89 @@ namespace ThaumielMapEditor.API.Helpers
                 if (collider.transform.parent != parent)
                     collider.transform.SetParent(parent, worldPositionStays: false);
 
-                collider.transform.localPosition = clientObject.Position + clientObject.Rotation * Vector3.Scale(sourceCollider.transform.localPosition, clientObject.Scale);
-                collider.transform.localRotation = clientObject.Rotation * sourceCollider.transform.localRotation;
-                collider.transform.localScale = Vector3.Scale(clientObject.Scale, sourceCollider.transform.localScale);
+                GetPrefabSpaceTransform(prefab!, sourceCollider.transform, out Vector3 sourceOffset, out Quaternion sourceRotation, out Vector3 sourceScale);
+                collider.transform.localPosition = clientObject.Position + clientObject.Rotation * Vector3.Scale(sourceOffset, clientObject.Scale);
+                collider.transform.localRotation = clientObject.Rotation * sourceRotation;
+                collider.transform.localScale = Vector3.Scale(clientObject.Scale, sourceScale);
             }
         }
 
         private static bool IsHandledColliderType(Collider source) =>
             source is BoxCollider or SphereCollider or CapsuleCollider or MeshCollider;
+
+        private static List<Collider> GetUsablePrefabColliders(GameObject prefab)
+        {
+            List<Collider> result = [];
+            foreach (Collider col in prefab.GetComponentsInChildren<Collider>(includeInactive: true))
+            {
+                if (col == null || !col.enabled)
+                    continue;
+
+                if (!IsActiveInPrefab(col.transform, prefab.transform))
+                    continue;
+
+                if (!IsHandledColliderType(col))
+                    continue;
+
+                if (col is MeshCollider mesh && mesh.sharedMesh == null)
+                    continue;
+
+                result.Add(col);
+            }
+
+            return result;
+        }
+
+        private static bool IsActiveInPrefab(Transform transform, Transform root)
+        {
+            Transform? current = transform;
+            while (current != null)
+            {
+                if (!current.gameObject.activeSelf)
+                    return false;
+
+                if (current == root)
+                    break;
+
+                current = current.parent;
+            }
+
+            return true;
+        }
+        
+        private static void GetPrefabSpaceTransform(GameObject prefabRoot, Transform colliderTransform, out Vector3 offset, out Quaternion rotation, out Vector3 scale)
+        {
+            if (colliderTransform == prefabRoot.transform)
+            {
+                offset = Vector3.zero;
+                rotation = Quaternion.identity;
+                scale = Vector3.one;
+                return;
+            }
+
+            Vector3 pos = colliderTransform.localPosition;
+            Quaternion rot = colliderTransform.localRotation;
+            Vector3 scl = colliderTransform.localScale;
+
+            Transform root = prefabRoot.transform;
+            Transform? current = colliderTransform.parent;
+            while (current != null && current != root)
+            {
+                Vector3 parentScale = current.localScale;
+                Quaternion parentRotation = current.localRotation;
+                Vector3 parentPosition = current.localPosition;
+
+                pos = parentPosition + parentRotation * Vector3.Scale(pos, parentScale);
+                rot = parentRotation * rot;
+                scl = Vector3.Scale(parentScale, scl);
+
+                current = current.parent;
+            }
+
+            offset = pos;
+            rotation = rot;
+            scale = scl;
+        }
 
         public static void CreateSelectionSphere(ClientObject clientObject, SchematicData schematic, float radius = 0.5f)
         {
@@ -347,6 +408,9 @@ namespace ThaumielMapEditor.API.Helpers
                     return true;
 
                 case MeshCollider mesh:
+                    if (mesh.sharedMesh == null)
+                        return false;
+
                     MeshCollider newMesh = target.AddComponent<MeshCollider>();
                     newMesh.sharedMesh = mesh.sharedMesh;
                     newMesh.convex = mesh.convex;
