@@ -243,12 +243,11 @@ namespace ThaumielMapEditor.API.Extensions
             if (dict != null)
             {
                 int found = 0;
-                float x = 0f, y = 0f, z = 0f, w = 0f;
 
-                if (TryGetNamedFloat(dict, out x, "x")) found++;
-                if (TryGetNamedFloat(dict, out y, "y")) found++;
-                if (TryGetNamedFloat(dict, out z, "z")) found++;
-                if (TryGetNamedFloat(dict, out w, "w")) found++;
+                if (TryGetNamedFloat(dict, out float x, "x")) found++;
+                if (TryGetNamedFloat(dict, out float y, "y")) found++;
+                if (TryGetNamedFloat(dict, out float z, "z")) found++;
+                if (TryGetNamedFloat(dict, out float w, "w")) found++;
 
                 if (found < 2)
                     return false;

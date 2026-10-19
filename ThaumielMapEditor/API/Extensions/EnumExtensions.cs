@@ -31,7 +31,7 @@ namespace ThaumielMapEditor.API.Extensions
             if (values.Length == 0)
                 return current;
 
-            HashSet<T>? excluded = exclude is { Length: > 0 } ? new HashSet<T>(exclude) : null;
+            HashSet<T>? excluded = exclude is { Length: > 0 } ? new(exclude) : null;
             if (excluded != null && excluded.Count >= values.Length)
                 return Array.IndexOf(values, current) >= 0 ? current : values[0];
 
