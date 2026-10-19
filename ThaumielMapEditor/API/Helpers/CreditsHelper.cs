@@ -25,7 +25,7 @@ namespace ThaumielMapEditor.API.Helpers
             => Sha.HashToString(Sha.Sha256(player.UserId));
 
         // If you contribute and want a CreditTag add your own steamid sha256 hash to this.
-        // Id recommend to use https://codebeautify.org/sha256-hash-generator and set the hash to uppercase.
+        // I recommend using https://codebeautify.org/sha256-hash-generator and set the hash to uppercase.
         internal static readonly Dictionary<string, TagType> Credits = new()
         {
             // MrBaguetter

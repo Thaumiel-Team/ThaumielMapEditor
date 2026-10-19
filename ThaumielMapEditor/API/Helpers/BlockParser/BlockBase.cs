@@ -17,6 +17,38 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public BlockExecutor? Executor { get; internal set; }
 
         /// <summary>
+        /// Gets or sets the explicit target object input connected to this block.
+        /// When <see langword="null"/> the block falls back to the currently active object or event player.
+        /// </summary>
+        public object? Target { get; set; }
+
+        internal object? ActiveTarget { get; set; }
+
+        internal bool HasActiveTarget { get; set; }
+
+        /// <summary>
+        /// Resolves the explicit <see cref="Target"/> input into an actual object instance.
+        /// </summary>
+        internal object? ResolveTargetValue() => ResolveValue(Target);
+
+        /// <summary>
+        /// Returns the resolved <see cref="Target"/> when one is active, otherwise resolves the connected target input.
+        /// </summary>
+        internal object? ResolveTarget(object? fallback = null)
+        {
+            if (HasActiveTarget)
+                return ActiveTarget ?? fallback;
+
+            return ResolveValue(Target, fallback as Player) ?? fallback;
+        }
+
+        internal void ClearActiveTarget()
+        {
+            ActiveTarget = null;
+            HasActiveTarget = false;
+        }
+
+        /// <summary>
         /// Assigns the executor to this block and recursively to any nested blocks exposed through its properties.
         /// </summary>
         internal void SetExecutorRecursive(BlockExecutor executor)
@@ -154,13 +186,19 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         /// <summary>
         /// Resolves a value. If the value is a <see cref="BlockBase"/>, its <see cref="ReturnExecute()"/> is called first.
+        /// Falls back to <see cref="ReturnExecute(object)"/> with the given player when the parameterless overload returns nothing.
         /// </summary>
-        protected static object? ResolveValue(object? value)
+        protected static object? ResolveValue(object? value, Player? player = null)
         {
-            if (value is BlockBase block)
-                return block.ReturnExecute();
+            if (value is not BlockBase block)
+                return value;
 
-            return value;
+            object? result = block.ReturnExecute();
+
+            if (result == null && player != null)
+                result = block.ReturnExecute(player);
+
+            return result;
         }
     }
 }

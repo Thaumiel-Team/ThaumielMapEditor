@@ -19,7 +19,13 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Property { get; set; } = string.Empty;
 
+        public override object ReturnExecute()
+            => GetProperty(ResolveTarget());
+
         public override object ReturnExecute(object obj)
+            => GetProperty(ResolveTarget(obj));
+
+        private object GetProperty(object? obj)
         {
             if (obj is not Player player)
             {
@@ -33,37 +39,84 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 #pragma warning disable CS8603
             return Property switch
             {
-                "Position" => player.Position,
                 "Rotation" => player.Rotation,
+                "LookRotation" => player.LookRotation,
                 "Scale" => player.Scale,
+                "Position" => player.Position,
+                "Gravity" => player.Gravity,
+                "Velocity" => player.Velocity,
                 "Role" => player.Role,
+                "RoleBase" => player.RoleBase,
+                "Team" => player.Team,
+                "Faction" => player.Faction,
                 "PlayerId" => player.PlayerId,
+                "NetworkId" => player.NetworkId,
+                "LifeId" => player.LifeId,
+                "UnitId" => player.UnitId,
                 "Name" => player.Nickname,
                 "DisplayName" => player.DisplayName,
+                "LogName" => player.LogName,
+                "UserID" => player.UserId,
                 "UserId" => player.UserId,
-                "IsAlive" => player.IsAlive,
-                "IsNpc" => player.IsNpc,
-                "IsHost" => player.IsHost,
+                "CustomInfo" => player.CustomInfo,
+                "InfoArea" => player.InfoArea,
+                "GameObject" => player.GameObject,
+                "ReferenceHub" => player.ReferenceHub,
+                "ReadyList" => Player.ReadyList,
                 "Health" => player.Health,
                 "MaxHealth" => player.MaxHealth,
                 "ArtificialHealth" => player.ArtificialHealth,
                 "MaxArtificialHealth" => player.MaxArtificialHealth,
                 "HumeShield" => player.HumeShield,
                 "MaxHumeShield" => player.MaxHumeShield,
-                "Team" => player.Team,
-                "Faction" => player.Faction,
-                "IsSCP" => player.IsSCP,
-                "IsHuman" => player.IsHuman,
+                "HumeShieldRegenRate" => player.HumeShieldRegenRate,
+                "HumeShieldRegenCooldown" => player.HumeShieldRegenCooldown,
+                "StaminaRemaining" => player.StaminaRemaining,
+                "Emotion" => player.Emotion,
+                "GroupColor" => player.GroupColor,
+                "GroupName" => player.GroupName,
+                "UserGroup" => player.UserGroup,
+                "PermissionsGroupName" => player.PermissionsGroupName,
+                "RemoteAdminAccess" => player.RemoteAdminAccess,
+                "DoNotTrack" => player.DoNotTrack,
+                "IsAlive" => player.IsAlive,
+                "IsNpc" => player.IsNpc,
+                "IsHost" => player.IsHost,
+                "IsPlayer" => player.IsPlayer,
+                "IsDummy" => player.IsDummy,
+                "IsDestroyed" => player.IsDestroyed,
+                "IsReady" => player.IsReady,
+                "IsOverwatchEnabled" => player.IsOverwatchEnabled,
+                "IsSpectatable" => player.IsSpectatable,
+                "IsInventoryFull" => player.IsInventoryFull,
+                "IsWithoutItems" => player.IsWithoutItems,
+                "IsOutOfAmmo" => player.IsOutOfAmmo,
+                "IsDisarmed" => player.IsDisarmed,
                 "IsMuted" => player.IsMuted,
+                "IsIntercomMuted" => player.IsIntercomMuted,
+                "IsUsingRadio" => player.IsUsingRadio,
+                "IsSpeaking" => player.IsSpeaking,
+                "IsGlobalModerator" => player.IsGlobalModerator,
+                "IsNorthwoodStaff" => player.IsNorthwoodStaff,
+                "IsTMEContributer" => !string.IsNullOrEmpty(player.UserId) && CreditHelper.Credits.ContainsKey(CreditHelper.ParseId(player)),
+                "IsBypassEnabled" => player.IsBypassEnabled,
                 "IsGodModeEnabled" => player.IsGodModeEnabled,
                 "IsNoclipEnabled" => player.IsNoclipEnabled,
-                "IsBypassEnabled" => player.IsBypassEnabled,
-                "IsOverwatchEnabled" => player.IsOverwatchEnabled,
-                "IsDisarmed" => player.IsDisarmed,
-                "GroupName" => player.GroupName,
-                "Velocity" => player.Velocity,
+                "HasReservedSlot" => player.HasReservedSlot,
+                "IsSCP" => player.IsSCP,
+                "IsHuman" => player.IsHuman,
+                "IsNTF" => player.IsNTF,
+                "IsChaos" => player.IsChaos,
+                "IsTutorial" => player.IsTutorial,
+                "DisarmedBy" => player.DisarmedBy,
+                "CurrentlySpectating" => player.CurrentlySpectating,
+                "CurrentSpectators" => player.CurrentSpectators,
+                "CurrentItem" => player.CurrentItem,
+                "ActiveEffects" => player.ActiveEffects,
                 "Room" => player.Room,
                 "Zone" => player.Zone,
+                "Items" => player.Items,
+                "Ammo" => player.Ammo,
                 _ => LogUnknownProperty(Property)
             };
 #pragma warning restore CS8603
@@ -104,6 +157,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     public class PlayerGetByColliderBlock : BlockBase
     {
         public object? Collider { get; set; }
+
+        public override object ReturnExecute() => ReturnExecute(null!);
 
         public override object ReturnExecute(object obj)
         {
@@ -161,6 +216,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public int PlayerId { get; set; }
 
+        public override object ReturnExecute() => ReturnExecute(null!);
+
         public override object ReturnExecute(object obj)
         {
             Player? player = Player.Get(PlayerId);
@@ -177,6 +234,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     public class PlayerGetByUserIdBlock : BlockBase
     {
         public string UserId { get; set; } = string.Empty;
+
+        public override object ReturnExecute() => ReturnExecute(null!);
 
         public override object ReturnExecute(object obj)
         {
@@ -237,7 +296,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(Player player)
         {
-            Item? item = player.Items.Where(i => i.Type == Item).First();
+            Item? item = player.Items.Where(i => i.Type == Item).FirstOrDefault();
             if (item != null)
             {
                 player.RemoveItem(item);

@@ -89,15 +89,15 @@ namespace ThaumielMapEditor.API.Helpers
             ["unity_vec3_zero"] = d => new UnityVec3ZeroBlock(),
             ["unity_vec3_up"] = d => new UnityVec3UpBlock(),
             ["player_list"] = d => new PlayerListBlock(),
-            ["speaker_pause"] = d => new SpeakerPauseBlock(),
-            ["speaker_unpause"] = d => new SpeakerUnpauseBlock(),
-            ["door_open"] = d => new OpenDoorBlock(),
-            ["door_close"] = d => new CloseDoorBlock(),
-            ["door_lock"] = d => new LockDoorBlock(),
-            ["door_unlock"] = d => new UnlockDoorBlock(),
-            ["door_is_open"] = d => new DoorIsOpenBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
-            ["door_is_closed"] = d => new DoorIsClosedBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
-            ["door_is_opening"] = d => new DoorIsOpeningBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
+            ["speaker_pause"] = d => new SpeakerPauseBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")) },
+            ["speaker_unpause"] = d => new SpeakerUnpauseBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")) },
+            ["door_open"] = d => new OpenDoorBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_close"] = d => new CloseDoorBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_lock"] = d => new LockDoorBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_unlock"] = d => new UnlockDoorBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_is_open"] = d => new DoorIsOpenBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_is_closed"] = d => new DoorIsClosedBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_is_opening"] = d => new DoorIsOpeningBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
 
             ["math_arithmetic"] = d => new MathArithmeticBlock
             {
@@ -193,8 +193,17 @@ namespace ThaumielMapEditor.API.Helpers
                 ElseStack = ParseStack(d, "ELSE")
             },
 
-            ["timing_wait_for_frames"] = d => new WaitForFrames { WaitTime = (uint)ParseFloatAny(d, 5f, "FRAMES", "WaitTime") },
-            ["timing_wait_for_seconds"] = d => new WaitForSeconds { WaitTime = ParseFloatAny(d, 5f, "SECONDS", "WaitTime") },
+            ["timing_wait_for_frames"] = d => new WaitForFrames
+            {
+                WaitTime = (uint)ParseFloatAny(d, 5f, "FRAMES", "WaitTime"),
+                Stack = ParseStack(d, "DO")
+            },
+
+            ["timing_wait_for_seconds"] = d => new WaitForSeconds
+            {
+                WaitTime = ParseFloatAny(d, 5f, "SECONDS", "WaitTime"),
+                Stack = ParseStack(d, "DO")
+            },
 
             ["timing_wait_until_true"] = d => new WaitUntilBlock
             {
@@ -246,17 +255,18 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["primitive_set_color"] = d => new PrimitiveColorBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Primitive")),
                 R = ParseFloat(d, "r", 1f),
                 G = ParseFloat(d, "g", 1f),
                 B = ParseFloat(d, "b", 1f),
                 A = ParseFloat(d, "a", 1f)
             },
 
-            ["primitive_set_type"] = d => new PrimitiveStateBlock { SettingType = "type", StringValue = GetString(d, "primitiveType") },
-            ["primitive_set_flags"] = d => new PrimitiveStateBlock { SettingType = "flags", StringValue = GetString(d, "primitiveFlags") },
-            ["get_primitive_property"] = d => new PrimitiveStateBlock { SettingType = "property", StringValue = GetString(d, "Property") },
-            ["primitive_set_static"] = d => new PrimitiveStateBlock { SettingType = "static", BoolValue = ParseBool(d, "isStatic") },
-            ["primitive_set_smoothing"] = d => new PrimitiveStateBlock { SettingType = "smoothing", ByteValue = (byte)ParseFloat(d, "movementSmoothing") },
+            ["primitive_set_type"] = d => new PrimitiveStateBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), SettingType = "type", StringValue = GetString(d, "primitiveType") },
+            ["primitive_set_flags"] = d => new PrimitiveStateBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), SettingType = "flags", StringValue = GetString(d, "primitiveFlags") },
+            ["get_primitive_property"] = d => new PrimitiveGetPropertyBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), Property = GetString(d, "Property") },
+            ["primitive_set_static"] = d => new PrimitiveStateBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), SettingType = "static", BoolValue = ParseBool(d, "isStatic") },
+            ["primitive_set_smoothing"] = d => new PrimitiveStateBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), SettingType = "smoothing", ByteValue = (byte)ParseFloat(d, "movementSmoothing") },
 
             ["logger_log"] = d => new LoggingBlock
             {
@@ -277,11 +287,13 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["get_player_property"] = d => new PlayerGetPropertyBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Property = GetString(d, "Property")
             },
 
             ["set_player_gravity"] = d => new PlayerSetGravityBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 X = ParseFloat(d, "x"),
                 Y = ParseFloat(d, "y", -19.86f),
                 Z = ParseFloat(d, "z")
@@ -298,12 +310,14 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["set_player_role"] = d => new PlayerSetRoleBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Role = Enum.TryParse(GetStringAny(d, "ROLE", "New Role"), out RoleTypeId role) ? role : RoleTypeId.None,
                 KeepPosition = ParseBoolAny(d, "KEEP_POSITION", "Keep Position")
             },
 
             ["give_player_item"] = d => new PlayerGiveItemBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType item) ? item : ItemType.None,
                 Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
                 DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
@@ -311,6 +325,7 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["give_player_items"] = d => new PlayerGiveItemBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType stackedItem) ? stackedItem : ItemType.None,
                 Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
                 DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
@@ -318,80 +333,88 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["remove_player_item"] = d => new PlayerRemoveItemBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Item = Enum.TryParse(GetStringAny(d, "ITEM", "Removed Item"), out ItemType ri) ? ri : ItemType.None
             },
 
             ["set_player_health"] = d => new PlayerSetHealthBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 HealthType = "health",
                 Value = ParseFloatAny(d, 0f, "HEALTH", "Health")
             },
             ["set_player_max_health"] = d => new PlayerSetHealthBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 HealthType = "max_health",
                 Value = ParseFloatAny(d, 0f, "MAX_HEALTH", "Max Health")
             },
-            ["set_player_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "artificial_health", Value = ParseFloatAny(d, 0f, "ARTIFICIAL_HEALTH", "Artificial Health") },
-            ["set_player_max_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "max_artificial_health", Value = ParseFloatAny(d, 0f, "MAX_ARTIFICIAL_HEALTH", "Max Artificial Health") },
-            ["set_player_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield", Value = ParseFloatAny(d, 0f, "HUME_SHIELD", "Hume shield") },
-            ["set_player_max_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "max_hume_shield", Value = ParseFloatAny(d, 0f, "MAX_HUME_SHIELD", "Max Hume Shield") },
-            ["set_player_hume_shield_regen_rate"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_rate", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_RATE", "Hume Shield Regen Rate") },
-            ["set_player_hume_shield_regen_cooldown"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_cooldown", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_COOLDOWN", "Hume Shield Regen Cooldown") },
+            ["set_player_artificial_health"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "artificial_health", Value = ParseFloatAny(d, 0f, "ARTIFICIAL_HEALTH", "Artificial Health") },
+            ["set_player_max_artificial_health"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "max_artificial_health", Value = ParseFloatAny(d, 0f, "MAX_ARTIFICIAL_HEALTH", "Max Artificial Health") },
+            ["set_player_hume_shield"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "hume_shield", Value = ParseFloatAny(d, 0f, "HUME_SHIELD", "Hume shield") },
+            ["set_player_max_hume_shield"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "max_hume_shield", Value = ParseFloatAny(d, 0f, "MAX_HUME_SHIELD", "Max Hume Shield") },
+            ["set_player_hume_shield_regen_rate"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "hume_shield_regen_rate", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_RATE", "Hume Shield Regen Rate") },
+            ["set_player_hume_shield_regen_cooldown"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "hume_shield_regen_cooldown", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_COOLDOWN", "Hume Shield Regen Cooldown") },
 
-            ["set_player_group_name"] = d => new PlayerSetGroupBlock { GroupType = "name", Value = GetStringAny(d, "GROUP_NAME", "Group Name") },
-            ["set_player_group_color"] = d => new PlayerSetGroupBlock { GroupType = "color", Value = GetStringAny(d, "GROUP_COLOR", "Group Color") },
+            ["set_player_group_name"] = d => new PlayerSetGroupBlock { Target = ParseValue(d.GetValueOrDefault("Player")), GroupType = "name", Value = GetStringAny(d, "GROUP_NAME", "Group Name") },
+            ["set_player_group_color"] = d => new PlayerSetGroupBlock { Target = ParseValue(d.GetValueOrDefault("Player")), GroupType = "color", Value = GetStringAny(d, "GROUP_COLOR", "Group Color") },
 
             ["send_player_broadcast"] = d => new PlayerSendBroadcastBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Message = GetStringAny(d, "MESSAGE", "Broadcast Message"),
                 Duration = (ushort)ParseFloatAny(d, 5f, "DURATION", "Duration")
             },
 
             ["send_player_hint"] = d => new PlayerSendHintBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Message = GetStringAny(d, "MESSAGE", "Hint Message"),
                 Duration = (ushort)ParseFloatAny(d, 5f, "DURATION", "Duration")
             },
 
             ["set_player_scale"] = d => new PlayerSetScaleBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 X = ParseFloat(d, "x"),
                 Y = ParseFloat(d, "y"),
                 Z = ParseFloat(d, "z")
             },
 
             ["texttoy_create"] = d => new TextToyCreateBlock { Name = GetString(d, "name") },
-            ["texttoy_set_text"] = d => new TextToySetTextBlock { Text = GetString(d, "text") },
-            ["get_texttoy_property"] = d => new TextToyGetPropertyBlock { Property = GetString(d, "Property") },
+            ["texttoy_set_text"] = d => new TextToySetTextBlock { Target = ParseValue(d.GetValueOrDefault("TextToy")), Text = GetString(d, "text") },
+            ["get_texttoy_property"] = d => new TextToyGetPropertyBlock { Target = ParseValue(d.GetValueOrDefault("TextToy")), Property = GetString(d, "Property") },
 
             ["texttoy_set_display_size"] = d => new TextToySetDisplaySizeBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("TextToy")),
                 X = ParseFloatAny(d, 1f, "width", "x"),
                 Y = ParseFloatAny(d, 1f, "height", "y")
             },
 
             ["waypoint_create"] = d => new WaypointCreateBlock { Name = GetString(d, "name") },
-            ["get_waypoint_property"] = d => new WaypointGetPropertyBlock { Property = GetString(d, "Property") },
-            ["waypoint_set_visualize_bounds"] = d => new WaypointSetVisualizeBoundsBlock { VisualizeBounds = ParseBool(d, "visualizeBounds") },
-            ["waypoint_set_priority"] = d => new WaypointSetPriorityBlock { Priority = ParseFloat(d, "priority") },
+            ["get_waypoint_property"] = d => new WaypointGetPropertyBlock { Target = ParseValue(d.GetValueOrDefault("Waypoint")), Property = GetString(d, "Property") },
+            ["waypoint_set_visualize_bounds"] = d => new WaypointSetVisualizeBoundsBlock { Target = ParseValue(d.GetValueOrDefault("Waypoint")), VisualizeBounds = ParseBool(d, "visualizeBounds") },
+            ["waypoint_set_priority"] = d => new WaypointSetPriorityBlock { Target = ParseValue(d.GetValueOrDefault("Waypoint")), Priority = ParseFloat(d, "priority") },
 
             ["waypoint_set_bounds_size"] = d => new WaypointSetBoundsSizeBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Waypoint")),
                 X = ParseFloat(d, "x", 1f),
                 Y = ParseFloat(d, "y", 1f),
                 Z = ParseFloat(d, "z", 1f)
             },
 
             ["speaker_create"] = d => new SpeakerCreateBlock { Name = GetString(d, "name") },
-            ["get_speaker_property"] = d => new SpeakerGetPropertyBlock { Property = GetString(d, "Property"), Speaker = ParseValue(d.GetValueOrDefault("Speaker")) },
-            ["speaker_set_volume"] = d => new SpeakerSetVolumeBlock { Volume = ParseFloat(d, "volume", 100f) },
-            ["speaker_set_is_spatial"] = d => new SpeakerSetIsSpatialBlock { IsSpatial = ParseBool(d, "isSpatial") },
-            ["speaker_set_min_distance"] = d => new SpeakerSetMinDistanceBlock { MinDistance = ParseFloat(d, "minDistance", 1f) },
-            ["speaker_set_max_distance"] = d => new SpeakerSetMaxDistanceBlock { MaxDistance = ParseFloat(d, "maxDistance", 10f) },
-            ["speaker_set_loop"] = d => new SpeakerSetLoopBlock { Loop = ParseBool(d, "loop") },
-            ["speaker_set_path"] = d => new SpeakerSetPathBlock { Path = GetString(d, "path") },
+            ["get_speaker_property"] = d => new SpeakerGetPropertyBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), Property = GetString(d, "Property") },
+            ["speaker_set_volume"] = d => new SpeakerSetVolumeBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), Volume = ParseFloat(d, "volume", 100f) },
+            ["speaker_set_is_spatial"] = d => new SpeakerSetIsSpatialBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), IsSpatial = ParseBool(d, "isSpatial") },
+            ["speaker_set_min_distance"] = d => new SpeakerSetMinDistanceBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), MinDistance = ParseFloat(d, "minDistance", 1f) },
+            ["speaker_set_max_distance"] = d => new SpeakerSetMaxDistanceBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), MaxDistance = ParseFloat(d, "maxDistance", 10f) },
+            ["speaker_set_loop"] = d => new SpeakerSetLoopBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), Loop = ParseBool(d, "loop") },
+            ["speaker_set_path"] = d => new SpeakerSetPathBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), Path = GetString(d, "path") },
 
-            ["speaker_play"] = d => new SpeakerPlayBlock { FilePath = GetString(d, "filepath") },
+            ["speaker_play"] = d => new SpeakerPlayBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), FilePath = GetString(d, "filepath") },
 
             ["door_find_by_name"] = d => new FindDoorByNameBlock { Name = GetString(d, "name") },
 
@@ -407,13 +430,14 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["door_set_permissions"] = d => new SetDoorPermsBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Door")),
                 Perms = Enum.TryParse(GetString(d, "perms"), out DoorPermissionFlags perms) ? perms : default
             },
 
             ["get_door_property"] = d => new DoorGetPropertyBlock
             {
-                Property = GetString(d, "Property"),
-                Door = ParseValue(d.GetValueOrDefault("Door"))
+                Target = ParseValue(d.GetValueOrDefault("Door")),
+                Property = GetString(d, "Property")
             },
 
             ["run_method"] = d => new RunMethodBlock
@@ -473,6 +497,7 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["give_player_effect"] = d => new PlayerGivePlayerEffectBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Effect = GetStringAny(d, "effect", "Effect"),
                 Intensity = (byte)ParseFloatAny(d, 1f, "intensity", "Intensity"),
                 Duration = ParseFloatAny(d, 5f, "duration", "Duration"),
@@ -481,6 +506,7 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["remove_player_effect"] = d => new PlayerRemovePlayerEffectBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Effect = GetStringAny(d, "effect", "Effect")
             },
 
@@ -599,10 +625,10 @@ namespace ThaumielMapEditor.API.Helpers
                 Item = ParseValue(d.GetValueOrDefault("ITEM"))
             },
 
-            ["list_remove_at"] = d => new ListRemoveBlock
+            ["list_remove_at"] = d => new ListRemoveAtBlock
             {
                 List = ParseValue(d.GetValueOrDefault("LIST")),
-                Item = ParseFloat(d, "INDEX")
+                Index = ParseValue(d.GetValueOrDefault("INDEX"))
             },
 
             ["list_get"] = d => new ListGetBlock
@@ -911,6 +937,7 @@ namespace ThaumielMapEditor.API.Helpers
             return new PrimitiveVectorBlock
             {
                 TargetProperty = targetProperty,
+                Target = ParseValue(d.GetValueOrDefault("Primitive")),
                 X = ParseFloat(d, "x"),
                 Y = ParseFloat(d, "y"),
                 Z = ParseFloat(d, "z")

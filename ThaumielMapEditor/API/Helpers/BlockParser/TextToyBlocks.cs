@@ -15,6 +15,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Name { get; set; } = string.Empty;
 
+        public override object ReturnExecute() => ReturnExecute(Executor!.Schematic);
+
         public override object ReturnExecute(SchematicData schematic)
         {
             TextToyObject server = new();
@@ -61,7 +63,13 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Property { get; set; } = string.Empty;
 
+        public override object ReturnExecute()
+            => GetProperty(ResolveTarget());
+
         public override object ReturnExecute(object obj)
+            => GetProperty(ResolveTarget(obj));
+
+        private object GetProperty(object? obj)
         {
             if (obj is not TextToyObject server)
             {
@@ -76,14 +84,14 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 "Scale" => server.Scale,
                 "Text" => server.Text,
                 "DisplaySize" => server.DisplaySize,
-                "Base" => server.Base,
+                "Base" => server.Base!,
                 _ => LogUnknownProperty(Property)
             };
         }
 
         private static object LogUnknownProperty(string property)
         {
-            LogManager.Warn($"TextToyGetPropertyBlock: Unknown property '{property}'.");
+            LogManager.Warn($"Unknown property '{property}'.");
             return null!;
         }
     }

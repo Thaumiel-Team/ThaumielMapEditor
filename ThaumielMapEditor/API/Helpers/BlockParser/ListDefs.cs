@@ -42,6 +42,20 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         }
     }
 
+    public class ListRemoveAtBlock : BlockBase
+    {
+        public object? List { get; set; }
+        public object? Index { get; set; }
+
+        public override void Execute()
+        {
+            int index = (int)ResolveFloat(Index, -1f);
+
+            if ((List is BlockBase bL ? bL.ReturnExecute() : List) is List<object> list && index >= 0 && index < list.Count)
+                list.RemoveAt(index);
+        }
+    }
+
     public class ListGetBlock : BlockBase
     {
         public object? List { get; set; }

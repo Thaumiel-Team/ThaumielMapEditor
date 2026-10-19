@@ -126,12 +126,44 @@ namespace ThaumielMapEditor.API.Helpers
                     ExecuteObjectCreate(speakerCreateBlock, speakerCreateBlock.Name, "Speaker");
                     break;
 
+                case CreateDoorBlock createDoorBlock:
+                    createDoorBlock.Executor = this;
+                    FlushCurrent();
+
+                    LogManager.Debug("Creating Door.");
+                    _isCurrentServerSide = true;
+                    _currentServer = createDoorBlock.ReturnExecute();
+                    break;
+
                 case BlockBase blockbase:
                     blockbase.SetExecutorRecursive(this);
                     blockbase.Execute();
-                    blockbase.Execute(player);
-                    ExecuteParamBlocks(blockbase);
-                    ExecuteReturns(blockbase, player);
+
+                    object? target = blockbase.Target != null ? blockbase.ResolveTargetValue() : null;
+                    if (blockbase.Target != null)
+                    {
+                        blockbase.ActiveTarget = target;
+                        blockbase.HasActiveTarget = true;
+                    }
+
+                    if (target is Player targetPlayer)
+                    {
+                        blockbase.Execute(targetPlayer);
+                    }
+                    else
+                    {
+                        blockbase.Execute(player);
+
+                        if (target != null)
+                        {
+                            blockbase.Execute(target);
+                        }
+                        else
+                            ExecuteParamBlocks(blockbase);
+                    }
+
+                    ExecuteReturns(blockbase, target ?? player);
+                    blockbase.ClearActiveTarget();
                     break;
 
                 default:

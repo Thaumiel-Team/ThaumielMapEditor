@@ -21,6 +21,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public string Name { get; set; } = string.Empty;
         public bool IsServerSide { get; set; }
 
+        public override object ReturnExecute() => ReturnExecute(Executor!.Schematic);
+
         public override object ReturnExecute(SchematicData schematic)
         {
             if (IsServerSide)
@@ -168,6 +170,62 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                     LogManager.Warn($"Unknown state setting type: {SettingType}");
                     break;
             }
+        }
+    }
+
+    public class PrimitiveGetPropertyBlock : BlockBase
+    {
+        public string Property { get; set; } = string.Empty;
+
+        public override object ReturnExecute()
+            => GetProperty(ResolveTarget());
+
+        public override object ReturnExecute(object obj)
+            => GetProperty(ResolveTarget(obj));
+
+        private object GetProperty(object? obj)
+        {
+            PrimitiveObject? client = obj as PrimitiveObject;
+            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            if (client is null && server is null)
+            {
+                LogManager.Warn("obj is not a PrimitiveObject.");
+                return null!;
+            }
+
+            return Property switch
+            {
+                "Rotation" => client?.Rotation ?? server!.Rotation,
+                "Scale" => client?.Scale ?? server!.Scale,
+                "Position" => client?.Position ?? server!.Position,
+                "Base" => server?.Base!,
+                "Color" => ToHex(client?.Color ?? server!.Color),
+                "PrimitiveType" => client?.PrimitiveType ?? server!.PrimitiveType,
+                "PrimitiveFlags" => client?.PrimitiveFlags ?? server!.PrimitiveFlags,
+                "NetId" => client?.NetId ?? server!.NetId,
+                "IsStatic" => client?.IsStatic ?? server!.IsStatic,
+                "MovementSmoothing" => client?.MovementSmoothing ?? server!.MovementSmoothing,
+                "ServerCollider" => HasServerCollider(client, server),
+                "Schematic" => client?.Schematic!,
+                _ => LogUnknownProperty(Property)
+            };
+        }
+
+        private static bool HasServerCollider(PrimitiveObject? client, PrimitiveObjectServer? server)
+        {
+            if (client != null)
+                return client.ServerCollider != null;
+
+            return server?.Object != null && server.Object.GetComponent<Collider>() != null;
+        }
+
+        private static string ToHex(Color color)
+            => $"#{ColorUtility.ToHtmlStringRGBA(color)}";
+
+        private static object LogUnknownProperty(string property)
+        {
+            LogManager.Warn($"Unknown property '{property}'.");
+            return null!;
         }
     }
 }

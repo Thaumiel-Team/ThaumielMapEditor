@@ -38,28 +38,20 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public string Property { get; set; } = string.Empty;
 
-        public object? Door { get; set; }
-
         public override object ReturnExecute()
         {
-            return ResolveDoor() is DoorObject door ? GetProperty(door) : null!;
+            return ResolveTarget() is DoorObject door ? GetProperty(door) : null!;
         }
 
         public override object ReturnExecute(object obj)
         {
-            if (ResolveDoor(obj) is not DoorObject door)
+            if (ResolveTarget(obj) is not DoorObject door)
                 return null!;
 
             if (string.IsNullOrEmpty(Property))
                 return null!;
 
             return GetProperty(door);
-        }
-
-        private DoorObject? ResolveDoor(object? fallback = null)
-        {
-            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
-            return target as DoorObject;
         }
 
         private object GetProperty(DoorObject door)
@@ -195,53 +187,29 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
     public class DoorIsOpenBlock : BlockBase
     {
-        public object? Door { get; set; }
-
         public override object ReturnExecute()
-            => ResolveDoor()?.IsOpen ?? false;
+            => ResolveTarget() as DoorObject is { } door && door.IsOpen;
 
         public override object ReturnExecute(object obj)
-            => ResolveDoor(obj)?.IsOpen ?? false;
-
-        private DoorObject? ResolveDoor(object? fallback = null)
-        {
-            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
-            return target as DoorObject;
-        }
+            => ResolveTarget(obj) as DoorObject is { } door && door.IsOpen;
     }
 
     public class DoorIsClosedBlock : BlockBase
     {
-        public object? Door { get; set; }
-
         public override object ReturnExecute()
-            => ResolveDoor()?.IsOpen == false;
+            => ResolveTarget() as DoorObject is { IsOpen: false };
 
         public override object ReturnExecute(object obj)
-            => ResolveDoor(obj)?.IsOpen == false;
-
-        private DoorObject? ResolveDoor(object? fallback = null)
-        {
-            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
-            return target as DoorObject;
-        }
+            => ResolveTarget(obj) as DoorObject is { IsOpen: false };
     }
 
     public class DoorIsOpeningBlock : BlockBase
     {
-        public object? Door { get; set; }
-
         public override object ReturnExecute()
-            => IsMoving(ResolveDoor());
+            => IsMoving(ResolveTarget() as DoorObject);
 
         public override object ReturnExecute(object obj)
-            => IsMoving(ResolveDoor(obj));
-
-        private DoorObject? ResolveDoor(object? fallback = null)
-        {
-            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
-            return target as DoorObject;
-        }
+            => IsMoving(ResolveTarget(obj) as DoorObject);
 
         private static bool IsMoving(DoorObject? door)
         {

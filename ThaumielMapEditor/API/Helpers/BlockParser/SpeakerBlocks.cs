@@ -14,6 +14,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Name { get; set; } = string.Empty;
 
+        public override object ReturnExecute() => ReturnExecute(Executor!.Schematic);
+
         public override object ReturnExecute(SchematicData schematic)
         {
             SpeakerObject server = new();
@@ -171,28 +173,20 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Property { get; set; } = string.Empty;
 
-        public object? Speaker { get; set; }
-
         public override object ReturnExecute()
         {
-            return ResolveSpeaker() is SpeakerObject server ? GetProperty(server) : null!;
+            return ResolveTarget() is SpeakerObject server ? GetProperty(server) : null!;
         }
 
         public override object ReturnExecute(object obj)
         {
-            if (ResolveSpeaker(obj) is not SpeakerObject server)
+            if (ResolveTarget(obj) is not SpeakerObject server)
             {
                 LogManager.Warn("obj is not a SpeakerObject.");
                 return null!;
             }
 
             return GetProperty(server);
-        }
-
-        private SpeakerObject? ResolveSpeaker(object? fallback = null)
-        {
-            object? target = Speaker is BlockBase block ? block.ReturnExecute() : Speaker ?? fallback;
-            return target as SpeakerObject;
         }
 
         private object GetProperty(SpeakerObject server)
@@ -217,7 +211,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         private static object LogUnknownProperty(string property)
         {
-            LogManager.Warn($"SpeakerGetPropertyBlock: Unknown property '{property}'.");
+            LogManager.Warn($"Unknown property '{property}'.");
             return null!;
         }
     }

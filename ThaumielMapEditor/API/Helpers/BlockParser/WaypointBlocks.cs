@@ -14,6 +14,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Name { get; set; } = string.Empty;
 
+        public override object ReturnExecute() => ReturnExecute(Executor!.Schematic);
+
         public override object ReturnExecute(SchematicData schematic)
         {
             WaypointObject server = new();
@@ -77,7 +79,13 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Property { get; set; } = string.Empty;
 
+        public override object ReturnExecute()
+            => GetProperty(ResolveTarget());
+
         public override object ReturnExecute(object obj)
+            => GetProperty(ResolveTarget(obj));
+
+        private object GetProperty(object? obj)
         {
             if (obj is not WaypointObject server)
             {
@@ -90,7 +98,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 "Position" => server.Position,
                 "Rotation" => server.Rotation,
                 "Scale" => server.Scale,
-                "Base" => server.Base,
+                "Base" => server.Base!,
                 "VisualizeBounds" => server.VisualizeBounds,
                 "Priority" => server.Priority,
                 "BoundsSize" => server.BoundsSize,
