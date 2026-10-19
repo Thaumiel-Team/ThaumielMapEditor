@@ -7,11 +7,20 @@
 
 using System.IO;
 using System.Text.Json;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace ThaumielMapEditor.API.Conversion
 {
     public static class PMERLoader
     {
+        private static readonly IDeserializer MapDeserializer = new DeserializerBuilder()
+            .WithNamingConvention(UnderscoredNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .IgnoreFields()
+            .WithTypeConverter(new PMERMapVectorConverter())
+            .Build();
+
         /// <summary>
         /// Loads a PMER schematic from the <paramref name="path"/>.
         /// </summary>
@@ -30,5 +39,8 @@ namespace ThaumielMapEditor.API.Conversion
 
             return JsonSerializer.Deserialize<PMERRoot>(json, options) ?? new();
         }
+
+        public static PMERMapRoot LoadMap(string path) =>
+            MapDeserializer.Deserialize<PMERMapRoot>(File.ReadAllText(path)) ?? new();
     }
 }

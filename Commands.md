@@ -18,6 +18,7 @@ This document outlines all available commands, subcommands, and required permiss
 | Subcommand | Aliases | Arguments | Permission | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `convert` | `cv` | <code>&lt;Schematic Name&gt;</code> | `tme.convert` | Converts the PMER schematic with the specified name |
+| `convertmap` | `cvm` | <code>&lt;Map Name&gt;</code> | `tme.convert` | Converts the PMER map with the specified name |
 | `coroutines` | `coro, cor` | None | `tme.coroutines` | Lists all the coroutines running or ran |
 | `debug` | `deb, draw` | None | `tme.debug` | Generates drawable lines for each object. |
 | `destroy` | `de, delete, remove, del` | <code>&lt;Schematic &#124; Map&gt; &lt;Map Name &#124; Schematic Id&gt;</code> | `tme.destroy` | Destroys the specified schematic or map |
