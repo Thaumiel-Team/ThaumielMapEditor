@@ -75,7 +75,7 @@ namespace ThaumielMapEditor.API.Helpers.Networking
         public virtual void OnRequestCompleted(UnityWebRequest request) => LogManager.Debug($"Succeeded Sending request for {Name}.");
         public virtual void OnRequestFailed(UnityWebRequest request) => LogManager.Debug($"Failed to send request for {Name}.");
 
-        public virtual bool UseCustomUrl { get; set; }
+        public virtual bool UseCustomUrl { get; }
 
         public string DefaultEndpoint => $"https://tmelogs.thaumiel-servers.workers.dev/";
 

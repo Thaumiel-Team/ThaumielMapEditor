@@ -5,9 +5,13 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
+using System.IO;
 using Cryptography;
 using LabApi.Features.Wrappers;
+using LabApi.Loader.Features.Yaml;
+using ThaumielMapEditor.API.Helpers.Networking;
 
 namespace ThaumielMapEditor.API.Helpers
 {
@@ -21,26 +25,52 @@ namespace ThaumielMapEditor.API.Helpers
             Contributor = 3,
         }
 
+        private static DirectoryInfo CacheDirectory { get; } = FileManager.TryCreateDirectory("CreditTags");
+        private static string DatabaseCachePath { get; } = Path.Combine(CacheDirectory.FullName, TmeTagCacheName);
+        private const string TmeTagCacheName = "tmetag_cache.yml";
+
+
+        public static void Init()
+        {
+            if (!CacheDirectory.Exists)
+                CacheDirectory.Create();
+
+            if (File.Exists(DatabaseCachePath))
+            {
+                if (File.GetCreationTime(DatabaseCachePath) - DateTime.Now < TimeSpan.FromMinutes(10))
+                {
+                    Credits = YamlConfigParser.Deserializer.Deserialize<Dictionary<string, TagType>>(File.ReadAllText(DatabaseCachePath));
+                }
+                else
+                    UpdateCache();
+            }
+            else
+                UpdateCache();
+        }
+
+        private static void UpdateCache()
+        {
+            GetCreditsRequest request = new();
+            request.SendRequest((complete) => 
+            {
+                Credits = YamlConfigParser.Deserializer.Deserialize<Dictionary<string, TagType>>(complete.downloadHandler.text);
+                File.WriteAllText(DatabaseCachePath, complete.downloadHandler.text);
+            });
+        }
+
         public static string ParseId(Player player)
             => Sha.HashToString(Sha.Sha256(player.UserId));
 
-        // If you contribute and want a CreditTag add your own steamid sha256 hash to this.
-        // I recommend using https://codebeautify.org/sha256-hash-generator and set the hash to uppercase.
-        internal static readonly Dictionary<string, TagType> Credits = new()
-        {
-            // MrBaguetter
-            ["6B5D92DC3B3911F1E1680CA4C223C420F993085502F25A73F6AF84D599111797"] = TagType.LeadDeveloper,
-
-            // Example developer badge
-            ["EXAMPLE99@steam"] = TagType.Developer,
-
-            // Example contributor badge
-            ["EXAMPLE99@steam"] = TagType.Contributor
-        };
-
+        internal static Dictionary<string, TagType> Credits = [];
         
         internal static TagType SetTag(Player player)
         {
+            if (Credits.IsEmpty())
+            {
+                LogManager.Warn($"Failed to get credits.");
+                return TagType.None;
+            }
+
             if (player.UserGroup != null)
                 return TagType.None;
 

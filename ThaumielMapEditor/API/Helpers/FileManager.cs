@@ -42,10 +42,10 @@ namespace ThaumielMapEditor.API.Helpers
         /// Tries to create a directory with the inputted name
         /// </summary>
         /// <param name="name">The name of the directory. If rooted, it is used directly.</param>
-        public static void TryCreateDirectory(string name)
+        public static DirectoryInfo TryCreateDirectory(string name)
         {
             string path = Path.IsPathRooted(name) ? name : Dir([name]);
-            Directory.CreateDirectory(path);
+            return Directory.CreateDirectory(path);
         }
 
         /// <summary>

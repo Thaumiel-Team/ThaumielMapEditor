@@ -48,6 +48,7 @@ namespace ThaumielMapEditor
             PlayerHandler.Register();
             ServerHandler.Register();
             PrimitiveHandler.Register();
+            CreditHelper.Init();
 
             if (string.IsNullOrEmpty(Config?.AudioPath))
             {
