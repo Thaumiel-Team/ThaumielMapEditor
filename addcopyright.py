@@ -15,11 +15,16 @@ EXCLUDED_FILES = {"AssemblyInfo.cs"}
 
 IGNORE_PATTERN = re.compile(r"\[.*PythonIgnore(Attribute)?.*\]")
 
+COPYRIGHT_FILE_PATTERN = re.compile(r'(<copyright\b[^>]*?\bfile=")([^"]*)(")', re.IGNORECASE)
+
 def should_ignore_file(content: str) -> bool:
     return bool(IGNORE_PATTERN.search(content))
 
 def already_has_notice(content: str) -> bool:
     return "<copyright" in content
+
+def update_notice_filename(content: str, filename: str) -> str:
+    return COPYRIGHT_FILE_PATTERN.sub(lambda match: f"{match.group(1)}{filename}{match.group(3)}", content, count=1)
 
 def add_notice(file_path: str) -> None:
     filename = os.path.basename(file_path)
@@ -32,7 +37,16 @@ def add_notice(file_path: str) -> None:
         return
 
     if already_has_notice(content):
-        print(f"[SKIPPED]  Already has notice: {file_path}")
+        updated_content = update_notice_filename(content, filename)
+
+        if updated_content == content:
+            print(f"[SKIPPED]  Already has notice: {file_path}")
+            return
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(updated_content)
+
+        print(f"[UPDATED]  Copyright file name set to '{filename}': {file_path}")
         return
 
     notice = NOTICE_TEMPLATE.format(filename=filename)

@@ -22,7 +22,7 @@ namespace ThaumielMapEditor.HarmonyPatches
         {
             try
             {
-                if (string.IsNullOrEmpty(q) || !q.Contains("[ERROR]") || !q.Contains("ThaumielMapEditor"))
+                if (string.IsNullOrEmpty(q) || !q.Contains("[ERROR]") || !q.Contains("[ThaumielMapEditor]"))
                     return;
 
                 if (!Main.Instance.Config.AutomaticErrorUpload)

@@ -33,6 +33,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             new CycleBackwardKeybind(),
             new SelectObjectKeybind(),
             new UnselectObjectKeybind(),
+            new DeleteObjectKeybind(),
 
             new NoSelectionInfo(),
             new SelectionTitleInfo(),

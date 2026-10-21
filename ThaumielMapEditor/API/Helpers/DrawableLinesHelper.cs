@@ -247,8 +247,6 @@ namespace ThaumielMapEditor.API.Helpers
 
         /// <summary>
         /// Stops every persistent drawing targeted at the specified <see cref="Player"/>
-        /// (e.g. on disconnect or ToolGun unequip) so the refresh loop cannot keep spamming
-        /// a stale or gone client with destroyed-transform geometry.
         /// </summary>
         public static void StopDrawsForPlayer(Player player)
         {

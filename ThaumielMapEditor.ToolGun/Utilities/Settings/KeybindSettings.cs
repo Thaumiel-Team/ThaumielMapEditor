@@ -120,4 +120,30 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             ToolGunUtils.ClearSelection(KnownOwner, settings);
         }
     }
+
+    public class DeleteObjectKeybind : CustomKeybindSetting
+    {
+        public static int SettingId => Main.Instance.Config.DeleteObjectKeybindId;
+
+        public DeleteObjectKeybind() : base(SettingId, "Delete Object", KeyCode.Delete, false, false)
+        {
+        }
+
+        public override CustomHeader Header => ToolGunHeaders.Keybinds;
+
+        protected override bool CanView(Player player) => ToolGunMenu.IsEquipped(player) && ToolGunMenu.IsKeybindsMenu(player);
+
+        protected override CustomSetting CreateDuplicate() => new DeleteObjectKeybind();
+
+        protected override void HandleSettingUpdate()
+        {
+            if (!IsPressed || KnownOwner == null)
+                return;
+
+            if (!KnownOwner.TryGetToolGunSettings(out ToolGunSettings settings))
+                return;
+
+            ToolGunUtils.TryDeleteSelected(KnownOwner, settings);
+        }
+    }
 }

@@ -21,6 +21,7 @@ namespace ThaumielMapEditor.ToolGun
             CycleBackwardKeybindId = id++;
             SelectObjectKeybindId = id++;
             UnselectObjectKeybindId = id++;
+            DeleteObjectKeybindId = id++;
             NoSelectionInfoId = id++;
             SelectionTitleInfoId = id++;
             NameSettingId = id++;
@@ -136,6 +137,7 @@ namespace ThaumielMapEditor.ToolGun
         public int CycleBackwardKeybindId { get; set; }
         public int SelectObjectKeybindId { get; set; }
         public int UnselectObjectKeybindId { get; set; }
+        public int DeleteObjectKeybindId { get; set; }
 
         public int NoSelectionInfoId { get; set; }
         public int SelectionTitleInfoId { get; set; }

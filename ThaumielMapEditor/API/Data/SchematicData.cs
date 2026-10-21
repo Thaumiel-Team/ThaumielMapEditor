@@ -197,6 +197,107 @@ namespace ThaumielMapEditor.API.Data
         }
 
         /// <summary>
+        /// Destroys a single spawned <see cref="ServerObject"/> of this <see cref="SchematicData"/>.
+        /// </summary>
+        /// <param name="serverObject">The spawned object to destroy.</param>
+        /// <returns><see langword="true"/> if the object belongs to this schematic and was destroyed.</returns>
+        public bool DestroyServerObject(ServerObject serverObject)
+        {
+            if (serverObject == null || !SpawnedServerObjects.Contains(serverObject))
+                return false;
+
+            DestroyObjectTree(serverObject.ObjectId);
+            return true;
+        }
+
+        /// <summary>
+        /// Destroys a single spawned <see cref="ClientObject"/> of this <see cref="SchematicData"/>.
+        /// </summary>
+        /// <param name="clientObject">The spawned object to destroy.</param>
+        /// <returns><see langword="true"/> if the object belongs to this schematic and was destroyed.</returns>
+        public bool DestroyClientObject(ClientObject clientObject)
+        {
+            if (clientObject == null || !SpawnedClientObjects.Contains(clientObject))
+                return false;
+
+            DestroyObjectTree(clientObject.ObjectId);
+            return true;
+        }
+
+        private void DestroyObjectTree(int objectId)
+        {
+            HashSet<int> ids = [objectId];
+
+            bool addedChild;
+
+            do
+            {
+                addedChild = false;
+
+                foreach (ClientObject client in SpawnedClientObjects.ToArray())
+                {
+                    if (ids.Contains(client.ParentId))
+                        addedChild |= ids.Add(client.ObjectId);
+                }
+
+                foreach (ServerObject server in SpawnedServerObjects.ToArray())
+                {
+                    if (ids.Contains(server.ParentId))
+                        addedChild |= ids.Add(server.ObjectId);
+                }
+            }
+            while (addedChild);
+
+            foreach (ClientObject client in SpawnedClientObjects.ToArray())
+            {
+                if (ids.Contains(client.ObjectId))
+                    DestroyClientObjectInternal(client);
+            }
+
+            foreach (ServerObject server in SpawnedServerObjects.ToArray())
+            {
+                if (ids.Contains(server.ObjectId))
+                    DestroyServerObjectInternal(server);
+            }
+
+            foreach (int id in ids)
+            {
+                if (!ServerSideTransforms.TryGetValue(id, out Transform? transform))
+                    continue;
+
+                ServerSideTransforms.Remove(id);
+
+                if (transform != null)
+                    UnityEngine.Object.Destroy(transform.gameObject);
+            }
+        }
+
+        private void DestroyClientObjectInternal(ClientObject clientObject)
+        {
+            ColliderHelper.DestroyClientObjectColliders(clientObject, this);
+            clientObject.DestroyForAllPlayers();
+            SpawnedClientObjects.Remove(clientObject);
+        }
+
+        private void DestroyServerObjectInternal(ServerObject serverObject)
+        {
+            try
+            {
+                if (serverObject is DoorObject && serverObject.Object != null && serverObject.Object.TryGetComponent<DoorLink>(out var link))
+                    link.Unregister();
+
+                if (serverObject.Object != null && serverObject.Object.TryGetComponent<BlockyRuntime>(out var blocky) && blocky.Blocky != null && !string.IsNullOrEmpty(blocky.Blocky.Code))
+                    Executor?.Execute(ArgumentsParser.Load(blocky.Blocky), null!, EventType.OnDestroyed);
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"Schematic destroy cleanup failed for '{serverObject.Name}': {ex.Message}");
+            }
+
+            serverObject.DestroyObject(this);
+        }
+
+        /// <summary>
         /// Destroys this <see cref="SchematicData"/> instance.
         /// </summary>
         public void Destroy()
@@ -225,20 +326,7 @@ namespace ThaumielMapEditor.API.Data
 
             foreach (ServerObject serverobj in SpawnedServerObjects.ToArray())
             {
-                try
-                {
-                    if (serverobj is DoorObject && serverobj.Object != null && serverobj.Object.TryGetComponent<DoorLink>(out var link))
-                        link.Unregister();
-
-                    if (serverobj.Object != null && serverobj.Object.TryGetComponent<BlockyRuntime>(out var blocky) && blocky.Blocky != null && !string.IsNullOrEmpty(blocky.Blocky.Code))
-                        Executor?.Execute(ArgumentsParser.Load(blocky.Blocky), null!, EventType.OnDestroyed);
-                }
-                catch (Exception ex)
-                {
-                    LogManager.Error($"Schematic destroy cleanup failed for '{serverobj.Name}': {ex.Message}");
-                }
-
-                serverobj.DestroyObject(this);
+                DestroyServerObjectInternal(serverobj);
             }
 
             foreach (Transform transform in ServerSideTransforms.Values)

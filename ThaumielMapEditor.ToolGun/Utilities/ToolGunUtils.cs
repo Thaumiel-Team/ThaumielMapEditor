@@ -90,6 +90,46 @@ namespace ThaumielMapEditor.ToolGun.Utilities
             ToolGunMenu.Refresh(player);
         }
 
+        public static bool TryDeleteSelected(Player player, ToolGunSettings settings)
+        {
+            if (settings == null)
+                return false;
+
+            ServerObject? server = settings.SelectedServer;
+            ClientObject? client = server != null ? null : settings.SelectedClient;
+
+            if (server == null && client == null)
+                return false;
+
+            SchematicData? schematic = FindSchematic(server, client);
+
+            ClearSelection(player, settings);
+
+            if (schematic == null)
+            {
+                LogManager.Warn("Failed to delete the selected object: no owning schematic was found.");
+                return false;
+            }
+
+            bool deleted = server != null ? schematic.DestroyServerObject(server) : schematic.DestroyClientObject(client!);
+
+            if (deleted && schematic.SpawnedClientObjects.Count == 0 && schematic.SpawnedServerObjects.Count == 0)
+                Loader.DestroySchematic(schematic);
+
+            return deleted;
+        }
+
+        private static SchematicData? FindSchematic(ServerObject? server, ClientObject? client)
+        {
+            if (server != null)
+                return Loader.SpawnedSchematics.FirstOrDefault(s => s.SpawnedServerObjects.Contains(server));
+
+            if (client != null)
+                return Loader.SpawnedSchematics.FirstOrDefault(s => s.SpawnedClientObjects.Contains(client));
+
+            return null;
+        }
+
         private static void StartSelectionDraw(Player player, ToolGunSettings settings)
         {
             settings.SelectedServer?.Draw(player);
