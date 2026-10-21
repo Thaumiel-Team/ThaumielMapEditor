@@ -168,6 +168,38 @@ namespace ThaumielMapEditor.API.Animation
         }
 
         /// <summary>
+        /// Pauses playback on the animator at the given index.
+        /// </summary>
+        /// <param name="animatorIndex">The index of the animator to pause.</param>
+        public void Pause(int animatorIndex = 0)
+        {
+            if ((uint)animatorIndex >= (uint)Animators.Count)
+                return;
+
+            Animator? animator = Animators[animatorIndex];
+            if (animator == null)
+                return;
+
+            animator.speed = 0f;
+        }
+
+        /// <summary>
+        /// Pauses playback on every animator currently playing the given state.
+        /// </summary>
+        /// <param name="stateName">The state to pause. An empty value pauses every animator.</param>
+        public void Pause(string stateName)
+        {
+            foreach (Animator? animator in Animators)
+            {
+                if (animator == null)
+                    continue;
+
+                if (string.IsNullOrEmpty(stateName) || animator.GetCurrentAnimatorStateInfo(0).IsName(stateName))
+                    animator.speed = 0f;
+            }
+        }
+
+        /// <summary>
         /// Stops playback on the animator at the given index.
         /// </summary>
         /// <param name="animatorIndex">The index of the animator to stop.</param>

@@ -268,6 +268,105 @@ namespace ThaumielMapEditor.API.Helpers
             ["primitive_set_static"] = d => new PrimitiveStateBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), SettingType = "static", BoolValue = ParseBool(d, "isStatic") },
             ["primitive_set_smoothing"] = d => new PrimitiveStateBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), SettingType = "smoothing", ByteValue = (byte)ParseFloat(d, "movementSmoothing") },
 
+            ["schematic_spawn"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Name,
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position"))
+            },
+
+            ["schematic_spawn_rotated"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Name,
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation"))
+            },
+
+            ["schematic_spawn_scaled"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Name,
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation")),
+                Scale = ParseValue(d.GetValueOrDefault("Scale"))
+            },
+
+            ["schematic_spawn_from_path"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Path,
+                Path = GetString(d, "path"),
+                Position = ParseValue(d.GetValueOrDefault("Position"))
+            },
+
+            ["schematic_spawn_from_path_rotated"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Path,
+                Path = GetString(d, "path"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation"))
+            },
+
+            ["schematic_spawn_from_path_scaled"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Path,
+                Path = GetString(d, "path"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation")),
+                Scale = ParseValue(d.GetValueOrDefault("Scale"))
+            },
+
+            ["schematic_spawn_from_directory"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Directory,
+                Directory = GetString(d, "directory"),
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position"))
+            },
+
+            ["schematic_spawn_from_directory_rotated"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Directory,
+                Directory = GetString(d, "directory"),
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation"))
+            },
+
+            ["schematic_spawn_from_directory_scaled"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Directory,
+                Directory = GetString(d, "directory"),
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation")),
+                Scale = ParseValue(d.GetValueOrDefault("Scale"))
+            },
+
+            ["schematic_spawn_serialized"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Serialized,
+                SerializedSchematic = ParseValue(d.GetValueOrDefault("SerializableSchematic")),
+                Position = ParseValue(d.GetValueOrDefault("Position"))
+            },
+
+            ["schematic_spawn_serialized_rotated"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Serialized,
+                SerializedSchematic = ParseValue(d.GetValueOrDefault("SerializableSchematic")),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation"))
+            },
+
+            ["schematic_spawn_serialized_scaled"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Serialized,
+                SerializedSchematic = ParseValue(d.GetValueOrDefault("SerializableSchematic")),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation")),
+                Scale = ParseValue(d.GetValueOrDefault("Scale"))
+            },
+
             ["logger_log"] = d => new LoggingBlock
             {
                 Level = GetLogLevel(GetString(d, "LEVEL")),
@@ -456,6 +555,42 @@ namespace ThaumielMapEditor.API.Helpers
             ["play_animation"] = d => new PlayAnimationBlock
             {
                 AnimationName = GetString(d, "animationName")
+            },
+
+            ["animation_play"] = d => new AnimationPlayBlock
+            {
+                AnimationName = GetString(d, "animationName")
+            },
+
+            ["animation_play_schematic"] = d => new SchematicAnimationPlayBlock
+            {
+                Target = ParseValue(d.GetValueOrDefault("Schematic")),
+                AnimationName = GetString(d, "animationName")
+            },
+
+            ["animation_play_index"] = d => new SchematicAnimationPlayIndexBlock
+            {
+                Target = ParseValue(d.GetValueOrDefault("Schematic")),
+                AnimationName = GetString(d, "animationName"),
+                AnimatorIndex = (int)ParseFloat(d, "animatorIndex")
+            },
+
+            ["animation_pause"] = d => new AnimationPauseBlock
+            {
+                AnimationName = GetString(d, "animationName")
+            },
+
+            ["animation_pause_schematic"] = d => new SchematicAnimationPauseBlock
+            {
+                Target = ParseValue(d.GetValueOrDefault("Schematic")),
+                AnimationName = GetString(d, "animationName")
+            },
+
+            ["animation_pause_index"] = d => new SchematicAnimationPauseIndexBlock
+            {
+                Target = ParseValue(d.GetValueOrDefault("Schematic")),
+                AnimationName = GetString(d, "animationName"),
+                AnimatorIndex = (int)ParseFloat(d, "animatorIndex")
             },
 
             ["play_audio"] = d => new PlayAudioBlock
