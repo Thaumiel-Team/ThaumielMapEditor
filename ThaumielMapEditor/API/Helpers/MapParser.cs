@@ -44,6 +44,12 @@ namespace ThaumielMapEditor.API.Helpers
         {
             if (!Loader.LoadedMaps.TryGetValue(name, out var map))
             {
+                if (Loader.LoadedSchematics.TryGetValue(name, out _))
+                {
+                    LogManager.Warn($"{name} is a Schematic! Spawn the schematic first then run 'tme save MAPNAME'.");
+                    return false;
+                }
+
                 LogManager.Warn($"Map name '{name}' is invalid or was not loaded from disk!");
                 return false;
             }
