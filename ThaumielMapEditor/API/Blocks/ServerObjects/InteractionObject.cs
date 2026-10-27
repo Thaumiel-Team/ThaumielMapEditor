@@ -7,6 +7,7 @@
 
 using AdminToys;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -44,6 +45,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         public override ObjectType ObjectType { get; set; } = ObjectType.Interactable;
 
         [YamlMember(Alias = "Shape")]
+        [BinaryProperty(Name = "Shape")]
         public ColliderShape Shape
         {
             get;
@@ -58,6 +60,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         }
 
         [YamlMember(Alias = "Duration")]
+        [BinaryProperty(Name = "Duration")]
         public float InteractionDuration
         {
             get;
@@ -72,6 +75,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         }
 
         [YamlMember(Alias = "Locked")]
+        [BinaryProperty(Name = "Locked")]
         public bool IsLocked
         {
             get;
@@ -86,6 +90,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         }
 
         [YamlMember(Alias = "Permissions")]
+        [BinaryProperty(Name = "Permissions")]
         public DoorPermissionFlags Permissions { get; set; }
 
         public override Vector3 Scale
@@ -102,6 +107,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         public bool CanSearch => Base?.CanSearch ?? false;
 
         [YamlMember(Alias = "AllowedRoles")]
+        [BinaryProperty(Name = "AllowedRoles")]
         public List<RoleTypeId> AllowedRoles { get; set; } = [];
 
         public override void SpawnObject(SchematicData schematic, SerializableObject serializable)

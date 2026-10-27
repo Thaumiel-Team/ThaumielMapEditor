@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using UnityEngine;
@@ -20,6 +21,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets or sets the text format string used for rendering text.
         /// </summary>
         [YamlMember(Alias = "Text")]
+        [BinaryProperty(Name = "Text")]
         public string Text
         {
             get;
@@ -37,6 +39,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets or sets the display size (width, height) used when rendering text.
         /// </summary>
         [YamlMember(Alias = "DisplaySize")]
+        [BinaryProperty(Name = "DisplaySize")]
         public Vector2 DisplaySize
         {
             get;

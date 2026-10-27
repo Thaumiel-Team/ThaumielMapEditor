@@ -8,6 +8,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using LabApi.Features.Wrappers;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -69,6 +70,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         }
 
         [YamlMember(Alias = "ItemToSpawn")]
+        [BinaryProperty(Name = "ItemToSpawn")]
         public ItemType ItemToSpawn
         {
             get;
@@ -87,12 +89,15 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         }
 
         [YamlMember(Alias = "SpawnPercentage")]
+        [BinaryProperty(Name = "SpawnPercentage")]
         public float SpawnPercentage { get; set; }
 
         [YamlMember(Alias = "MaxAmount")]
+        [BinaryProperty(Name = "MaxAmount")]
         public uint MaxAmount { get; set; }
 
         [YamlMember(Alias = "IsInfinite")]
+        [BinaryProperty(Name = "IsInfinite")]
         public bool IsInfinite { get; set; }
 
         public override ObjectType ObjectType { get; set; } = ObjectType.Pickup;

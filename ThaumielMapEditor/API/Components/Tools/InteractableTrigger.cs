@@ -12,6 +12,7 @@ using SecretLabNAudio.Core.Extensions;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Components.Tools.Helpers;
@@ -35,27 +36,35 @@ namespace ThaumielMapEditor.API.Components.Tools
     public class InteractableTrigger : ToolBase
     {
         [YamlMember(Alias = "Bounds")]
+        [BinaryProperty(Name = "Bounds")]
         public Vector3 Bounds { get; set; }
 
         [YamlMember(Alias = "InteractionTime")]
+        [BinaryProperty(Name = "InteractionTime")]
         public float InteractionTime { get; set; }
 
         [YamlMember(Alias = "Shape")]
+        [BinaryProperty(Name = "Shape")]
         public ColliderShape Shape { get; set; }
 
         [YamlMember(Alias = "OnInteracted")]
+        [BinaryProperty(Name = "OnInteracted")]
         public Classes OnInteracted { get; set; } = new();
 
         [YamlMember(Alias = "OnInteractionDenied")]
+        [BinaryProperty(Name = "OnInteractionDenied")]
         public Classes OnInteractionDenied { get; set; } = new();
 
         [YamlMember(Alias = "OnSpawned")]
+        [BinaryProperty(Name = "OnSpawned")]
         public Classes OnSpawned { get; set; } = new();
 
         [YamlMember(Alias = "OnDestroyed")]
+        [BinaryProperty(Name = "OnDestroyed")]
         public Classes OnDestroyed { get; set; } = new();
 
         [YamlMember(Alias = "Permission")]
+        [BinaryProperty(Name = "Permission")]
         public Permission Permissions { get; set; } = new();
 
 #pragma warning disable CS8618

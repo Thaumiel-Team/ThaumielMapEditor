@@ -7,6 +7,7 @@
 
 using AdminToys;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -33,6 +34,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Whether the waypoint's bounds are visualized.
         /// </summary>
         [YamlMember(Alias = "VisualizeBounds")]
+        [BinaryProperty(Name = "VisualizeBounds")]
         public bool VisualizeBounds
         {
             get;
@@ -51,6 +53,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Priority value for the waypoint.
         /// </summary>
         [YamlMember(Alias = "Priority")]
+        [BinaryProperty(Name = "Priority")]
         public float Priority
         {
             get;
@@ -69,6 +72,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Size of the waypoint bounds as a <see cref="Vector3"/>
         /// </summary>
         [YamlMember(Alias = "BoundsSize")]
+        [BinaryProperty(Name = "BoundsSize")]
         public Vector3 BoundsSize
         {
             get;

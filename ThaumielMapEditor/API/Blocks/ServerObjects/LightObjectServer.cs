@@ -7,6 +7,7 @@
 
 using AdminToys;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -25,6 +26,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 #pragma warning restore CS8618
 
         [YamlMember(Alias = "LightIntensity")]
+        [BinaryProperty(Name = "LightIntensity")]
         public float Intensity
         {
             get;
@@ -39,6 +41,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         } = 1f;
 
         [YamlMember(Alias = "LightRange")]
+        [BinaryProperty(Name = "LightRange")]
         public float Range
         {
             get;
@@ -53,6 +56,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         } = 10f;
 
         [YamlMember(Alias = "LightColor")]
+        [BinaryProperty(Name = "LightColor")]
         public Color Color
         {
             get;
@@ -67,6 +71,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         } = Color.white;
 
         [YamlMember(Alias = "ShadowType")]
+        [BinaryProperty(Name = "ShadowType")]
         public LightShadows Shadows
         {
             get;
@@ -81,6 +86,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         } = LightShadows.None;
 
         [YamlMember(Alias = "ShadowStrength")]
+        [BinaryProperty(Name = "ShadowStrength")]
         public float ShadowStrength
         {
             get;
@@ -95,6 +101,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         } = 1f;
 
         [YamlMember(Alias = "LightType")]
+        [BinaryProperty(Name = "LightType")]
         public LightType Type
         {
             get;
@@ -109,6 +116,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         } = LightType.Point;
 
         [YamlMember(Alias = "SpotAngle")]
+        [BinaryProperty(Name = "SpotAngle")]
         public float SpotAngle
         {
             get;

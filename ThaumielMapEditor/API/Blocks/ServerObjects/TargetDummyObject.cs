@@ -8,6 +8,7 @@
 using System;
 using AdminToys;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -32,6 +33,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// The configured <see cref="TargetType"/> for this target.
         /// </summary>
         [YamlMember(Alias = "TargetType")]
+        [BinaryProperty(Name = "TargetType")]
         public TargetType Type
         {
             get;

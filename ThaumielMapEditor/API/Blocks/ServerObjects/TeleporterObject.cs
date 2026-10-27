@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using DrawableLine;
 using PlayerRoles;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Components;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
@@ -32,36 +33,42 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Gets the Id for this <see cref="TeleporterObject"/> instance
         /// </summary>
         [YamlMember(Alias = "Id")]
+        [BinaryProperty(Name = "Id")]
         public Guid Id { get; set; }
 
         /// <summary>
         /// Gets or sets the Id to teleport to for this <see cref="TeleporterObject"/> instance
         /// </summary>
         [YamlMember(Alias = "Target")]
+        [BinaryProperty(Name = "Target")]
         public List<Guid> Targets { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the cooldown time for this <see cref="TeleporterObject"/> instance
         /// </summary>
         [YamlMember(Alias = "CoolDown")]
+        [BinaryProperty(Name = "CoolDown")]
         public float CoolDown { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="RoleTypeId"/>s allowed for this <see cref="TeleporterObject"/> instance
         /// </summary>
         [YamlMember(Alias = "AllowedRoles")]
+        [BinaryProperty(Name = "AllowedRoles")]
         public List<RoleTypeId> AllowedRoles { get; set; } = [];
 
         /// <summary>
         /// Gets or sets whether this <see cref="TeleporterObject"/> instance uses perplayer cooldowns or global cooldowns.
         /// </summary>
         [YamlMember(Alias = "PerPlayerCooldown")]
+        [BinaryProperty(Name = "PerPlayerCooldown")]
         public bool PerPlayerCooldown { get; set; }
 
         /// <summary>
         /// Gets the <see cref="TeleporterFlags"/> of this <see cref="TeleporterObject"/> instance
         /// </summary>
         [YamlMember(Alias = "Flags")]
+        [BinaryProperty(Name = "Flags")]
         public TeleporterFlags Flags { get; set; }
 
         /// <inheritdoc/>

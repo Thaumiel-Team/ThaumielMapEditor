@@ -10,6 +10,7 @@ using MapGeneration.Distributors;
 using Mirror;
 using PlayerRoles;
 using System.Collections.Generic;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -36,12 +37,14 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Gets or sets the <see cref="RoleTypeId"/>s that are allowed to use this <see cref="WorkstationObject"/> instance.
         /// </summary>
         [YamlMember(Alias = "AllowedRoles")]
+        [BinaryProperty(Name = "AllowedRoles")]
         public List<RoleTypeId> AllowedRoles { get; set; } = [];
 
         /// <summary>
         /// Gets or sets whether players can use this <see cref="WorkstationObject"/> instance.
         /// </summary>
         [YamlMember(Alias = "AllowInteractions")]
+        [BinaryProperty(Name = "AllowInteractions")]
         public bool AllowInteractions
         {
             get;

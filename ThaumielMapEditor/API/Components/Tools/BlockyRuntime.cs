@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
@@ -22,6 +23,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         public override ToolType Type => ToolType.BlockyRuntime;
 
         [YamlMember(Alias = "Payload")]
+        [BinaryProperty(Name = "Payload")]
         public BlockyPayload? Blocky { get; set; }
 
         public override void Init(ServerObject obj, SchematicData schem, Dictionary<string, object> properties)

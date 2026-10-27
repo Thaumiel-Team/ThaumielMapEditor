@@ -18,6 +18,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ThaumielMapEditor.API.Animation;
 using ThaumielMapEditor.API.Attributes;
+using ThaumielMapEditor.API.Binary;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
@@ -212,6 +213,18 @@ namespace ThaumielMapEditor.API.Helpers
         }
 
         /// <summary>
+        /// Reloads all loaded maps.
+        /// </summary>
+        /// <remarks>
+        /// This does not automatically spawn any maps.
+        /// </remarks>
+        public static void ReloadMaps()
+        {
+            LoadedMaps.Clear();
+            LoadMaps();
+        }
+
+        /// <summary>
         /// Destroys the specified <see cref="SchematicData"/>
         /// </summary>
         /// <param name="data">The schematic to be destroyed</param>
@@ -229,6 +242,92 @@ namespace ThaumielMapEditor.API.Helpers
             return extension.Equals(".yml", StringComparison.OrdinalIgnoreCase) || extension.Equals(".yaml", StringComparison.OrdinalIgnoreCase);
         }
 
+        private static bool IsBinaryFile(string path)
+            => Path.GetExtension(path).Equals(".bin", StringComparison.OrdinalIgnoreCase);
+
+        private static IEnumerable<string> GetPreferredFiles(string directory)
+        {
+            Dictionary<string, string> preferred = new(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string path in ThaumFileManager.GetFilesInDirectory(directory))
+            {
+                if (!IsBinaryFile(path) && !IsYamlFile(path))
+                    continue;
+
+                string name = Path.GetFileNameWithoutExtension(path);
+                if (!preferred.TryGetValue(name, out string? existing))
+                {
+                    preferred[name] = path;
+                    continue;
+                }
+
+                if (IsBinaryFile(path) && !IsBinaryFile(existing))
+                    preferred[name] = path;
+            }
+
+            return preferred.Values;
+        }
+
+        private static T? TryDeserializeYaml<T>(string path, string? content = null) where T : class
+        {
+            try
+            {
+                content ??= File.ReadAllText(path);
+                return Deserializer.Deserialize<T>(content);
+            }
+            catch (YamlException yamlex)
+            {
+                LogManager.Warn($"Failed to parse YAML file '{path}'.\n\n{yamlex}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                LogManager.Warn($"Exception when trying to parse YAML file '{path}'.\n\n{ex}");
+                return null;
+            }
+        }
+
+        private static T? TryDeserializeBinary<T>(string path, byte[]? content = null) where T : class
+        {
+            try
+            {
+                if (content is { Length: 0 })
+                    return null;
+
+                return content is null ? BinarySerializer.DeserializeFromFile<T>(path) : BinarySerializer.Deserialize<T>(content);
+            }
+            catch (Exception ex)
+            {
+                LogManager.Warn($"Exception when trying to parse binary file '{path}'.\n\n{ex}");
+                return null;
+            }
+        }
+
+        private static T? TryDeserializeFile<T>(string path) where T : class =>
+            IsBinaryFile(path) ? TryDeserializeBinary<T>(path) : TryDeserializeYaml<T>(path);
+
+        private static void ReadAndDeserializeInBackground<T>(string path, Action<T> onLoaded) where T : class
+        {
+            if (IsBinaryFile(path))
+            {
+                ThaumFileManager.ReadFileBytesInBackground(path, content =>
+                {
+                    T? value = TryDeserializeBinary<T>(path, content);
+                    if (value != null)
+                        onLoaded(value);
+                });
+            }
+            else
+            {
+                ThaumFileManager.ReadFileInBackground(path, content =>
+                {
+                    T? value = TryDeserializeYaml<T>(path, content);
+                    if (value != null)
+                        onLoaded(value);
+                });
+            }
+        }
+
         /// <summary>
         /// Loads the schematics
         /// </summary>
@@ -237,53 +336,28 @@ namespace ThaumielMapEditor.API.Helpers
             string schematicDir = ThaumFileManager.Dir(["Schematics"]);
             ThaumFileManager.TryCreateDirectory(schematicDir);
 
-            foreach (string path in ThaumFileManager.GetFilesInDirectory(schematicDir))
+            foreach (string path in GetPreferredFiles(schematicDir))
             {
-                if (!IsYamlFile(path))
-                    continue;
-
                 string name = Path.GetFileNameWithoutExtension(path);
 
-                try
+                if (Main.Instance.Config.ReadFilesInBackground)
                 {
-                    if (Main.Instance.Config.ReadFilesInBackground)
+                    ReadAndDeserializeInBackground<SerializableSchematic>(path, schematic =>
                     {
-                        ThaumFileManager.ReadFileInBackground(path, (value) => 
-                        {
-                            try
-                            {
-                                SerializableSchematic schematic = Deserializer.Deserialize<SerializableSchematic>(value);
-                                schematic.FileName = name;
-                                LoadedSchematics[schematic.FileName] = schematic;
-                                LogManager.Debug($"Loaded schematic {name} on background thread");
-                            }
-                            catch (YamlException yamlex)
-                            {
-                                LogManager.Warn($"Failed to parse Schematic {name}. \n\n {yamlex}");
-                            }
-                            catch (Exception ex)
-                            {
-                                LogManager.Warn($"Exception when trying to parse Schematic {name}. \n\n {ex}");
-                            }
-                        });
-                    }
-                    else
-                    {
-                        SerializableSchematic schematic = Deserializer.Deserialize<SerializableSchematic>(File.ReadAllText(path));
                         schematic.FileName = name;
                         LoadedSchematics[schematic.FileName] = schematic;
-                        LogManager.Debug($"Loaded schematic {name} on main thread");
-                    }
+                        LogManager.Debug($"Loaded schematic {name} from {Path.GetExtension(path)} on background thread");
+                    });
                 }
-                catch (YamlException yamlex)
+                else
                 {
-                    LogManager.Warn($"Failed to parse Schematic {name}. \n\n {yamlex}");
-                    continue;
-                }
-                catch (Exception ex)
-                {
-                    LogManager.Warn($"Exception when trying to parse Schematic {name}. \n\n {ex}");
-                    continue;
+                    SerializableSchematic? schematic = TryDeserializeFile<SerializableSchematic>(path);
+                    if (schematic == null)
+                        continue;
+
+                    schematic.FileName = name;
+                    LoadedSchematics[schematic.FileName] = schematic;
+                    LogManager.Debug($"Loaded schematic {name} from {Path.GetExtension(path)} on main thread");
                 }
             }
         }
@@ -296,53 +370,28 @@ namespace ThaumielMapEditor.API.Helpers
             string mapsDir = ThaumFileManager.Dir(["Maps"]);
             ThaumFileManager.TryCreateDirectory(mapsDir);
 
-            foreach (string path in ThaumFileManager.GetFilesInDirectory(mapsDir))
+            foreach (string path in GetPreferredFiles(mapsDir))
             {
-                if (!IsYamlFile(path))
-                    continue;
-
                 string name = Path.GetFileNameWithoutExtension(path);
 
-                try
+                if (Main.Instance.Config.ReadFilesInBackground)
                 {
-                    if (Main.Instance.Config.ReadFilesInBackground)
+                    ReadAndDeserializeInBackground<SerializableMap>(path, map =>
                     {
-                        ThaumFileManager.ReadFileInBackground(path, (value) => 
-                        {
-                            try
-                            {
-                                SerializableMap map = Deserializer.Deserialize<SerializableMap>(value);
-                                map.FileName = name;
-                                LoadedMaps[map.FileName] = map;
-                                LogManager.Debug($"Loaded map {name} on background thread");
-                            }
-                            catch (YamlException yamlex)
-                            {
-                                LogManager.Warn($"Failed to parse Map {name}. \n\n {yamlex}");
-                            }
-                            catch (Exception ex)
-                            {
-                                LogManager.Warn($"Exception when trying to parse Map {name}. \n\n {ex}");
-                            }
-                        });
-                    }
-                    else
-                    {
-                        SerializableMap map = Deserializer.Deserialize<SerializableMap>(File.ReadAllText(path));
                         map.FileName = name;
                         LoadedMaps[map.FileName] = map;
-                        LogManager.Debug($"Loaded map {name} on main thread");
-                    }
+                        LogManager.Debug($"Loaded map {name} from {Path.GetExtension(path)} on background thread");
+                    });
                 }
-                catch (YamlException yamlex)
+                else
                 {
-                    LogManager.Warn($"Failed to parse Map {name}. \n\n {yamlex}");
-                    continue;
-                }
-                catch (Exception ex)
-                {
-                    LogManager.Warn($"Exception when trying to parse Map {name}. \n\n {ex}");
-                    continue;
+                    SerializableMap? map = TryDeserializeFile<SerializableMap>(path);
+                    if (map == null)
+                        continue;
+
+                    map.FileName = name;
+                    LoadedMaps[map.FileName] = map;
+                    LogManager.Debug($"Loaded map {name} from {Path.GetExtension(path)} on main thread");
                 }
             }
         }
@@ -691,26 +740,15 @@ namespace ThaumielMapEditor.API.Helpers
                 return;
             }
 
-            foreach (string filename in ThaumFileManager.GetFilesInDirectory(directory))
+            foreach (string path in GetPreferredFiles(directory))
             {
-                if (!IsYamlFile(filename))
+                SerializableSchematic? schematic = TryDeserializeFile<SerializableSchematic>(path);
+                if (schematic == null)
                     continue;
 
-                try
-                {
-                    SerializableSchematic schematic = Deserializer.Deserialize<SerializableSchematic>(File.ReadAllText(filename));
-                    schematic.FileName = Path.GetFileNameWithoutExtension(filename);
-                    LoadedSchematics[schematic.FileName] = schematic;
-                    LogManager.Debug($"Loaded schematic '{schematic.FileName}' from custom directory '{directory}'.");
-                }
-                catch (YamlException yamlex)
-                {
-                    LogManager.Warn($"Failed to parse schematic '{Path.GetFileNameWithoutExtension(filename)}' in '{directory}'.\n\n{yamlex}");
-                }
-                catch (Exception ex)
-                {
-                    LogManager.Warn($"Exception when loading schematic '{Path.GetFileNameWithoutExtension(filename)}' in '{directory}'.\n\n{ex}");
-                }
+                schematic.FileName = Path.GetFileNameWithoutExtension(path);
+                LoadedSchematics[schematic.FileName] = schematic;
+                LogManager.Debug($"Loaded schematic '{schematic.FileName}' from custom directory '{directory}'.");
             }
         }
 
@@ -722,13 +760,15 @@ namespace ThaumielMapEditor.API.Helpers
                 return null;
             }
 
-            string ymlPath = Path.Combine(directory, $"{schematicName}.yml");
-            if (File.Exists(ymlPath))
-                return TryLoadSchematicFromPath(ymlPath);
-
-            string yamlPath = Path.Combine(directory, $"{schematicName}.yaml");
-            if (File.Exists(yamlPath))
-                return TryLoadSchematicFromPath(yamlPath);
+            string[] files = ThaumFileManager.GetFilesInDirectory(directory);
+            foreach (string extension in new[] { ".bin", ".yml", ".yaml" })
+            {
+                foreach (string path in files)
+                {
+                    if (Path.GetExtension(path).Equals(extension, StringComparison.OrdinalIgnoreCase) && Path.GetFileNameWithoutExtension(path).Equals(schematicName, StringComparison.OrdinalIgnoreCase))
+                        return TryLoadSchematicFromPath(path);
+                }
+            }
 
             LogManager.Warn($"Schematic '{schematicName}' not found in directory '{directory}'.");
             return null;
@@ -788,7 +828,7 @@ namespace ThaumielMapEditor.API.Helpers
         /// <summary>
         /// Spawns a schematic from a file path at the specified position with default rotation and scale.
         /// </summary>
-        /// <param name="path">The full file path to the schematic YAML file.</param>
+        /// <param name="path">The full file path to the schematic file.</param>
         /// <param name="position">The world position at which to place the schematic.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic, or <see langword="null"/> if the file could not be loaded.</returns>
         public static SchematicData? SpawnSchematicFromPath(string path, Vector3 position)
@@ -803,7 +843,7 @@ namespace ThaumielMapEditor.API.Helpers
         /// <summary>
         /// Spawns a schematic from a file path at the specified position and rotation with default scale.
         /// </summary>
-        /// <param name="path">The full file path to the schematic YAML file.</param>
+        /// <param name="path">The full file path to the schematic file.</param>
         /// <param name="position">The world position at which to place the schematic.</param>
         /// <param name="rotation">The rotation to apply to the schematic.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic, or <see langword="null"/> if the file could not be loaded.</returns>
@@ -819,7 +859,7 @@ namespace ThaumielMapEditor.API.Helpers
         /// <summary>
         /// Spawns a schematic from a file path at the specified position, rotation, and scale.
         /// </summary>
-        /// <param name="path">The full file path to the schematic YAML file.</param>
+        /// <param name="path">The full file path to the schematic file.</param>
         /// <param name="position">The world position at which to place the schematic.</param>
         /// <param name="rotation">The rotation to apply to the schematic.</param>
         /// <param name="scale">The scale to apply to the schematic.</param>
@@ -836,7 +876,7 @@ namespace ThaumielMapEditor.API.Helpers
         /// <summary>
         /// Attempts to load and deserialize a <see cref="SerializableSchematic"/> from a file path.
         /// </summary>
-        /// <param name="path">The full file path to the schematic YAML file.</param>
+        /// <param name="path">The full file path to the schematic file.</param>
         /// <returns>A <see cref="SerializableSchematic"/> if successful, otherwise <see langword="null"/>.</returns>
         private static SerializableSchematic? TryLoadSchematicFromPath(string path)
         {
@@ -846,23 +886,13 @@ namespace ThaumielMapEditor.API.Helpers
                 return null;
             }
 
-            try
-            {
-                SerializableSchematic schematic = Deserializer.Deserialize<SerializableSchematic>(File.ReadAllText(path));
-                schematic.FileName = Path.GetFileNameWithoutExtension(path);
-                LogManager.Debug($"Loaded schematic from path '{path}'.");
-                return schematic;
-            }
-            catch (YamlException yamlex)
-            {
-                LogManager.Warn($"Failed to parse schematic at '{path}'.\n\n{yamlex}");
+            SerializableSchematic? schematic = TryDeserializeFile<SerializableSchematic>(path);
+            if (schematic == null)
                 return null;
-            }
-            catch (Exception ex)
-            {
-                LogManager.Warn($"Exception when loading schematic at '{path}'.\n\n{ex}");
-                return null;
-            }
+
+            schematic.FileName = Path.GetFileNameWithoutExtension(path);
+            LogManager.Debug($"Loaded schematic from path '{path}'.");
+            return schematic;
         }
 
         /// <summary>
@@ -2202,9 +2232,9 @@ namespace ThaumielMapEditor.API.Helpers
 
             string mapsDir = ThaumFileManager.Dir(["Maps"]);
             ThaumFileManager.TryCreateDirectory(mapsDir);
-            string finalPath = Path.Combine(mapsDir, $"{safeName}.yml");
+            string finalPath = Path.Combine(mapsDir, $"{safeName}.bin");
             string tempPath = finalPath + ".tmp";
-            File.WriteAllText(tempPath, Serializer.Serialize(map));
+            File.WriteAllBytes(tempPath, BinarySerializer.Serialize(map));
             File.Copy(tempPath, finalPath, overwrite: true);
             try
             {

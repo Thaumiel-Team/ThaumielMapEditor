@@ -11,6 +11,7 @@ using MapGeneration;
 using Mirror;
 using System;
 using System.Linq;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -37,6 +38,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Setting this on a spawned camera respawns it in place with the new prefab.
         /// </summary>
         [YamlMember(Alias = "CameraType")]
+        [BinaryProperty(Name = "CameraType")]
         public CameraType Type
         {
             get;
@@ -60,6 +62,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// the underlying <see cref="Base"/> when available.
         /// </summary>
         [YamlMember(Alias = "Label")]
+        [BinaryProperty(Name = "Label")]
         public string Label
         {
             get;
@@ -103,6 +106,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Proxy property for <see cref="Room"/> to allow serialization as <see cref="RoomName"/>.
         /// </summary>
         [YamlMember(Alias = "Room")]
+        [BinaryProperty(Name = "Room")]
         public RoomName RoomName
         {
             get => Room?.Name ?? RoomName.Outside;
@@ -114,6 +118,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkVerticalConstraint"/>.
         /// </summary>
         [YamlMember(Alias = "VerticalConstraint")]
+        [BinaryProperty(Name = "VerticalConstraint")]
         public Vector2 VerticalConstraint
         {
             get;
@@ -136,6 +141,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkHorizontalConstraint"/>.
         /// </summary>
         [YamlMember(Alias = "HorizontalConstraint")]
+        [BinaryProperty(Name = "HorizontalConstraint")]
         public Vector2 HorizontalConstraint
         {
             get;
@@ -158,6 +164,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkZoomConstraint"/>.
         /// </summary>
         [YamlMember(Alias = "ZoomConstraint")]
+        [BinaryProperty(Name = "ZoomConstraint")]
         public Vector2 ZoomConstraint
         {
             get;

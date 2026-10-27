@@ -22,6 +22,16 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
         public static bool TryGetLocker(Player player, out LockerObject? locker) =>
             ObjectSettingsHelper.TryGetServer(player, out locker) && locker != null;
 
+        public static Chambers GetSelectedChamber(Player player)
+        {
+            LockerChamberSetting? selector = CustomSetting.GetPlayerSetting<LockerChamberSetting>(LockerChamberSetting.SettingId, player);
+            int index = selector != null ? selector.ValidatedSelectedIndex : 0;
+            if (index < 0)
+                return 0;
+
+            return (Chambers)index;
+        }
+
         public static int GetSelectedChamberIndex(Player player)
         {
             LockerChamberSetting? selector = CustomSetting.GetPlayerSetting<LockerChamberSetting>(LockerChamberSetting.SettingId, player);
@@ -65,7 +75,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerObject? locker) && locker != null)
             {
                 int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-                TmeChamber? chamber = locker.GetChamber(selected);
+                TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
                 ChamberData? data = chamber?.Data.FirstOrDefault();
                 string chamberSummary = chamber == null || data == null ? $"Chamber {selected}: empty" : $"Chamber {selected}: {data.ItemType} x{data.AmountToSpawn} ({data.SpawnPercent}%, {chamber.Permissions})";
 
@@ -202,7 +212,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
                 return;
 
             int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            TmeChamber? chamber = locker.GetChamber(selected);
+            TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
             if (chamber != null)
             {
                 Base.DefaultOptionIndex = IndexOf(chamber.Permissions);
@@ -227,8 +237,8 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
             DoorPermissionFlags value = Values[ValidatedSelectedIndex];
 
-            TmeChamber chamber = locker.GetOrCreateChamber(selected);
-            chamber.Permissions = value;
+            TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
+            chamber?.Permissions = value;
 
             if (locker.Base?.Chambers != null && selected >= 0 && selected < locker.Base.Chambers.Length)
                 locker.Base.Chambers[selected].RequiredPermissions = value;
@@ -257,8 +267,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            ItemType current = locker.GetChamber(selected)?.Data.FirstOrDefault()?.ItemType ?? Values[0];
+            ItemType current = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner))?.Data.FirstOrDefault()?.ItemType ?? Values[0];
             Base.DefaultOptionIndex = IndexOf(current);
         }
 
@@ -273,12 +282,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
             ItemType value = Values[ValidatedSelectedIndex];
-
-            TmeChamber chamber = locker.GetOrCreateChamber(selected);
-            ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
-            entry.ItemType = value;
+            TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
+            if (chamber != null)
+            {
+                ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
+                entry.ItemType = value;
+            }
         }
 
         private static ChamberData EnsureEntry(TmeChamber chamber)
@@ -311,8 +321,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            float chance = locker.GetChamber(selected)?.Data.FirstOrDefault()?.SpawnPercent ?? 100f;
+            float chance = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner))?.Data.FirstOrDefault()?.SpawnPercent ?? 100f;
             DefaultValue = ToolGunMenu.Clamp(chance, 0f, 100f);
         }
 
@@ -327,10 +336,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            TmeChamber chamber = locker.GetOrCreateChamber(selected);
-            ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
-            entry.SpawnPercent = SelectedValueFloat;
+            TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
+            if (chamber != null)
+            {
+                ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
+                entry.SpawnPercent = SelectedValueFloat;
+            }
         }
 
         private static ChamberData EnsureEntry(TmeChamber chamber)
@@ -363,8 +374,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            int amount = locker.GetChamber(selected)?.Data.FirstOrDefault()?.AmountToSpawn ?? 1;
+            int amount = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner))?.Data.FirstOrDefault()?.AmountToSpawn ?? 1;
             DefaultValue = ToolGunMenu.Clamp(amount, 1f, 10f);
         }
 
@@ -379,10 +389,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            TmeChamber chamber = locker.GetOrCreateChamber(selected);
-            ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
-            entry.AmountToSpawn = SelectedValueInt < 1 ? 1 : SelectedValueInt;
+            TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
+            if (chamber != null)
+            {
+                ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
+                entry.AmountToSpawn = SelectedValueInt < 1 ? 1 : SelectedValueInt;
+            }
         }
 
         private static ChamberData EnsureEntry(TmeChamber chamber)

@@ -7,6 +7,7 @@
 
 using AdminToys;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -37,6 +38,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Setting this property updates the underlying <see cref="Base"/> instance's <c>TextFormat</c> if the object has already been created.
         /// </remarks>
         [YamlMember(Alias = "Text")]
+        [BinaryProperty(Name = "Text")]
         public string Text
         {
             get;
@@ -57,6 +59,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Setting this property updates the underlying <see cref="Base"/> instance's <c>DisplaySize</c> if the object has already been created.
         /// </remarks>
         [YamlMember(Alias = "DisplaySize")]
+        [BinaryProperty(Name = "DisplaySize")]
         public Vector2 DisplaySize
         {
             get;

@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using MapGeneration.Distributors;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Extensions;
@@ -47,6 +48,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
         /// Setting this on a spawned locker respawns it in place with the new prefab
         /// </summary>
         [YamlMember(Alias = "LockerType")]
+        [BinaryProperty(Name = "LockerType")]
         public LockerType Type
         {
             get;
@@ -90,6 +92,43 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
             };
         }
 
+        public bool TryGetChamber(Chambers value, out LockerChamber? chamber)
+        {
+            chamber = GetChamber(value);
+            return chamber != null;
+        }
+
+        public LockerChamber? GetChamber(Chambers value)
+        {
+            foreach (LockerChamber chamber in Chambers)
+            {
+                if (chamber.Index != (int)value)
+                    continue;
+
+                return chamber;
+            }
+
+            return null;
+        }
+
+        private void ParseChambers()
+        {
+            Chambers.Clear();
+
+            uint index = 0;
+            foreach (MapGeneration.Distributors.LockerChamber basechamber in Base.Chambers)
+            {
+                LockerChamber chamber = new()
+                {
+                    Base = basechamber,
+                    Index = index
+                };
+                
+                index++;
+                Chambers.Add(chamber);
+            }
+        }
+
         /// <inheritdoc/>
         public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
         {
@@ -122,6 +161,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
             }
 
             locker.ParentRoom = RoomExtensions.GetClosestRoomToPosition(Position)?.Base ?? null;
+            ParseChambers();
             NetworkServer.Spawn(locker.gameObject);
             Timing.CallDelayed(Timing.WaitForOneFrame, () =>
             {
@@ -170,6 +210,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
             }
 
             locker.ParentRoom = RoomExtensions.GetClosestRoomToPosition(Position)?.Base ?? null;
+            ParseChambers();
             NetworkServer.Spawn(locker.gameObject);
             NetId = locker.netId;
             Timing.CallDelayed(Timing.WaitForOneFrame, () =>
@@ -237,30 +278,8 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
         /// <summary>
         /// Gets the serialized chamber definition for the given index, or <see langword="null"/> when not configured.
         /// </summary>
-        public LockerChamber? GetChamber(int index)
-        {
-            foreach (LockerChamber chamber in Chambers)
-            {
-                if (chamber.Index == (uint)index)
-                    return chamber;
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Gets the serialized chamber definition for the given index, creating it with defaults when missing.
-        /// </summary>
-        public LockerChamber GetOrCreateChamber(int index)
-        {
-            LockerChamber? existing = GetChamber(index);
-            if (existing != null)
-                return existing;
-
-            LockerChamber created = new() { Index = (uint)index };
-            Chambers.Add(created);
-            return created;
-        }
+        [Obsolete()]
+        public LockerChamber? GetChamber(int index) => GetChamber((Chambers)index);
 
         /// <summary>
         /// Removes the serialized chamber definition for the given index.

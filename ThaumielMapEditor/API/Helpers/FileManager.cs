@@ -26,6 +26,16 @@ namespace ThaumielMapEditor.API.Helpers
         public static event Action<string, string>? OnFileReadOnBackgroundThread;
 
         /// <summary>
+        /// Invoked when <see cref="ReadFileBytesInBackground"/> is called.
+        /// </summary>
+        /// <remarks>
+        /// Already dispatched by <see cref="MainThreadDispatcher"/>.
+        /// Arg1 = File path
+        /// Arg2 = File content (Can be empty if failed to read)
+        /// </remarks>
+        public static event Action<string, byte[]>? OnFileBytesReadOnBackgroundThread;
+
+        /// <summary>
         /// Gets the Thaumiel directory
         /// </summary>
         /// <returns>Directory path to the Thaumiel directory</returns>
@@ -99,6 +109,40 @@ namespace ThaumielMapEditor.API.Helpers
                 {
                     onComplete?.Invoke(content);
                     OnFileReadOnBackgroundThread?.Invoke(path, content);
+                });
+            });
+        }
+
+        /// <summary>
+        /// Reads the specified file at the file path in the background.
+        /// </summary>
+        /// <param name="path">The file path to read.</param>
+        /// <param name="onComplete">Fired when the reading is complete with the read bytes.</param>
+        public static void ReadFileBytesInBackground(string path, Action<byte[]> onComplete)
+        {
+            if (!File.Exists(path))
+            {
+                onComplete?.Invoke([]);
+                return;
+            }
+
+            Task.Run(() =>
+            {
+                byte[] content = [];
+
+                try
+                {
+                    content = File.ReadAllBytes(path);
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Error($"Exception while reading file on background thread: {ex}");
+                }
+
+                MainThreadDispatcher.Dispatch(() =>
+                {
+                    onComplete?.Invoke(content);
+                    OnFileBytesReadOnBackgroundThread?.Invoke(path, content);
                 });
             });
         }

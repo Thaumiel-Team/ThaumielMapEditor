@@ -12,6 +12,7 @@ using LabApi.Features.Wrappers;
 using Mirror;
 using SecretLabNAudio.Core;
 using SecretLabNAudio.Core.Extensions;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Components.Tools.Helpers;
 using ThaumielMapEditor.API.Data;
@@ -35,21 +36,27 @@ namespace ThaumielMapEditor.API.Components.Tools
     public class ColliderTrigger : ToolBase
     {
         [YamlMember(Alias = "Bounds")]
+        [BinaryProperty(Name = "Bounds")]
         public Vector3 Bounds { get; set; }
 
         [YamlMember(Alias = "OnEntered")]
+        [BinaryProperty(Name = "OnEntered")]
         public Classes OnEntered { get; set; } = new();
 
         [YamlMember(Alias = "OnExited")]
+        [BinaryProperty(Name = "OnExited")]
         public Classes OnExited { get; set; } = new();
 
         [YamlMember(Alias = "OnSpawned")]
+        [BinaryProperty(Name = "OnSpawned")]
         public Classes OnSpawned { get; set; } = new();
 
         [YamlMember(Alias = "OnDestroyed")]
+        [BinaryProperty(Name = "OnDestroyed")]
         public Classes OnDestroyed { get; set; } = new();
 
         [YamlMember(Alias = "Permission")]
+        [BinaryProperty(Name = "Permission")]
         public Permission Permissions { get; set; } = new();
 
 #pragma warning disable CS8618

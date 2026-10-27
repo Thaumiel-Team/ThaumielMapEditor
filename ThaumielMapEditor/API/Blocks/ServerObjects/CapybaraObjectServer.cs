@@ -7,6 +7,7 @@
 
 using AdminToys;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -23,6 +24,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 #pragma warning restore CS8618
 
         [YamlMember(Alias = "Collisions")]
+        [BinaryProperty(Name = "Collisions")]
         public bool CollisionsEnabled
         {
             get;

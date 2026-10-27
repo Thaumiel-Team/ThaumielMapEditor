@@ -11,6 +11,7 @@ using MapGeneration.RoomConnectors;
 using MEC;
 using Mirror;
 using System;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -55,6 +56,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// The visual and functional type of this door.
         /// </summary>
         [YamlMember(Alias = "DoorType")]
+        [BinaryProperty(Name = "DoorType")]
         public DoorType DoorType
         {
             get;
@@ -78,6 +80,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Syncs to the live door object when changed after spawning.
         /// </summary>
         [YamlMember(Alias = "Permissions")]
+        [BinaryProperty(Name = "Permissions")]
         public DoorPermissionFlags Permissions
         {
             get;
@@ -96,6 +99,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Syncs to the live door object when changed after spawning.
         /// </summary>
         [YamlMember(Alias = "RequireAllPermissions")]
+        [BinaryProperty(Name = "RequireAllPermissions")]
         public bool RequireAllPermissions
         {
             get;
@@ -114,6 +118,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Syncs to the live door object when changed after spawning.
         /// </summary>
         [YamlMember(Alias = "Bypass2176")]
+        [BinaryProperty(Name = "Bypass2176")]
         public bool Bypass2176
         {
             get;
@@ -133,6 +138,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Syncs to the live door object when changed after spawning.
         /// </summary>
         [YamlMember(Alias = "MaxHealth")]
+        [BinaryProperty(Name = "MaxHealth")]
         public float MaxHealth
         {
             get;
@@ -152,6 +158,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Syncs to the live door object when changed after spawning.
         /// </summary>
         [YamlMember(Alias = "Health")]
+        [BinaryProperty(Name = "Health")]
         public float Health
         {
             get;
@@ -169,6 +176,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Whether the door is currently open.
         /// </summary>
         [YamlMember(Alias = "IsOpen")]
+        [BinaryProperty(Name = "IsOpen")]
         public bool IsOpen
         {
             get;
@@ -187,6 +195,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Syncs to the live door object when changed after spawning.
         /// </summary>
         [YamlMember(Alias = "IsLocked")]
+        [BinaryProperty(Name = "IsLocked")]
         public bool IsLocked
         {
             get;

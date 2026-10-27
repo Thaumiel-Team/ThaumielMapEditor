@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using UnityEngine;
@@ -20,6 +21,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets or sets the intensity of the light.
         /// </summary>
         [YamlMember(Alias = "LightIntensity")]
+        [BinaryProperty(Name = "LightIntensity")]
         public float Intensity
         {
             get;
@@ -37,6 +39,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets or sets the range of the light.
         /// </summary>
         [YamlMember(Alias = "LightRange")]
+        [BinaryProperty(Name = "LightRange")]
         public float Range
         {
             get;
@@ -54,6 +57,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets or sets the color of the light.
         /// </summary>
         [YamlMember(Alias = "LightColor")]
+        [BinaryProperty(Name = "LightColor")]
         public Color Color
         {
             get;
@@ -71,6 +75,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets or sets the shadow type used by the light.
         /// </summary>
         [YamlMember(Alias = "ShadowType")]
+        [BinaryProperty(Name = "ShadowType")]
         public LightShadows Shadows
         {
             get;
@@ -104,6 +109,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets or sets the type of the light.
         /// </summary>
         [YamlMember(Alias = "LightType")]
+        [BinaryProperty(Name = "LightType")]
         public LightType Type
         {
             get;
@@ -122,6 +128,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// </summary>
 #pragma warning disable CS0618
         [YamlMember(Alias = "LightShape")]
+        [BinaryProperty(Name = "LightShape")]
         public LightShape Shape
         {
             get;

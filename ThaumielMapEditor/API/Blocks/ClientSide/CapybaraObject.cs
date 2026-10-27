@@ -8,6 +8,7 @@
 using LabApi.Features.Wrappers;
 using Mirror;
 using System;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -22,6 +23,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         public string Name { get; set; } = string.Empty;
 
         [YamlMember(Alias = "Collisions")]
+        [BinaryProperty(Name = "Collisions")]
         public bool CollisionsEnabled
         {
             get;

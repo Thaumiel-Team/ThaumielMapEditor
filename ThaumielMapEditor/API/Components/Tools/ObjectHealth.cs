@@ -7,6 +7,7 @@
 
 using System.Collections.Generic;
 using MEC;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
 using UnityEngine;
@@ -39,12 +40,14 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// Gets the <see cref="DestroyState"/> that the <see cref="ObjectHealth"/> instance will use when destroyed.
         /// </summary>
         [YamlMember(Alias = "State")]
+        [BinaryProperty(Name = "State")]
         public DestroyState State { get; set; } = DestroyState.Destroy;
 
         /// <summary>
         /// Gets or sets the max health that the <see cref="ObjectHealth"/> instance has.
         /// </summary>
         [YamlMember(Alias = "MaxHealth")]
+        [BinaryProperty(Name = "MaxHealth")]
         public float HealthMax { get; set; } = 100f;
 
         private bool _destroyed;
@@ -79,18 +82,21 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// Gets or sets the allowed <see cref="DamageType"/>s that the <see cref="ObjectHealth"/> instance can be damaged by.
         /// </summary>
         [YamlMember(Alias = "AllowedDamage")]
+        [BinaryProperty(Name = "AllowedDamage")]
         public List<DamageType> AllowedDamage { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the amount of time in seconds that the <see cref="ObjectHealth"/> instance will have untill it despawns after being destroyed.
         /// </summary>
         [YamlMember(Alias = "Despawn")]
+        [BinaryProperty(Name = "Despawn")]
         public float DespawnTime { get; set; } = 5f;
 
         /// <summary>
         /// Gets or sets the animation name that the <see cref="ObjectHealth"/> instance will play if the <see cref="State"/> is <see cref="DestroyState.Animate"/>.
         /// </summary>
         [YamlMember(Alias = "StateName")]
+        [BinaryProperty(Name = "StateName")]
         public string StateName { get; set; } = string.Empty;
 
         /// <summary>

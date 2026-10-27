@@ -8,6 +8,7 @@
 using System;
 using AdminToys;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -32,6 +33,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Gets or sets the world space size.
         /// </summary>
         [YamlMember(Alias = "BoundsSize")]
+        [BinaryProperty(Name = "BoundsSize")]
         public Vector3 BoundsSize
         {
             get => Base != null ? Base.BoundsSize : field;

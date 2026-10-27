@@ -7,6 +7,7 @@
 
 using System.Collections.Generic;
 using Interactables.Interobjects.DoorUtils;
+using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
 {
@@ -17,10 +18,13 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
     [GitBookPage("Blocks/Server/LockerObject/LockerChamber")]
     public class LockerChamber
     {
+        [YamlIgnore]
+        public MapGeneration.Distributors.LockerChamber? Base { get; set; }
+        
         /// <summary>
-        /// Gets or sets the zero-based index of this chamber within the parent locker.
+        /// Gets or sets the index of this chamber within the parent locker.
         /// </summary>
-        public uint Index { get; set; }
+        public required uint Index { get; set; }
 
         /// <summary>
         /// Gets or sets the Permissions that control which players or roles can open or interact with this chamber.

@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
@@ -30,6 +31,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// Gets or sets the mass for the <see cref="Rigidbody"/>.
         /// </summary>
         [YamlMember(Alias = "Weight")]
+        [BinaryProperty(Name = "Weight")]
         public float Weight
         {
             get;
@@ -45,6 +47,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// Gets or sets the drag for the <see cref="Rigidbody"/>.
         /// </summary>
         [YamlMember(Alias = "Drag")]
+        [BinaryProperty(Name = "Drag")]
         public float Drag
         {
             get;
@@ -59,6 +62,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// Gets or sets the rotation resistance for the <see cref="Rigidbody"/>.
         /// </summary>
         [YamlMember(Alias = "AngularDrag")]
+        [BinaryProperty(Name = "AngularDrag")]
         public float AngularDrag
         {
             get;
@@ -73,6 +77,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// Gets or sets the <see cref="CollisionDetectionMode"/> for the <see cref="Rigidbody"/>.
         /// </summary>
         [YamlMember(Alias = "CollisionMode")]
+        [BinaryProperty(Name = "CollisionMode")]
         public CollisionDetectionMode CollisionMode
         {
             get;
@@ -87,6 +92,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         /// Gets or sets whether the <see cref="Rigidbody"/> applies physics or not
         /// </summary>
         [YamlMember(Alias = "Enabled")]
+        [BinaryProperty(Name = "Enabled")]
         public bool Enabled
         {
             get;

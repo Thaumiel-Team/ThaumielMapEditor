@@ -7,6 +7,7 @@
 
 using AdminToys;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -25,6 +26,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 #pragma warning restore CS8618
 
         [YamlMember(Alias = "Color")]
+        [BinaryProperty(Name = "Color")]
         public Color Color
         {
             get;
@@ -39,6 +41,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         } = Color.white;
 
         [YamlMember(Alias = "PrimitiveType")]
+        [BinaryProperty(Name = "PrimitiveType")]
         public PrimitiveType PrimitiveType
         {
             get;
@@ -53,6 +56,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         } = PrimitiveType.Cube;
 
         [YamlMember(Alias = "PrimitiveFlags")]
+        [BinaryProperty(Name = "PrimitiveFlags")]
         public PrimitiveFlags PrimitiveFlags
         {
             get;

@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LabApi.Features.Wrappers;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
@@ -37,6 +38,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets or sets the <see cref="ClutterType"/> of this clutter object.
         /// </summary>
         [YamlMember(Alias = "ClutterType")]
+        [BinaryProperty(Name = "ClutterType")]
         public ClutterType Type
         {
             get;

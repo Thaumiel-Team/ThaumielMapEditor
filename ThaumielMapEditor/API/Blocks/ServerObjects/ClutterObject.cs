@@ -8,6 +8,7 @@
 using System;
 using MapGeneration.RoomConnectors;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -27,6 +28,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Setting this on a spawned clutter respawns it in place with the new prefab.
         /// </summary>
         [YamlMember(Alias = "ClutterType")]
+        [BinaryProperty(Name = "ClutterType")]
         public ClutterType Type
         {
             get;

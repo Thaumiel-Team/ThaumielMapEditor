@@ -9,6 +9,7 @@ using System;
 using System.Linq;
 using LabApi.Features.Wrappers;
 using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -35,6 +36,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets or sets the size.
         /// </summary>
         [YamlMember(Alias = "BoundsSize")]
+        [BinaryProperty(Name = "BoundsSize")]
         public Vector3 BoundsSize
         {
             get;

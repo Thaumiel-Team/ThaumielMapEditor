@@ -42,6 +42,7 @@ namespace ThaumielMapEditor.Commands
             Subcommands.Add(new Grab());
             Subcommands.Add(new Admin.Convert());
             Subcommands.Add(new Admin.ConvertMap());
+            Subcommands.Add(new Admin.ConvertFile());
             Subcommands.Add(new Coroutines());
             Subcommands.Add(new Debug());
         }

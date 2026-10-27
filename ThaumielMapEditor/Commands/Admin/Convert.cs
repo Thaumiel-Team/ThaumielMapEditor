@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using CommandSystem;
 using LabApi.Loader.Features.Paths;
 using ThaumielMapEditor.API.Attributes;
+using ThaumielMapEditor.API.Binary;
 using ThaumielMapEditor.API.Conversion;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Interfaces;
@@ -66,10 +67,9 @@ namespace ThaumielMapEditor.Commands.Admin
                         PMERRoot root = PMERLoader.Load(file);
                         root.Name = filename;
                         SerializableSchematic schematic = await PMERConverter.ConvertSchematicAsync(root);
-                        string yaml = Loader.Serializer.Serialize(schematic);
-                        string outputPath = ThaumFileManager.Dir(["Schematics", $"{schematicName}.yml"]);
+                        string outputPath = ThaumFileManager.Dir(["Schematics", $"{schematicName}.bin"]);
                         Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-                        File.WriteAllText(outputPath, yaml);
+                        BinarySerializer.SerializeToFile(outputPath, schematic);
 
                         LogManager.Info($"Conversion of '{schematicName}' completed successfully.");
                         Loader.ReloadSchematics();

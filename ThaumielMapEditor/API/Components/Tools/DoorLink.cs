@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
@@ -27,6 +28,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         private bool _propagating;
 
         [YamlMember(Alias = "GroupId")]
+        [BinaryProperty(Name = "GroupId")]
         public string GroupId { get; set; } = string.Empty;
 
         public override ToolType Type => ToolType.Doorlink;

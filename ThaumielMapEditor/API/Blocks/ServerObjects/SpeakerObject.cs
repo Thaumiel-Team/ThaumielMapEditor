@@ -10,6 +10,7 @@ using LabApi.Features.Wrappers;
 using LabApiExtensions.FakeExtension;
 using SecretLabNAudio.Core;
 using SecretLabNAudio.Core.Extensions;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -34,6 +35,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// </summary>
         /// <value>A <see cref="float"/> representing the volume percentage.</value>
         [YamlMember(Alias = "Volume")]
+        [BinaryProperty(Name = "Volume")]
         public float Volume
         {
             get;
@@ -50,6 +52,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// </summary>
         /// <value><see langword="true"/> if spatial audio is enabled; otherwise, <see langword="false"/>.</value>
         [YamlMember(Alias = "IsSpatial")]
+        [BinaryProperty(Name = "IsSpatial")]
         public bool IsSpatial
         {
             get;
@@ -69,6 +72,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// Only used if <see cref="IsSpatial"/> is true.
         /// </remarks>
         [YamlMember(Alias = "MinDistance")]
+        [BinaryProperty(Name = "MinDistance")]
         public float MinDistance
         {
             get;
@@ -85,6 +89,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// </summary>
         /// <value>A <see cref="float"/> representing the maximum distance in world units.</value>
         [YamlMember(Alias = "MaxDistance")]
+        [BinaryProperty(Name = "MaxDistance")]
         public float MaxDistance
         {
             get;
@@ -100,6 +105,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// </summary>
         /// <value><see langword="true"/> if the audio should loop; otherwise, <see langword="false"/>.</value>
         [YamlMember(Alias = "Loop")]
+        [BinaryProperty(Name = "Loop")]
         public bool Loop { get; set; }
 
         /// <summary>
@@ -119,6 +125,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         /// </summary>
         /// <value>A <see cref="string"/> containing the absolute path to the audio file.</value>
         [YamlMember(Alias = "Path")]
+        [BinaryProperty(Name = "Path")]
         public string Path { get; set; } = string.Empty;
 
         /// <summary>

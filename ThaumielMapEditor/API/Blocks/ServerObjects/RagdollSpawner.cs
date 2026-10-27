@@ -9,6 +9,7 @@ using LabApi.Features.Wrappers;
 using Mirror;
 using PlayerRoles;
 using PlayerStatsSystem;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -25,15 +26,19 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
         public Ragdoll? Base { get; internal set; }
 
         [YamlMember(Alias = "RoleType")]
+        [BinaryProperty(Name = "RoleType")]
         public RoleTypeId RoleType { get; set; }
 
         [YamlMember(Alias = "Chance")]
+        [BinaryProperty(Name = "Chance")]
         public float SpawnChance { get; set; }
 
         [YamlMember(Alias = "DeathReason")]
+        [BinaryProperty(Name = "DeathReason")]
         public string DeathReason { get; set; } = string.Empty;
 
         [YamlMember(Alias = "DollName")]
+        [BinaryProperty(Name = "DollName")]
         public string DollName { get; set; } = string.Empty;
 
         public override ObjectType ObjectType => ObjectType.RagdollSpawner;

@@ -18,6 +18,7 @@ This document outlines all available commands, subcommands, and required permiss
 | Subcommand | Aliases | Arguments | Permission | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `convert` | `cv` | <code>&lt;Schematic Name&gt;</code> | `tme.convert` | Converts the PMER schematic with the specified name |
+| `convertfile` | `cf` | <code>&lt;Schematic&#124;Map&gt; &lt;Name&gt; &lt;Bin&#124;Yaml&gt;</code> | `tme.convertfile` | Converts a schematic or map between the binary and YAML formats |
 | `convertmap` | `cvm` | <code>&lt;Map Name&gt;</code> | `tme.convert` | Converts the PMER map with the specified name |
 | `coroutines` | `coro, cor` | None | `tme.coroutines` | Lists all the coroutines running or ran |
 | `debug` | `deb, draw` | None | `tme.debug` | Generates drawable lines for each object. |
