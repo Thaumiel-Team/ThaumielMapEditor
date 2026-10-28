@@ -7,6 +7,7 @@
 
 using System.Collections.Generic;
 using Interactables.Interobjects.DoorUtils;
+using ThaumielMapEditor.API.Binary.Attributes;
 using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
@@ -18,7 +19,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
     [GitBookPage("Blocks/Server/LockerObject/LockerChamber")]
     public class LockerChamber
     {
-        [YamlIgnore]
+        [YamlIgnore, BinaryIgnore]
         public MapGeneration.Distributors.LockerChamber? Base { get; set; }
         
         /// <summary>
