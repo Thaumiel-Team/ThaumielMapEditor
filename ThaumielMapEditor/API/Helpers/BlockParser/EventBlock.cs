@@ -19,7 +19,10 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public List<object?> Stack { get; set; } = [];
 
-        public override void Execute(Player player)
+        public override void Execute(Player player) =>
+            Execute(player, player);
+
+        public void Execute(Player player, object? parameter)
         {
             if (Executor == null)
             {
@@ -30,7 +33,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             LogManager.Debug($"Executing event '{EventType}' with param '{ParamName}'.");
 
             Executor.PushScope();
-            Executor.SetVariable(ParamName, player);
+            Executor.SetVariable(ParamName, parameter);
             Executor.ExecuteStack(Stack!, player);
             Executor.PopScope();
         }

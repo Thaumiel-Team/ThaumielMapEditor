@@ -35,7 +35,7 @@ namespace ThaumielMapEditor.API.Helpers
         private object? _currentClient;
         private bool _isCurrentServerSide;
 
-        public void Execute(List<object> blocks, Player player, EventType? eventType = null)
+        public void Execute(List<object> blocks, Player player, EventType? eventType = null, object? eventParameter = null)
         {
             foreach (MethodBlock method in blocks.OfType<MethodBlock>())
             {
@@ -46,13 +46,8 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 foreach (EventBlock? eventBlock in blocks.OfType<EventBlock>().Where(b => b.EventType == eventType))
                 {
-                    foreach (object? block in eventBlock.Stack)
-                    {
-                        if (block == null)
-                            continue;
-
-                        ExecuteBlock(block, player);
-                    }
+                    eventBlock.SetExecutorRecursive(this);
+                    eventBlock.Execute(player, eventParameter ?? player);
                 }
 
                 FlushCurrent();
@@ -146,20 +141,20 @@ namespace ThaumielMapEditor.API.Helpers
                         blockbase.HasActiveTarget = true;
                     }
 
+                    // Invoke exactly one contextual overload so blocks that resolve their own target
+                    // (via ResolveTarget) are not executed once with the player and again with the target.
                     if (target is Player targetPlayer)
                     {
                         blockbase.Execute(targetPlayer);
                     }
+                    else if (target != null)
+                    {
+                        blockbase.Execute(target);
+                    }
                     else
                     {
                         blockbase.Execute(player);
-
-                        if (target != null)
-                        {
-                            blockbase.Execute(target);
-                        }
-                        else
-                            ExecuteParamBlocks(blockbase);
+                        ExecuteParamBlocks(blockbase);
                     }
 
                     ExecuteReturns(blockbase, target ?? player);
