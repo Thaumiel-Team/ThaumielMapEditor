@@ -501,12 +501,15 @@ namespace ThaumielMapEditor.API.Helpers
             }
         }
 
-        internal static Transform ResolveServerParentTransform(int parentId, SchematicData schematic)
+        internal static Transform? ResolveServerParentTransform(int parentId, SchematicData schematic)
         {
             if (schematic.ServerSideTransforms.TryGetValue(parentId, out Transform transform))
                 return transform;
 
-            if (schematic?.Primitive?.Transform != null)
+            if (schematic.Primitive == null)
+                return null;
+
+            if (schematic.Primitive.Transform != null)
             {
                 if (parentId != schematic.RootObjectId)
                     LogManager.Warn($"Could not find parent transform for id {parentId}, falling back to schematic root.");
@@ -515,7 +518,7 @@ namespace ThaumielMapEditor.API.Helpers
             }
 
             LogManager.Error($"Could not resolve parent transform for id {parentId} and schematic root is null.");
-            return null!;
+            return null;
         }
     }
 }
