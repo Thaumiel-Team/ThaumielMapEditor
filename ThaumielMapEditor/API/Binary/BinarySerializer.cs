@@ -255,7 +255,7 @@ namespace ThaumielMapEditor.API.Binary
             if (NeedsRuntimeTypeName(declared, type))
             {
                 writer.Write((byte)24);
-                writer.Write(type.AssemblyQualifiedName ?? type.FullName ?? type.Name);
+                writer.Write(BinaryTypeNames.GetName(type));
                 WriteInner(writer, value, type);
             }
             else
@@ -943,17 +943,8 @@ namespace ThaumielMapEditor.API.Binary
         private static Type GetDictionaryType(Type keyType, Type valueType) =>
             DictionaryTypeCache.GetOrAdd((keyType, valueType), t => typeof(Dictionary<, >).MakeGenericType(t.Key, t.Value));
 
-        private static Type? ResolveType(string assemblyQualifiedName)
-        {
-            if (RuntimeTypeCache.TryGetValue(assemblyQualifiedName, out Type value))
-                return value;
-
-            Type type = Type.GetType(assemblyQualifiedName, throwOnError: false);
-            if (type is not null)
-                RuntimeTypeCache.TryAdd(assemblyQualifiedName, type);
-
-            return type;
-        }
+        private static Type? ResolveType(string name) => 
+            BinaryTypeNames.Resolve(name);
 
         private static Func<object, object?>? CompileGetter(Type declaring, PropertyInfo prop)
         {
