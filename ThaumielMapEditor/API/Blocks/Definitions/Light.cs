@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="LightDefinition.cs" company="Thaumiel Team">
+// <copyright file="Light.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
@@ -21,7 +21,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
     /// The definition of a light source, shared by the client and server runtime representations.
     /// </summary>
     [GitBookPage("Blocks/Definitions/Light")]
-    public sealed class LightDefinition : ObjectDefinition<LightDefinition>
+    public sealed class Light : ObjectDefinition<Light>
     {
         /// <summary>
         /// Gets or sets the intensity of the light.
@@ -109,14 +109,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// </summary>
         public sealed class Server : global::ThaumielMapEditor.API.Blocks.ServerObject
         {
-            private readonly LightDefinition definition;
+            private readonly Light definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Server"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Server(ObjectBase data, LightDefinition definition)
+            public Server(ObjectBase data, Light definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;
@@ -260,14 +260,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// </summary>
         public sealed class Client : ClientObject
         {
-            private readonly LightDefinition definition;
+            private readonly Light definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Client"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Client(ObjectBase data, LightDefinition definition)
+            public Client(ObjectBase data, Light definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;

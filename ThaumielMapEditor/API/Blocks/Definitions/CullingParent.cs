@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="CullingParentDefinition.cs" company="Thaumiel Team">
+// <copyright file="CullingParent.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
@@ -19,6 +19,7 @@ using ThaumielMapEditor.Events.EventArgs.Handlers;
 using UnityEngine;
 using YamlDotNet.Serialization;
 using SpawnableCullingParent = AdminToys.SpawnableCullingParent;
+using UnityGameObject = UnityEngine.GameObject;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
@@ -26,7 +27,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
     /// The definition of a culling parent, shared by the client and server runtime representations.
     /// </summary>
     [GitBookPage("Blocks/Definitions/CullingParent")]
-    public sealed class CullingParentDefinition : ObjectDefinition<CullingParentDefinition>
+    public sealed class CullingParent : ObjectDefinition<CullingParent>
     {
         /// <summary>
         /// Gets or sets the world space bounds size.
@@ -85,14 +86,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// </summary>
         public sealed class Server : global::ThaumielMapEditor.API.Blocks.ServerObject
         {
-            private readonly CullingParentDefinition definition;
+            private readonly CullingParent definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Server"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Server(ObjectBase data, CullingParentDefinition definition)
+            public Server(ObjectBase data, CullingParent definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;
@@ -156,7 +157,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     return;
                 }
 
-                GameObject instance = UnityEngine.Object.Instantiate(PrefabHelper.CullingParent.gameObject);
+                UnityGameObject instance = UnityEngine.Object.Instantiate(PrefabHelper.CullingParent.gameObject);
                 Object = instance;
 
                 SetWorldTransform(schematic);
@@ -202,14 +203,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// </summary>
         public sealed class Client : ClientObject
         {
-            private readonly CullingParentDefinition definition;
+            private readonly CullingParent definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Client"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Client(ObjectBase data, CullingParentDefinition definition)
+            public Client(ObjectBase data, CullingParent definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;

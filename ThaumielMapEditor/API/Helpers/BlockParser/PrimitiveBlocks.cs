@@ -26,11 +26,11 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object? ReturnExecute(SchematicData schematic)
         {
-            PrimitiveDefinition definition = new();
+            Primitive definition = new();
 
             if (IsServerSide)
             {
-                PrimitiveDefinition.Server server = new(new ObjectBase { ObjectType = ObjectType.Primitive }, definition);
+                Primitive.Server server = new(new ObjectBase { ObjectType = ObjectType.Primitive }, definition);
                 server.SpawnObject(schematic);
                 return server;
             }
@@ -42,7 +42,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 Schematic = schematic,
             };
 
-            if (definition.ClientObject(state) is not PrimitiveDefinition.Client client)
+            if (definition.ClientObject(state) is not Primitive.Client client)
                 return null;
 
             schematic.SpawnedClientObjects.Add(client);
@@ -65,8 +65,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            PrimitiveDefinition.Client? client = obj as PrimitiveDefinition.Client;
-            PrimitiveDefinition.Server? server = obj as PrimitiveDefinition.Server;
+            Primitive.Client? client = obj as Primitive.Client;
+            Primitive.Server? server = obj as Primitive.Server;
             if (client is null && server is null)
                 return;
 
@@ -104,8 +104,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            PrimitiveDefinition.Client? client = obj as PrimitiveDefinition.Client;
-            PrimitiveDefinition.Server? server = obj as PrimitiveDefinition.Server;
+            Primitive.Client? client = obj as Primitive.Client;
+            Primitive.Server? server = obj as Primitive.Server;
             if (client is null && server is null)
                 return;
 
@@ -124,8 +124,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            PrimitiveDefinition.Client? client = obj as PrimitiveDefinition.Client;
-            PrimitiveDefinition.Server? server = obj as PrimitiveDefinition.Server;
+            Primitive.Client? client = obj as Primitive.Client;
+            Primitive.Server? server = obj as Primitive.Server;
             if (client is null && server is null)
                 return;
 
@@ -182,11 +182,11 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         private object GetProperty(object? obj)
         {
-            PrimitiveDefinition.Client? client = obj as PrimitiveDefinition.Client;
-            PrimitiveDefinition.Server? server = obj as PrimitiveDefinition.Server;
+            Primitive.Client? client = obj as Primitive.Client;
+            Primitive.Server? server = obj as Primitive.Server;
             if (client is null && server is null)
             {
-                LogManager.Warn("obj is not a PrimitiveDefinition.Server or PrimitiveDefinition.Client.");
+                LogManager.Warn("obj is not a Primitive.Server or Primitive.Client.");
                 return null!;
             }
 
@@ -208,7 +208,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             };
         }
 
-        private static bool HasServerCollider(PrimitiveDefinition.Client? client, PrimitiveDefinition.Server? server)
+        private static bool HasServerCollider(Primitive.Client? client, Primitive.Server? server)
         {
             if (client != null)
                 return client.ServerCollider != null;

@@ -11,7 +11,7 @@ using CommandSystem;
 using DrawableLine;
 using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Components.Tools;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
@@ -63,14 +63,14 @@ namespace ThaumielMapEditor.Commands.Admin
             if (!schematic.LODZones.IsEmpty())
                 LODHelper.DrawLines(schematic);
 
-            foreach (TeleporterObject teleporter in schematic.GetServerObject<TeleporterObject>())
+            foreach (Teleporter.Server teleporter in schematic.GetServerObject<Teleporter.Server>())
             {
                 teleporter.DrawLines();
             }
 
             foreach (ServerObject serverObject in schematic.SpawnedServerObjects)
             {
-                if (serverObject is InteractionObject interaction)
+                if (serverObject is Interactable.Server interaction)
                     interaction.DrawLines();
 
                 foreach (ColliderTrigger collider in serverObject.Tools.OfType<ColliderTrigger>().ToArray())

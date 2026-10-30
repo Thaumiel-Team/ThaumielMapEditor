@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="ClutterDefinition.cs" company="Thaumiel Team">
+// <copyright file="Clutter.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
@@ -18,6 +18,7 @@ using ThaumielMapEditor.API.Serialization;
 using ThaumielMapEditor.Events.EventArgs.Handlers;
 using UnityEngine;
 using YamlDotNet.Serialization;
+using UnityGameObject = UnityEngine.GameObject;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
@@ -25,7 +26,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
     /// The definition of a clutter object, shared by the client and server runtime representations.
     /// </summary>
     [GitBookPage("Blocks/Definitions/Clutter")]
-    public sealed class ClutterDefinition : ObjectDefinition<ClutterDefinition>
+    public sealed class Clutter : ObjectDefinition<Clutter>
     {
         /// <summary>
         /// Gets or sets the <see cref="ClutterType"/> of this clutter object.
@@ -40,12 +41,12 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         public override ObjectType ObjectType => ObjectType.Clutter;
 
         /// <summary>
-        /// Gets the <see cref="GameObject"/> prefab associated with the given <see cref="ClutterType"/>.
+        /// Gets the <see cref="UnityGameObject"/> prefab associated with the given <see cref="ClutterType"/>.
         /// </summary>
         /// <param name="type">The clutter type.</param>
         /// <returns>The matching prefab.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the type is unknown.</exception>
-        public static GameObject GetClutterPrefab(ClutterType type)
+        public static UnityGameObject GetClutterPrefab(ClutterType type)
         {
 #pragma warning disable CS8603 // Possible null reference return.
             return type switch
@@ -70,7 +71,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ClientObject? ClientObject(ObjectBase data)
         {
-            GameObject? prefab;
+            UnityGameObject? prefab;
             try
             {
                 prefab = GetClutterPrefab(Type);
@@ -105,14 +106,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// </summary>
         public sealed class Server : global::ThaumielMapEditor.API.Blocks.ServerObject
         {
-            private readonly ClutterDefinition definition;
+            private readonly Clutter definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Server"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Server(ObjectBase data, ClutterDefinition definition)
+            public Server(ObjectBase data, Clutter definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;
@@ -139,9 +140,9 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
 
             /// <summary>
-            /// Gets the underlying clutter <see cref="GameObject"/>.
+            /// Gets the underlying clutter <see cref="UnityGameObject"/>.
             /// </summary>
-            public GameObject? ClutterGameObject { get; private set; }
+            public UnityGameObject? ClutterGameObject { get; private set; }
 
             /// <summary>
             /// Gets the <see cref="SpawnableClutterConnector"/> component, if the clutter type has one.
@@ -151,7 +152,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             /// <inheritdoc/>
             public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
             {
-                GameObject clutterPrefab = UnityEngine.Object.Instantiate(GetClutterPrefab(Type));
+                UnityGameObject clutterPrefab = UnityEngine.Object.Instantiate(GetClutterPrefab(Type));
                 NetworkServer.UnSpawn(clutterPrefab);
                 ClutterGameObject = clutterPrefab;
                 Object = ClutterGameObject;
@@ -173,7 +174,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             /// </summary>
             public void Respawn()
             {
-                GameObject clutterPrefab = UnityEngine.Object.Instantiate(GetClutterPrefab(Type));
+                UnityGameObject clutterPrefab = UnityEngine.Object.Instantiate(GetClutterPrefab(Type));
                 NetworkServer.UnSpawn(clutterPrefab);
                 ClutterGameObject = clutterPrefab;
                 Object = clutterPrefab;
@@ -192,14 +193,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// </summary>
         public sealed class Client : ClientObject
         {
-            private readonly ClutterDefinition definition;
+            private readonly Clutter definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Client"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Client(ObjectBase data, ClutterDefinition definition)
+            public Client(ObjectBase data, Clutter definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;
@@ -260,7 +261,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     return;
                 }
 
-                GameObject? prefab;
+                UnityGameObject? prefab;
                 try
                 {
                     prefab = GetClutterPrefab(Type);
@@ -423,7 +424,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
 
             /// <inheritdoc/>
-            public override bool SetParent(GameObject gameObject)
+            public override bool SetParent(UnityGameObject gameObject)
             {
                 if (!gameObject.TryGetComponent(out NetworkBehaviour network))
                     return false;
@@ -445,7 +446,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             {
                 ParentNetId = (uint)parentId;
 
-                if (TryFindParentGameObject(ParentNetId, out GameObject? found))
+                if (TryFindParentGameObject(ParentNetId, out UnityGameObject? found))
                 {
                     Parent = found;
                 }

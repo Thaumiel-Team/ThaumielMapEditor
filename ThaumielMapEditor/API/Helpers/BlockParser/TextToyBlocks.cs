@@ -21,7 +21,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object? ReturnExecute(SchematicData schematic)
         {
-            TextToyDefinition.Server server = new(new ObjectBase { ObjectType = ObjectType.TextToy }, new TextToyDefinition());
+            TextToy.Server server = new(new ObjectBase { ObjectType = ObjectType.TextToy }, new TextToy());
             server.SpawnObject(schematic);
             LogManager.Debug($"Created TextToy '{Name}'.");
             return server;
@@ -34,9 +34,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not TextToyDefinition.Server server)
+            if (obj is not TextToy.Server server)
             {
-                LogManager.Warn("obj is not a TextToyDefinition.Server.");
+                LogManager.Warn("obj is not a TextToy.Server.");
                 return;
             }
 
@@ -51,9 +51,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not TextToyDefinition.Server server)
+            if (obj is not TextToy.Server server)
             {
-                LogManager.Warn("obj is not a TextToyDefinition.Server.");
+                LogManager.Warn("obj is not a TextToy.Server.");
                 return;
             }
 
@@ -73,9 +73,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         private object GetProperty(object? obj)
         {
-            if (obj is not TextToyDefinition.Server server)
+            if (obj is not TextToy.Server server)
             {
-                LogManager.Warn("obj is not a TextToyDefinition.Server.");
+                LogManager.Warn("obj is not a TextToy.Server.");
                 return null!;
             }
 

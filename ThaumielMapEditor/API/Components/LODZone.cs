@@ -51,7 +51,7 @@ namespace ThaumielMapEditor.API.Components
         {
             UpdateDictionary(player);
 
-            foreach (PrimitiveDefinition.Client prim in Schematic.GetClientObject<PrimitiveDefinition.Client>())
+            foreach (Primitive.Client prim in Schematic.GetClientObject<Primitive.Client>())
             {
                 if (!PrimitivestoUnload.Contains(prim.PrimitiveType))
                     continue;
@@ -68,7 +68,7 @@ namespace ThaumielMapEditor.API.Components
         {
             RemoveFromDictionary(player);
 
-            foreach (PrimitiveDefinition.Client prim in Schematic.GetClientObject<PrimitiveDefinition.Client>())
+            foreach (Primitive.Client prim in Schematic.GetClientObject<Primitive.Client>())
             {
                 if (!PrimitivestoUnload.Contains(prim.PrimitiveType))
                     continue;

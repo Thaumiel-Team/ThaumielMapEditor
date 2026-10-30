@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="PrimitiveDefinition.cs" company="Thaumiel Team">
+// <copyright file="Primitive.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
@@ -24,7 +24,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
     /// The definition of a primitive object, shared by the client and server runtime representations.
     /// </summary>
     [GitBookPage("Blocks/Definitions/Primitive")]
-    public class PrimitiveDefinition : ObjectDefinition<PrimitiveDefinition>
+    public class Primitive : ObjectDefinition<Primitive>
     {
         /// <summary>
         /// Gets or sets the material color.
@@ -79,14 +79,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// </summary>
         public class Server : global::ThaumielMapEditor.API.Blocks.ServerObject
         {
-            private readonly PrimitiveDefinition definition;
+            private readonly Primitive definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Server"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Server(ObjectBase data, PrimitiveDefinition definition)
+            public Server(ObjectBase data, Primitive definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;
@@ -194,14 +194,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// </summary>
         public class Client : ClientObject
         {
-            private readonly PrimitiveDefinition definition;
+            private readonly Primitive definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Client"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Client(ObjectBase data, PrimitiveDefinition definition)
+            public Client(ObjectBase data, Primitive definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;

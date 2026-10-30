@@ -14,6 +14,9 @@ using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.ToolGun.Utilities.Settings;
 using UnityEngine;
 using static ThaumielMapEditor.API.Extensions.RoomExtensions;
+using LightDef = ThaumielMapEditor.API.Blocks.Definitions.Light;
+using TextToyDef = ThaumielMapEditor.API.Blocks.Definitions.TextToy;
+using ClutterDef = ThaumielMapEditor.API.Blocks.Definitions.Clutter;
 
 namespace ThaumielMapEditor.ToolGun.Utilities
 {
@@ -123,12 +126,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities
             {
                 string name = client switch
                 {
-                    PrimitiveDefinition.Client prim when !string.IsNullOrEmpty(prim.Name) => ToolGunMenu.SanitizeDisplayText(prim.Name, MaxHintNameLength),
-                    CapybaraDefinition.Client capy when !string.IsNullOrEmpty(capy.Name) => ToolGunMenu.SanitizeDisplayText(capy.Name, MaxHintNameLength),
-                    ClutterDefinition.Client clutter when !string.IsNullOrEmpty(clutter.Name) => ToolGunMenu.SanitizeDisplayText(clutter.Name, MaxHintNameLength),
-                    CullingParentDefinition.Client culling when !string.IsNullOrEmpty(culling.Name) => ToolGunMenu.SanitizeDisplayText(culling.Name, MaxHintNameLength),
-                    TextToyDefinition.Client text => $"Text_{text.ObjectId}",
-                    LightDefinition.Client => $"Light_{client.ObjectId}",
+                    Primitive.Client prim when !string.IsNullOrEmpty(prim.Name) => ToolGunMenu.SanitizeDisplayText(prim.Name, MaxHintNameLength),
+                    Capybara.Client capy when !string.IsNullOrEmpty(capy.Name) => ToolGunMenu.SanitizeDisplayText(capy.Name, MaxHintNameLength),
+                    ClutterDef.Client clutter when !string.IsNullOrEmpty(clutter.Name) => ToolGunMenu.SanitizeDisplayText(clutter.Name, MaxHintNameLength),
+                    CullingParent.Client culling when !string.IsNullOrEmpty(culling.Name) => ToolGunMenu.SanitizeDisplayText(culling.Name, MaxHintNameLength),
+                    TextToyDef.Client text => $"Text_{text.ObjectId}",
+                    LightDef.Client => $"Light_{client.ObjectId}",
                     _ => $"id {client.ObjectId}",
                 };
 

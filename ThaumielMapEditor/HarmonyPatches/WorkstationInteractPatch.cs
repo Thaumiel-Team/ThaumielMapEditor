@@ -7,7 +7,7 @@
 
 using HarmonyLib;
 using InventorySystem.Items.Firearms.Attachments;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 
 namespace ThaumielMapEditor.HarmonyPatches
 {
@@ -20,7 +20,7 @@ namespace ThaumielMapEditor.HarmonyPatches
             if (ply == null)
                 return true;
 
-            if (!WorkstationObject.WorkstationCache.TryGetValue(__instance, out var workstation))
+            if (!Workstation.Server.WorkstationCache.TryGetValue(__instance, out var workstation))
                 return true;
 
             if (!workstation.AllowInteractions)

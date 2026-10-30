@@ -10,7 +10,7 @@ using AdminToys;
 using HarmonyLib;
 using Interactables.Interobjects.DoorUtils;
 using LabApi.Features.Wrappers;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Helpers;
 using static AdminToys.InvisibleInteractableToy;
 
@@ -20,7 +20,7 @@ namespace ThaumielMapEditor.HarmonyPatches
     [DoNotParse]
     public static class InteractToyValidatePatch
     {
-        public static event Action<InteractionObject, Player>? OnDenied;
+        public static event Action<Interactable.Server, Player>? OnDenied;
 
         [HarmonyPatch(typeof(InteractableToySearchCompletor), nameof(InteractableToySearchCompletor.ValidateStart))]
         [HarmonyPrefix]
@@ -29,7 +29,7 @@ namespace ThaumielMapEditor.HarmonyPatches
             if (__instance == null || __instance._target == null)
                 return true;
 
-            if (!InteractionObject.TryGetInteractionObject(__instance._target, out var interactionobj))
+            if (!Interactable.Server.TryGetInteractionObject(__instance._target, out var interactionobj))
             {
                 LogManager.Debug($"Failed to get interaction object for {__instance._target.name}.");
                 return true;
@@ -79,7 +79,7 @@ namespace ThaumielMapEditor.HarmonyPatches
             if (__instance == null || ply == null)
                 return true;
 
-            if (!InteractionObject.TryGetInteractionObject(__instance, out var interactionobj))
+            if (!Interactable.Server.TryGetInteractionObject(__instance, out var interactionobj))
             {
                 LogManager.Debug($"Failed to get interaction object for {__instance.name}.");
                 return true;

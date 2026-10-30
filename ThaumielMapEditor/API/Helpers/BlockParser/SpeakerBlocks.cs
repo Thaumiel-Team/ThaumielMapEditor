@@ -5,7 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 
 namespace ThaumielMapEditor.API.Helpers.BlockParser
@@ -18,7 +18,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object? ReturnExecute(SchematicData schematic)
         {
-            SpeakerObject server = new();
+            Speaker.Server server = new();
             server.SpawnObject(schematic);
             LogManager.Debug($"Created Speaker '{Name}'.");
             return server;
@@ -31,9 +31,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not SpeakerObject server)
+            if (obj is not Speaker.Server server)
             {
-                LogManager.Warn("obj is not a SpeakerObject.");
+                LogManager.Warn("obj is not a Speaker.Server.");
                 return;
             }
 
@@ -47,9 +47,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not SpeakerObject server)
+            if (obj is not Speaker.Server server)
             {
-                LogManager.Warn("obj is not a SpeakerObject.");
+                LogManager.Warn("obj is not a Speaker.Server.");
                 return;
             }
 
@@ -63,9 +63,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not SpeakerObject server)
+            if (obj is not Speaker.Server server)
             {
-                LogManager.Warn("obj is not a SpeakerObject.");
+                LogManager.Warn("obj is not a Speaker.Server.");
                 return;
             }
 
@@ -79,9 +79,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not SpeakerObject server)
+            if (obj is not Speaker.Server server)
             {
-                LogManager.Warn("obj is not a SpeakerObject.");
+                LogManager.Warn("obj is not a Speaker.Server.");
                 return;
             }
 
@@ -95,9 +95,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not SpeakerObject server)
+            if (obj is not Speaker.Server server)
             {
-                LogManager.Warn("obj is not a SpeakerObject.");
+                LogManager.Warn("obj is not a Speaker.Server.");
                 return;
             }
 
@@ -111,9 +111,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not SpeakerObject server)
+            if (obj is not Speaker.Server server)
             {
-                LogManager.Warn("obj is not a SpeakerObject.");
+                LogManager.Warn("obj is not a Speaker.Server.");
                 return;
             }
 
@@ -127,9 +127,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not SpeakerObject server)
+            if (obj is not Speaker.Server server)
             {
-                LogManager.Warn("obj is not a SpeakerObject.");
+                LogManager.Warn("obj is not a Speaker.Server.");
                 return;
             }
 
@@ -143,9 +143,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public override void Execute(object obj)
         {
-            if (obj is not SpeakerObject server)
+            if (obj is not Speaker.Server server)
             {
-                LogManager.Warn("obj is not a SpeakerObject.");
+                LogManager.Warn("obj is not a Speaker.Server.");
                 return;
             }
 
@@ -158,9 +158,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public override void Execute(object obj)
         {
-            if (obj is not SpeakerObject server)
+            if (obj is not Speaker.Server server)
             {
-                LogManager.Warn("obj is not a SpeakerObject.");
+                LogManager.Warn("obj is not a Speaker.Server.");
                 return;
             }
 
@@ -175,21 +175,21 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object? ReturnExecute()
         {
-            return ResolveTarget() is SpeakerObject server ? GetProperty(server) : null!;
+            return ResolveTarget() is Speaker.Server server ? GetProperty(server) : null!;
         }
 
         public override object? ReturnExecute(object obj)
         {
-            if (ResolveTarget(obj) is not SpeakerObject server)
+            if (ResolveTarget(obj) is not Speaker.Server server)
             {
-                LogManager.Warn("obj is not a SpeakerObject.");
+                LogManager.Warn("obj is not a Speaker.Server.");
                 return null!;
             }
 
             return GetProperty(server);
         }
 
-        private object GetProperty(SpeakerObject server)
+        private object GetProperty(Speaker.Server server)
         {
             return Property switch
             {

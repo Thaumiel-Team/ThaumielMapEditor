@@ -12,11 +12,13 @@ using System.Linq;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.Definitions;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using LabPickup = LabApi.Features.Wrappers.Pickup;
+using PickupDef = ThaumielMapEditor.API.Blocks.Definitions.Pickup;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.ToolGun.Utilities.Settings;
 using UnityEngine;
+using UnityGameObject = UnityEngine.GameObject;
 
 namespace ThaumielMapEditor.ToolGun.Utilities
 {
@@ -64,7 +66,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
             PickupPreview.Hide(settings);
             settings.SelectedServer = server;
             settings.SelectedClient = client;
-            if (server is PickupObject pickup)
+            if (server is PickupDef.Server pickup)
                 PickupPreview.Show(settings, pickup);
                 
             StartSelectionDraw(player, settings);
@@ -220,7 +222,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
                     if (obj == null)
                         continue;
 
-                    if (obj is PrimitiveDefinition.Client prim && prim.ServerCollider != null && collider == prim.ServerCollider)
+                    if (obj is Primitive.Client prim && prim.ServerCollider != null && collider == prim.ServerCollider)
                     {
                         client = obj;
                         return true;
@@ -248,8 +250,8 @@ namespace ThaumielMapEditor.ToolGun.Utilities
             ItemPickupBase? itemBase = collider.GetComponentInParent<ItemPickupBase>();
             if (itemBase != null)
             {
-                Pickup? worldPickup = Pickup.Get(itemBase);
-                if (worldPickup != null && PickupObject.IsPickup(worldPickup, out PickupObject? pickupSpawner) && pickupSpawner != null)
+                LabPickup? worldPickup = LabPickup.Get(itemBase);
+                if (worldPickup != null && PickupDef.Server.IsPickup(worldPickup, out PickupDef.Server? pickupSpawner) && pickupSpawner != null)
                 {
                     server = pickupSpawner;
                     return true;
@@ -258,10 +260,10 @@ namespace ThaumielMapEditor.ToolGun.Utilities
 
             foreach (ServerObject obj in ServerObject.SpawnedObjects.ToArray())
             {
-                if (obj is not RagdollSpawner ragdoll)
+                if (obj is not RagdollSpawner.Server ragdoll)
                     continue;
 
-                GameObject? candidate = ragdoll.Base?.Base.gameObject;
+                UnityGameObject? candidate = ragdoll.Base?.Base.gameObject;
                 if (candidate == null)
                     continue;
 

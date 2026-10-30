@@ -8,7 +8,8 @@
 using LabApi.Features.Wrappers;
 using MapGeneration;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
+using CameraDef = ThaumielMapEditor.API.Blocks.Definitions.Camera;
 using UnityEngine;
 using CameraType = ThaumielMapEditor.API.Enums.CameraType;
 
@@ -26,13 +27,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Camera;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<CameraObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<CameraDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new CameraLabelSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
                 Base.DefaultText = ToolGunMenu.SanitizeDisplayText(camera.Label, MaxLabelLength);
         }
 
@@ -41,7 +42,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
             {
                 if (InputText == ToolGunMenu.SanitizeDisplayText(camera.Label, MaxLabelLength))
                     return;
@@ -61,13 +62,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Camera;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<CameraObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<CameraDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new CameraTypeSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
                 Base.DefaultOptionIndex = IndexOf(camera.Type);
         }
 
@@ -76,7 +77,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
                 camera.Type = Values[ValidatedSelectedIndex];
         }
     }
@@ -91,13 +92,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Camera;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<CameraObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<CameraDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new CameraRoomSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
                 Base.DefaultOptionIndex = IndexOf(camera.RoomName);
         }
 
@@ -106,7 +107,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
                 camera.RoomName = Values[ValidatedSelectedIndex];
         }
     }
@@ -119,7 +120,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Camera;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<CameraObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<CameraDef.Server>(player);
     }
 
     public class CameraVerticalMinSetting : CameraSliderSetting
@@ -134,7 +135,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
                 DefaultValue = ToolGunMenu.Clamp(camera.VerticalConstraint.x, -180f, 180f);
         }
 
@@ -143,7 +144,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
             {
                 Vector2 constraint = camera.VerticalConstraint;
                 constraint.x = SelectedValueFloat;
@@ -164,7 +165,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
                 DefaultValue = ToolGunMenu.Clamp(camera.VerticalConstraint.y, -180f, 180f);
         }
 
@@ -173,7 +174,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
             {
                 Vector2 constraint = camera.VerticalConstraint;
                 constraint.y = SelectedValueFloat;
@@ -194,7 +195,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
                 DefaultValue = ToolGunMenu.Clamp(camera.HorizontalConstraint.x, -180f, 180f);
         }
 
@@ -203,7 +204,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
             {
                 Vector2 constraint = camera.HorizontalConstraint;
                 constraint.x = SelectedValueFloat;
@@ -224,7 +225,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
                 DefaultValue = ToolGunMenu.Clamp(camera.HorizontalConstraint.y, -180f, 180f);
         }
 
@@ -233,7 +234,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
             {
                 Vector2 constraint = camera.HorizontalConstraint;
                 constraint.y = SelectedValueFloat;
@@ -254,7 +255,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
                 DefaultValue = ToolGunMenu.Clamp(camera.ZoomConstraint.x, 1f, 120f);
         }
 
@@ -263,7 +264,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
             {
                 Vector2 constraint = camera.ZoomConstraint;
                 constraint.x = SelectedValueFloat;
@@ -284,7 +285,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
                 DefaultValue = ToolGunMenu.Clamp(camera.ZoomConstraint.y, 1f, 120f);
         }
 
@@ -293,7 +294,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraObject? camera) && camera != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out CameraDef.Server? camera) && camera != null)
             {
                 Vector2 constraint = camera.ZoomConstraint;
                 constraint.y = SelectedValueFloat;

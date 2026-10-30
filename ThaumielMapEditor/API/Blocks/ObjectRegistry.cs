@@ -8,8 +8,7 @@
 using System;
 using System.Collections.Generic;
 using ThaumielMapEditor.API.Blocks.Definitions;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
-using ThaumielMapEditor.API.Blocks.ServerObjects.Lockers;
+using ClutterDef = ThaumielMapEditor.API.Blocks.Definitions.Clutter;
 using ThaumielMapEditor.API.Enums;
 
 namespace ThaumielMapEditor.API.Blocks
@@ -23,26 +22,26 @@ namespace ThaumielMapEditor.API.Blocks
     {
         private static readonly Dictionary<ObjectType, Func<ObjectDefinition>> Factories = new()
         {
-            [ObjectType.Primitive] = static () => new PrimitiveDefinition(),
-            [ObjectType.GameObject] = static () => new GameObjectDefinition(),
-            [ObjectType.Light] = static () => new LightDefinition(),
-            [ObjectType.Capybara] = static () => new CapybaraDefinition(),
-            [ObjectType.Clutter] = static () => new ClutterDefinition(),
-            [ObjectType.TextToy] = static () => new TextToyDefinition(),
-            [ObjectType.CullingParent] = static () => new CullingParentDefinition(),
+            [ObjectType.Primitive] = static () => new Primitive(),
+            [ObjectType.GameObject] = static () => new GameObject(),
+            [ObjectType.Light] = static () => new Light(),
+            [ObjectType.Capybara] = static () => new Capybara(),
+            [ObjectType.Clutter] = static () => new ClutterDef(),
+            [ObjectType.TextToy] = static () => new TextToy(),
+            [ObjectType.CullingParent] = static () => new CullingParent(),
 
-            [ObjectType.Door] = static () => new ServerDefinition<DoorObject>(ObjectType.Door),
-            [ObjectType.Workstation] = static () => new ServerDefinition<WorkstationObject>(ObjectType.Workstation),
-            [ObjectType.Interactable] = static () => new ServerDefinition<InteractionObject>(ObjectType.Interactable),
-            [ObjectType.Pickup] = static () => new ServerDefinition<PickupObject>(ObjectType.Pickup),
-            [ObjectType.Camera] = static () => new ServerDefinition<CameraObject>(ObjectType.Camera),
-            [ObjectType.Waypoint] = static () => new ServerDefinition<WaypointObject>(ObjectType.Waypoint),
-            [ObjectType.Locker] = static () => new ServerDefinition<LockerObject>(ObjectType.Locker),
-            [ObjectType.Target] = static () => new ServerDefinition<TargetDummyObject>(ObjectType.Target),
-            [ObjectType.Teleporter] = static () => new ServerDefinition<TeleporterObject>(ObjectType.Teleporter),
-            [ObjectType.Speaker] = static () => new ServerDefinition<SpeakerObject>(ObjectType.Speaker),
-            [ObjectType.PlayerSpawnPoint] = static () => new ServerDefinition<PlayerSpawnPoint>(ObjectType.PlayerSpawnPoint),
-            [ObjectType.RagdollSpawner] = static () => new ServerDefinition<RagdollSpawner>(ObjectType.RagdollSpawner),
+            [ObjectType.Door] = static () => new Door(),
+            [ObjectType.Workstation] = static () => new Workstation(),
+            [ObjectType.Interactable] = static () => new Interactable(),
+            [ObjectType.Pickup] = static () => new Pickup(),
+            [ObjectType.Camera] = static () => new Camera(),
+            [ObjectType.Waypoint] = static () => new Waypoint(),
+            [ObjectType.Locker] = static () => new Locker(),
+            [ObjectType.Target] = static () => new Target(),
+            [ObjectType.Teleporter] = static () => new Teleporter(),
+            [ObjectType.Speaker] = static () => new Speaker(),
+            [ObjectType.PlayerSpawnPoint] = static () => new PlayerSpawnPoint(),
+            [ObjectType.RagdollSpawner] = static () => new RagdollSpawner(),
         };
 
         /// <summary>

@@ -279,13 +279,13 @@ namespace ThaumielMapEditor.API.Helpers
             if (_isCurrentServerSide)
             {
                 LogManager.Debug($"Creating server side primitive '{block.Name}'.");
-                if (block.ReturnExecute(Schematic) is PrimitiveDefinition.Server serverObj)
+                if (block.ReturnExecute(Schematic) is Primitive.Server serverObj)
                     _currentServer = serverObj;
             }
             else
             {
                 LogManager.Debug($"Creating client side primitive '{block.Name}'.");
-                if (block.ReturnExecute(Schematic) is PrimitiveDefinition.Client clientObj)
+                if (block.ReturnExecute(Schematic) is Primitive.Client clientObj)
                     _currentClient = clientObj;
             }
         }

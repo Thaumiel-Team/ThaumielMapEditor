@@ -86,7 +86,7 @@ namespace ThaumielMapEditor.API.Components
             {
                 LODHelper.PlayersInLODZones.TryGetValue(spectator, out HashSet<LODZone>? ownZones);
 
-                HashSet<PrimitiveDefinition.Client> stalePrimitives = [];
+                HashSet<Primitive.Client> stalePrimitives = [];
                 foreach (LODZone zone in staleZones)
                 {
                     if (zone == null || (ownZones != null && ownZones.Contains(zone)))
@@ -95,7 +95,7 @@ namespace ThaumielMapEditor.API.Components
                     CollectLodPrimitives(zone, stalePrimitives);
                 }
 
-                foreach (PrimitiveDefinition.Client primitive in stalePrimitives)
+                foreach (Primitive.Client primitive in stalePrimitives)
                 {
                     if (primitive.IsSpawnedForPlayer(spectator))
                         primitive.DespawnForPlayer(spectator);
@@ -108,10 +108,10 @@ namespace ThaumielMapEditor.API.Components
             if (oldTarget == newTarget)
                 return;
 
-            HashSet<PrimitiveDefinition.Client> oldPrimitives = oldTarget != null ? CollectLodPrimitives(oldTarget) : [];
-            HashSet<PrimitiveDefinition.Client> newPrimitives = newTarget != null ? CollectLodPrimitives(newTarget) : [];
+            HashSet<Primitive.Client> oldPrimitives = oldTarget != null ? CollectLodPrimitives(oldTarget) : [];
+            HashSet<Primitive.Client> newPrimitives = newTarget != null ? CollectLodPrimitives(newTarget) : [];
 
-            foreach (PrimitiveDefinition.Client primitive in oldPrimitives)
+            foreach (Primitive.Client primitive in oldPrimitives)
             {
                 if (newPrimitives.Contains(primitive) || !primitive.IsSpawnedForPlayer(spectator))
                     continue;
@@ -119,7 +119,7 @@ namespace ThaumielMapEditor.API.Components
                 primitive.DespawnForPlayer(spectator);
             }
 
-            foreach (PrimitiveDefinition.Client primitive in newPrimitives)
+            foreach (Primitive.Client primitive in newPrimitives)
             {
                 if (oldPrimitives.Contains(primitive) || primitive.IsSpawnedForPlayer(spectator))
                     continue;
@@ -128,9 +128,9 @@ namespace ThaumielMapEditor.API.Components
             }
         }
 
-        private static HashSet<PrimitiveDefinition.Client> CollectLodPrimitives(Player target)
+        private static HashSet<Primitive.Client> CollectLodPrimitives(Player target)
         {
-            HashSet<PrimitiveDefinition.Client> result = [];
+            HashSet<Primitive.Client> result = [];
 
             if (LODHelper.PlayersInLODZones.TryGetValue(target, out HashSet<LODZone>? zones))
             {
@@ -141,7 +141,7 @@ namespace ThaumielMapEditor.API.Components
             return result;
         }
 
-        private static void CollectLodPrimitives(LODZone zone, HashSet<PrimitiveDefinition.Client> result)
+        private static void CollectLodPrimitives(LODZone zone, HashSet<Primitive.Client> result)
         {
             if (zone == null)
                 return;
@@ -151,7 +151,7 @@ namespace ThaumielMapEditor.API.Components
                 return;
 
             HashSet<PrimitiveType> unload = zone.PrimitivestoUnload.ToHashSet();
-            foreach (PrimitiveDefinition.Client primitive in schematic.GetClientObject<PrimitiveDefinition.Client>())
+            foreach (Primitive.Client primitive in schematic.GetClientObject<Primitive.Client>())
             {
                 if (unload.Contains(primitive.PrimitiveType))
                     result.Add(primitive);

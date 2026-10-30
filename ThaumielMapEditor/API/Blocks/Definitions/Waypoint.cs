@@ -1,0 +1,142 @@
+// -----------------------------------------------------------------------
+// <copyright file="Waypoint.cs" company="Thaumiel Team">
+// Copyright (c) Thaumiel Team. All rights reserved.
+// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// </copyright>
+// -----------------------------------------------------------------------
+using AdminToys;
+using Mirror;
+using ThaumielMapEditor.API.Binary.Attributes;
+using ThaumielMapEditor.API.Data;
+using ThaumielMapEditor.API.Enums;
+using ThaumielMapEditor.API.Helpers;
+using ThaumielMapEditor.API.Serialization;
+using YamlDotNet.Serialization;
+
+namespace ThaumielMapEditor.API.Blocks.Definitions
+{
+    [GitBookPage("Blocks/Definitions/Waypoint")]
+    public sealed class Waypoint : ServerDefinition<Waypoint.Server>
+    {
+        /// <inheritdoc/>
+        public override string Name => "Waypoint";
+
+        /// <inheritdoc/>
+        public override ObjectType ObjectType => ObjectType.Waypoint;
+
+        /// <summary>
+        /// The server-side representation of a waypoint.
+        /// </summary>
+        public sealed class Server : ServerObject
+        {
+            /// <summary>
+            /// Reference to the instantiated <see cref="WaypointToy"/> on the server.
+            /// </summary>
+            [YamlIgnore]
+            #pragma warning disable CS8618
+            public WaypointToy Base { get; private set; }
+            #pragma warning restore CS8618
+
+            /// <inheritdoc/>
+            public override ObjectType ObjectType { get; set; } = ObjectType.Waypoint;
+
+            /// <summary>
+            /// Whether the waypoint's bounds are visualized.
+            /// </summary>
+            [YamlMember(Alias = "VisualizeBounds")]
+            [BinaryProperty(Name = "VisualizeBounds")]
+            public bool VisualizeBounds
+            {
+                get;
+                set
+                {
+                    if (field == value)
+                        return;
+                    field = value;
+                    Base?.VisualizeBounds = value;
+                }
+            }
+
+            /// <summary>
+            /// Priority value for the waypoint.
+            /// </summary>
+            [YamlMember(Alias = "Priority")]
+            [BinaryProperty(Name = "Priority")]
+            public float Priority
+            {
+                get;
+            
+                set
+                {
+                    if (field == value)
+                        return;
+                    field = value;
+                    Base?.Priority = value;
+                }
+            }
+
+            /// <summary>
+            /// Size of the waypoint bounds as a <see cref="Vector3"/>
+            /// </summary>
+            [YamlMember(Alias = "BoundsSize")]
+            [BinaryProperty(Name = "BoundsSize")]
+            public Vector3 BoundsSize
+            {
+                get;
+                set
+                {
+                    if (field == value)
+                        return;
+                    field = value;
+                    Base?.BoundsSize = value;
+                }
+            }
+
+            /// <summary>
+            /// Identifier assigned to this waypoint instance.
+            /// </summary>
+            [YamlIgnore]
+            public byte WaypointId { get; private set; }
+
+            /// <inheritdoc/>
+            public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
+            {
+                if (PrefabHelper.WaypointToy == null)
+                {
+                    LogManager.Warn($"Failed to spawn Waypoint. Prefab is null");
+                    return;
+                }
+                WaypointToy toy = UnityEngine.Object.Instantiate(PrefabHelper.WaypointToy);
+                Base = toy;
+                NetworkServer.UnSpawn(Base.gameObject);
+                Base.VisualizeBounds = VisualizeBounds;
+                Base.Priority = Priority;
+                Base.BoundsSize = BoundsSize;
+                Object = Base.gameObject;
+                SetWorldTransform(schematic);
+                NetworkServer.Spawn(Base.gameObject);
+                NetId = Base.netId;
+                base.SpawnObject(schematic, serializable);
+            }
+
+            public void SpawnObject(SchematicData schematic)
+            {
+                if (PrefabHelper.WaypointToy == null)
+                {
+                    LogManager.Warn($"Failed to spawn Waypoint. Prefab is null");
+                    return;
+                }
+                WaypointToy toy = UnityEngine.Object.Instantiate(PrefabHelper.WaypointToy);
+                Base = toy;
+                NetworkServer.UnSpawn(Base.gameObject);
+                Base.VisualizeBounds = VisualizeBounds;
+                Base.Priority = Priority;
+                Base.BoundsSize = BoundsSize;
+                Object = Base.gameObject;
+                SetWorldTransform(schematic);
+                NetworkServer.Spawn(Base.gameObject);
+                NetId = Base.netId;
+            }
+        }
+    }
+}

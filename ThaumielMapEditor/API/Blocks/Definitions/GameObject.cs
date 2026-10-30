@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="GameObjectDefinition.cs" company="Thaumiel Team">
+// <copyright file="GameObject.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
@@ -25,7 +25,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
     /// network identity.
     /// </remarks>
     [GitBookPage("Blocks/Definitions/GameObject")]
-    public sealed class GameObjectDefinition : PrimitiveDefinition
+    public sealed class GameObject : Primitive
     {
         /// <inheritdoc/>
         public override string Name => "GameObject";
@@ -58,14 +58,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <summary>
         /// The server-side representation of a game object node.
         /// </summary>
-        public new sealed class Server : PrimitiveDefinition.Server
+        public new sealed class Server : Primitive.Server
         {
             /// <summary>
             /// Initializes a new instance of the <see cref="Server"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Server(ObjectBase data, GameObjectDefinition definition)
+            public Server(ObjectBase data, GameObject definition)
                 : base(data, definition)
             {
             }
@@ -81,14 +81,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <summary>
         /// The client-side representation of a game object node.
         /// </summary>
-        public new sealed class Client : PrimitiveDefinition.Client
+        public new sealed class Client : Primitive.Client
         {
             /// <summary>
             /// Initializes a new instance of the <see cref="Client"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Client(ObjectBase data, GameObjectDefinition definition)
+            public Client(ObjectBase data, GameObject definition)
                 : base(data, definition)
             {
                 definition.Color = Color.white;

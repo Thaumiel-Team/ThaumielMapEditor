@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="CapybaraDefinition.cs" company="Thaumiel Team">
+// <copyright file="Capybara.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
@@ -20,7 +20,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
     /// The definition of a capybara object, shared by the client and server runtime representations.
     /// </summary>
     [GitBookPage("Blocks/Definitions/Capybara")]
-    public sealed class CapybaraDefinition : ObjectDefinition<CapybaraDefinition>
+    public sealed class Capybara : ObjectDefinition<Capybara>
     {
         /// <summary>
         /// Gets or sets whether collisions are enabled.
@@ -35,7 +35,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         public override ObjectType ObjectType => ObjectType.Capybara;
 
         /// <inheritdoc/>
-        public override global::ThaumielMapEditor.API.Blocks.ServerObject? ServerObject(ObjectBase data)
+        public override Blocks.ServerObject? ServerObject(ObjectBase data)
             => new Server(data, this);
 
         /// <inheritdoc/>
@@ -56,16 +56,16 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <summary>
         /// The server-side representation of a capybara.
         /// </summary>
-        public sealed class Server : global::ThaumielMapEditor.API.Blocks.ServerObject
+        public sealed class Server : Blocks.ServerObject
         {
-            private readonly CapybaraDefinition definition;
+            private readonly Capybara definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Server"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Server(ObjectBase data, CapybaraDefinition definition)
+            public Server(ObjectBase data, Capybara definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;
@@ -85,8 +85,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.CollisionsEnabled = value;
-                    if (Base != null)
-                        Base.CollisionsEnabled = value;
+                    Base?.CollisionsEnabled = value;
                 }
             }
 
@@ -118,14 +117,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// </summary>
         public sealed class Client : ClientObject
         {
-            private readonly CapybaraDefinition definition;
+            private readonly Capybara definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Client"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Client(ObjectBase data, CapybaraDefinition definition)
+            public Client(ObjectBase data, Capybara definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;

@@ -9,6 +9,7 @@ using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
 using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Enums;
+using ClutterDef = ThaumielMapEditor.API.Blocks.Definitions.Clutter;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 {
@@ -22,13 +23,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Clutter;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<ClutterDefinition.Server>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<ClutterDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new ClutterInfo();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out ClutterDefinition.Server? clutter) && clutter != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out ClutterDef.Server? clutter) && clutter != null)
                 Content = $"Clutter Settings ({clutter.Type})";
         }
 
@@ -47,13 +48,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Clutter;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<ClutterDefinition.Server>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<ClutterDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new ClutterTypeSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out ClutterDefinition.Server? clutter) && clutter != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out ClutterDef.Server? clutter) && clutter != null)
                 Base.DefaultOptionIndex = IndexOf(clutter.Type);
         }
 
@@ -62,7 +63,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out ClutterDefinition.Server? clutter) && clutter != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out ClutterDef.Server? clutter) && clutter != null)
                 clutter.Type = Values[ValidatedSelectedIndex];
         }
     }

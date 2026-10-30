@@ -5,12 +5,12 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 
 namespace ThaumielMapEditor.API.Enums
 {
     /// <summary>
-    /// Defines the types that <see cref="TargetDummyObject"/> can use.
+    /// Defines the types that <see cref="Target.Server"/> can use.
     /// </summary>
     [GitBookPage("Enums/TargetType")]
     public enum TargetType

@@ -10,7 +10,7 @@ using ThaumielMapEditor.API.Blocks.Definitions;
 namespace ThaumielMapEditor.API.Enums
 {
     /// <summary>
-    /// Defines the types that <see cref="ClutterDefinition"/> can use.
+    /// Defines the types that <see cref="Clutter"/> can use.
     /// </summary>
     [GitBookPage("Enums/ClutterType")]
     public enum ClutterType

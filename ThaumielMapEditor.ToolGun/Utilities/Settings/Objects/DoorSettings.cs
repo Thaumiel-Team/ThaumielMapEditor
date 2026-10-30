@@ -8,21 +8,22 @@
 using LabApi.Features.Wrappers;
 using Interactables.Interobjects.DoorUtils;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
+using DoorDef = ThaumielMapEditor.API.Blocks.Definitions.Door;
 using ThaumielMapEditor.API.Enums;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 {
     public static class DoorSettingsHelper
     {
-        public static bool TryGetDoor(Player player, out DoorObject? door)
+        public static bool TryGetDoor(Player player, out DoorDef.Server? door)
         {
             door = null;
 
             if (!ToolGunMenu.TryGetSelection(player, out _, out var server, out _))
                 return false;
 
-            door = server as DoorObject;
+            door = server as DoorDef.Server;
             return door != null;
         }
 
@@ -45,7 +46,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 Base.DefaultOptionIndex = IndexOf(door.DoorType);
         }
 
@@ -54,7 +55,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 door.DoorType = Values[ValidatedSelectedIndex];
         }
     }
@@ -75,7 +76,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 Base.DefaultIsB = door.IsOpen;
         }
 
@@ -84,7 +85,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 door.IsOpen = IsOptionB;
         }
     }
@@ -105,7 +106,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 Base.DefaultIsB = door.IsLocked;
         }
 
@@ -114,7 +115,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 door.IsLocked = IsOptionB;
         }
     }
@@ -135,7 +136,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 Base.DefaultOptionIndex = IndexOf(door.Permissions);
         }
 
@@ -144,7 +145,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 door.Permissions = Values[ValidatedSelectedIndex];
         }
     }
@@ -165,7 +166,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 Base.DefaultIsB = door.RequireAllPermissions;
         }
 
@@ -174,7 +175,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 door.RequireAllPermissions = IsOptionB;
         }
     }
@@ -195,7 +196,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 Base.DefaultIsB = door.Bypass2176;
         }
 
@@ -204,7 +205,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 door.Bypass2176 = IsOptionB;
         }
     }
@@ -225,7 +226,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 DefaultValue = ToolGunMenu.Clamp(door.MaxHealth, 0f, 10000f);
         }
 
@@ -234,7 +235,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 door.MaxHealth = SelectedValueFloat;
         }
     }
@@ -255,7 +256,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 DefaultValue = ToolGunMenu.Clamp(door.Health, 0f, 10000f);
         }
 
@@ -264,7 +265,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorObject? door) && door != null)
+            if (KnownOwner != null && DoorSettingsHelper.TryGetDoor(KnownOwner, out DoorDef.Server? door) && door != null)
                 door.Health = SelectedValueFloat;
         }
     }

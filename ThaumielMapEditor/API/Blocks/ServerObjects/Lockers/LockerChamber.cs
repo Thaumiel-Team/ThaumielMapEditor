@@ -16,7 +16,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
     /// Represents a single chamber configuration for a locker.
     /// A locker may contain multiple chambers, each with permissions and item spawn definitions.
     /// </summary>
-    [GitBookPage("Blocks/Server/LockerObject/LockerChamber")]
+    [GitBookPage("Blocks/Definitions/Locker/LockerChamber")]
     public class LockerChamber
     {
         [YamlIgnore, BinaryIgnore]
@@ -42,7 +42,7 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
     /// <summary>
     /// Describes a single item entry that can be spawned inside a locker chamber.
     /// </summary>
-    [GitBookPage("Blocks/Server/LockerObject/ChamberData")]
+    [GitBookPage("Blocks/Definitions/Locker/ChamberData")]
     public class ChamberData
     {
         /// <summary>

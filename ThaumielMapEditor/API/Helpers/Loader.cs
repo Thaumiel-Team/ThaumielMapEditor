@@ -21,8 +21,6 @@ using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Binary;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
-using ThaumielMapEditor.API.Blocks.ServerObjects.Lockers;
 using ThaumielMapEditor.API.Components;
 using ThaumielMapEditor.API.Components.Tools;
 using ThaumielMapEditor.API.Conversion;

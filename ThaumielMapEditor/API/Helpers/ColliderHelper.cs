@@ -13,6 +13,8 @@ using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using UnityEngine;
+using UnityGameObject = UnityEngine.GameObject;
+using ClutterDef = ThaumielMapEditor.API.Blocks.Definitions.Clutter;
 
 namespace ThaumielMapEditor.API.Helpers
 {
@@ -35,7 +37,7 @@ namespace ThaumielMapEditor.API.Helpers
                 SchematicColliders.Add(schematic, []);
 
             List<Collider> colliders = [];
-            GameObject? prefab = GetPrefabForClientObject(clientObject);
+            UnityGameObject? prefab = GetPrefabForClientObject(clientObject);
 
             if (prefab == null)
             {
@@ -66,7 +68,7 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 GetPrefabSpaceTransform(prefab, col.transform, out Vector3 localOffset, out Quaternion localRotation, out Vector3 localScale);
 
-                GameObject colGo = new($"[ThaumielMapEditor] Collider_{clientObject.ObjectType}_{col.GetType().Name}");
+                UnityGameObject colGo = new($"[ThaumielMapEditor] Collider_{clientObject.ObjectType}_{col.GetType().Name}");
 
                 colGo.transform.SetParent(targetParent, worldPositionStays: false);
                 colGo.transform.localPosition = clientObject.Position + clientObject.Rotation * Vector3.Scale(localOffset, clientObject.Scale);
@@ -113,7 +115,7 @@ namespace ThaumielMapEditor.API.Helpers
             if (parent == null)
                 return;
 
-            GameObject? prefab = GetPrefabForClientObject(clientObject);
+            UnityGameObject? prefab = GetPrefabForClientObject(clientObject);
             List<Collider> sources = prefab != null ? GetUsablePrefabColliders(prefab) : [];
 
             for (int i = 0; i < clientObject.ServerColliders.Length; i++)
@@ -156,7 +158,7 @@ namespace ThaumielMapEditor.API.Helpers
         private static bool IsHandledColliderType(Collider source) =>
             source is BoxCollider or SphereCollider or CapsuleCollider or MeshCollider;
 
-        private static List<Collider> GetUsablePrefabColliders(GameObject prefab)
+        private static List<Collider> GetUsablePrefabColliders(UnityGameObject prefab)
         {
             List<Collider> result = [];
             foreach (Collider col in prefab.GetComponentsInChildren<Collider>(includeInactive: true))
@@ -196,7 +198,7 @@ namespace ThaumielMapEditor.API.Helpers
             return true;
         }
         
-        private static void GetPrefabSpaceTransform(GameObject prefabRoot, Transform colliderTransform, out Vector3 offset, out Quaternion rotation, out Vector3 scale)
+        private static void GetPrefabSpaceTransform(UnityGameObject prefabRoot, Transform colliderTransform, out Vector3 offset, out Quaternion rotation, out Vector3 scale)
         {
             if (colliderTransform == prefabRoot.transform)
             {
@@ -242,7 +244,7 @@ namespace ThaumielMapEditor.API.Helpers
                 return;
             }
 
-            GameObject go = new($"[ThaumielMapEditor] Selection_{clientObject.ObjectType}");
+            UnityGameObject go = new($"[ThaumielMapEditor] Selection_{clientObject.ObjectType}");
             go.transform.SetParent(targetParent, worldPositionStays: false);
             go.transform.localPosition = clientObject.Position;
             go.transform.localRotation = clientObject.Rotation;
@@ -308,7 +310,7 @@ namespace ThaumielMapEditor.API.Helpers
 
             clientObject.ServerColliders = [];
 
-            if (clientObject is PrimitiveDefinition.Client primitive && primitive.ServerCollider != null)
+            if (clientObject is Primitive.Client primitive && primitive.ServerCollider != null)
             {
                 if (schematic != null && SchematicColliders.TryGetValue(schematic, out HashSet<Collider>? primitiveSet))
                     primitiveSet.Remove(primitive.ServerCollider);
@@ -318,7 +320,7 @@ namespace ThaumielMapEditor.API.Helpers
 
                 primitive.ServerCollider = null;
             }
-            else if (clientObject is PrimitiveDefinition.Client primitiveNull)
+            else if (clientObject is Primitive.Client primitiveNull)
                 primitiveNull.ServerCollider = null;
         }
 
@@ -377,10 +379,10 @@ namespace ThaumielMapEditor.API.Helpers
         }
 
         /// <summary>
-        /// Copies a <see cref="Collider"/> component from a prefab onto the target <see cref="GameObject"/>.
+        /// Copies a <see cref="Collider"/> component from a prefab onto the target <see cref="UnityGameObject"/>.
         /// Returns <see langword="true"/> if the collider type was handled.
         /// </summary>
-        private static bool TryCopyCollider(Collider source, GameObject target)
+        private static bool TryCopyCollider(Collider source, UnityGameObject target)
         {
             switch (source)
             {
@@ -423,27 +425,27 @@ namespace ThaumielMapEditor.API.Helpers
         }
 
         /// <summary>
-        /// Resolves the source prefab <see cref="GameObject"/> for a given client side object.
+        /// Resolves the source prefab <see cref="UnityGameObject"/> for a given client side object.
         /// </summary>
-        private static GameObject? GetPrefabForClientObject(ClientObject clientObject)
+        private static UnityGameObject? GetPrefabForClientObject(ClientObject clientObject)
         {
             return clientObject.ObjectType switch
             {
                 ObjectType.Primitive => PrefabHelper.PrimitiveObject?.gameObject,
                 ObjectType.Capybara => PrefabHelper.Capybara?.gameObject,
-                ObjectType.Clutter => clientObject is ClutterDefinition.Client clutter ? TryGetClutterPrefab(clutter) : null,
+                ObjectType.Clutter => clientObject is ClutterDef.Client clutter ? TryGetClutterPrefab(clutter) : null,
                 _ => null
             };
         }
 
         /// <summary>
-        /// Resolves the clutter prefab for the given <see cref="ClutterDefinition.Client"/>, returning <see langword="null"/> when its type is unknown.
+        /// Resolves the clutter prefab for the given <see cref="ClutterDef.Client"/>, returning <see langword="null"/> when its type is unknown.
         /// </summary>
-        private static GameObject? TryGetClutterPrefab(ClutterDefinition.Client clutter)
+        private static UnityGameObject? TryGetClutterPrefab(ClutterDef.Client clutter)
         {
             try
             {
-                return ClutterDefinition.GetClutterPrefab(clutter.Type);
+                return ClutterDef.GetClutterPrefab(clutter.Type);
             }
             catch (ArgumentOutOfRangeException ex)
             {
@@ -456,7 +458,7 @@ namespace ThaumielMapEditor.API.Helpers
         /// Creates the colliders for primitives
         /// </summary>
         /// <param name="primitive"></param>
-        public static void CreateCollisionMesh(PrimitiveDefinition.Client primitive)
+        public static void CreateCollisionMesh(Primitive.Client primitive)
         {
             if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.Schematic == null)
                 return;
@@ -464,7 +466,7 @@ namespace ThaumielMapEditor.API.Helpers
             if (primitive.ServerCollider != null)
                 return;
 
-            GameObject collider = new();
+            UnityGameObject collider = new();
             collider.transform.name = $"[ThaumielMapEditor] Collider_{primitive.Name}";
 
             Transform? targetParent = ResolveServerParentTransform(primitive.ParentId, primitive.Schematic);

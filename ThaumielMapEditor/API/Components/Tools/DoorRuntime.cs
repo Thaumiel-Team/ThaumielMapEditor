@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -49,7 +49,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         
         public void ExecuteEvent(EventType eventType)
         {
-            if (Object is not DoorObject door || Schematic?.Executor == null)
+            if (Object is not Door.Server door || Schematic?.Executor == null)
                 return;
 
             BlockyPayload? payload = eventType switch

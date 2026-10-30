@@ -82,28 +82,13 @@ namespace ThaumielMapEditor.API.Blocks
     }
 
     /// <summary>
-    /// An <see cref="ObjectDefinition"/> for server-only object kinds that still live in their own
-    /// <see cref="ServerObject"/> class.
+    /// An <see cref="ObjectDefinition"/> for server-only object kinds. The definition forwards the
+    /// serialized values to the nested runtime object.
     /// </summary>
-    /// <typeparam name="T">The server object type.</typeparam>
-    public sealed class ServerDefinition<T> : ObjectDefinition where T : ServerObject, new()
+    /// <typeparam name="TServer">The server object type.</typeparam>
+    public abstract class ServerDefinition<TServer> : ObjectDefinition where TServer : ServerObject, new()
     {
         private SerializableObject? source;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServerDefinition{T}"/> class.
-        /// </summary>
-        /// <param name="objectType">The type of object this definition creates.</param>
-        public ServerDefinition(ObjectType objectType)
-        {
-            ObjectType = objectType;
-        }
-
-        /// <inheritdoc/>
-        public override string Name => typeof(T).Name;
-
-        /// <inheritdoc/>
-        public override ObjectType ObjectType { get; }
 
         /// <inheritdoc/>
         public override bool SupportsClient => false;
@@ -120,7 +105,7 @@ namespace ThaumielMapEditor.API.Blocks
             if (source == null)
                 return null;
 
-            T server = source.Values.Count == 0 ? new T() : source.Values.ConvertTo<T>() ?? new T();
+            TServer server = source.Values.Count == 0 ? new TServer() : source.Values.ConvertTo<TServer>() ?? new TServer();
             server.CopyStateFrom(data);
             return server;
         }

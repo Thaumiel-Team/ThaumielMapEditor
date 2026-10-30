@@ -9,7 +9,8 @@ using System.Collections.Generic;
 using System.Linq;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
+using DoorDef = ThaumielMapEditor.API.Blocks.Definitions.Door;
 using ThaumielMapEditor.API.Blocks.ClientSide;
 using LabPrimitive = LabApi.Features.Wrappers.PrimitiveObjectToy;
 using System;
@@ -141,9 +142,9 @@ namespace ThaumielMapEditor.API.Data
         public BlockExecutor? Executor { get; internal set; }
 
         /// <summary>
-        /// Gets the <see cref="GameObject"/> of the base <see cref="LabPrimitive"/> of this Schematic
+        /// Gets the <see cref="UnityEngine.GameObject"/> of the base <see cref="LabPrimitive"/> of this Schematic
         /// </summary>
-        public GameObject? GameObject => Primitive?.GameObject;
+        public UnityEngine.GameObject? GameObject => Primitive?.GameObject;
 
         /// <summary>
         /// Retrieves all spawned <see cref="ClientObject"/>s of the specified type.
@@ -283,7 +284,7 @@ namespace ThaumielMapEditor.API.Data
         {
             try
             {
-                if (serverObject is DoorObject && serverObject.Object != null && serverObject.Object.TryGetComponent<DoorLink>(out var link))
+                if (serverObject is DoorDef.Server && serverObject.Object != null && serverObject.Object.TryGetComponent<DoorLink>(out var link))
                     link.Unregister();
 
                 if (serverObject.Object != null && serverObject.Object.TryGetComponent<BlockyRuntime>(out var blocky) && blocky.Blocky != null && !string.IsNullOrEmpty(blocky.Blocky.Code))

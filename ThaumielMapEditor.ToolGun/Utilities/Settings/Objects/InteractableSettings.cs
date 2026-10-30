@@ -9,7 +9,7 @@ using AdminToys;
 using Interactables.Interobjects.DoorUtils;
 using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using static AdminToys.InvisibleInteractableToy;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
@@ -24,13 +24,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Interactable;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<InteractionObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Interactable.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new InteractShapeSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out InteractionObject? interactable) && interactable != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Interactable.Server? interactable) && interactable != null)
                 Base.DefaultOptionIndex = IndexOf(interactable.Shape);
         }
 
@@ -39,7 +39,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out InteractionObject? interactable) && interactable != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Interactable.Server? interactable) && interactable != null)
                 interactable.Shape = Values[ValidatedSelectedIndex];
         }
     }
@@ -54,13 +54,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Interactable;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<InteractionObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Interactable.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new InteractDurationSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out InteractionObject? interactable) && interactable != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Interactable.Server? interactable) && interactable != null)
                 DefaultValue = ToolGunMenu.Clamp(interactable.InteractionDuration, 0f, 30f);
         }
 
@@ -69,7 +69,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out InteractionObject? interactable) && interactable != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Interactable.Server? interactable) && interactable != null)
                 interactable.InteractionDuration = SelectedValueFloat;
         }
     }
@@ -84,13 +84,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Interactable;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<InteractionObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Interactable.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new InteractLockedSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out InteractionObject? interactable) && interactable != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Interactable.Server? interactable) && interactable != null)
                 Base.DefaultIsB = interactable.IsLocked;
         }
 
@@ -99,7 +99,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out InteractionObject? interactable) && interactable != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Interactable.Server? interactable) && interactable != null)
                 interactable.IsLocked = IsOptionB;
         }
     }
@@ -114,13 +114,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Interactable;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<InteractionObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Interactable.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new InteractPermissionsSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out InteractionObject? interactable) && interactable != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Interactable.Server? interactable) && interactable != null)
                 Base.DefaultOptionIndex = IndexOf(interactable.Permissions);
         }
 
@@ -129,7 +129,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out InteractionObject? interactable) && interactable != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Interactable.Server? interactable) && interactable != null)
                 interactable.Permissions = Values[ValidatedSelectedIndex];
         }
     }

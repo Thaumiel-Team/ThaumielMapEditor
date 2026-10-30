@@ -5,12 +5,12 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using ThaumielMapEditor.API.Blocks.ServerObjects.Lockers;
+using ThaumielMapEditor.API.Blocks.Definitions;
 
 namespace ThaumielMapEditor.API.Enums
 {
     /// <summary>
-    /// Defines the types that <see cref="LockerObject"/> can use.
+    /// Defines the types that <see cref="Locker.Server"/> can use.
     /// </summary>
     [GitBookPage("Enums/LockerType")]
     public enum LockerType

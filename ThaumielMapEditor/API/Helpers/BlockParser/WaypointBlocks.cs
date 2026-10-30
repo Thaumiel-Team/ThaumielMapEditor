@@ -5,7 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 
 namespace ThaumielMapEditor.API.Helpers.BlockParser
@@ -18,7 +18,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object? ReturnExecute(SchematicData schematic)
         {
-            WaypointObject server = new();
+            Waypoint.Server server = new();
             server.SpawnObject(schematic);
             LogManager.Debug($"Created Waypoint '{Name}'.");
             return server;
@@ -31,9 +31,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not WaypointObject server)
+            if (obj is not Waypoint.Server server)
             {
-                LogManager.Warn("obj is not a WaypointObject.");
+                LogManager.Warn("obj is not a Waypoint.Server.");
                 return;
             }
 
@@ -47,9 +47,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not WaypointObject server)
+            if (obj is not Waypoint.Server server)
             {
-                LogManager.Warn("obj is not a WaypointObject.");
+                LogManager.Warn("obj is not a Waypoint.Server.");
                 return;
             }
 
@@ -65,9 +65,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not WaypointObject server)
+            if (obj is not Waypoint.Server server)
             {
-                LogManager.Warn("obj is not a WaypointObject.");
+                LogManager.Warn("obj is not a Waypoint.Server.");
                 return;
             }
 
@@ -87,9 +87,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         private object GetProperty(object? obj)
         {
-            if (obj is not WaypointObject server)
+            if (obj is not Waypoint.Server server)
             {
-                LogManager.Warn("obj is not a WaypointObject.");
+                LogManager.Warn("obj is not a Waypoint.Server.");
                 return null!;
             }
 

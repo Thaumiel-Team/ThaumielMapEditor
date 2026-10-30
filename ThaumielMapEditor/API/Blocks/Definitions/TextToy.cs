@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-// <copyright file="TextToyDefinition.cs" company="Thaumiel Team">
+// <copyright file="TextToy.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
@@ -14,6 +14,7 @@ using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using UnityEngine;
 using YamlDotNet.Serialization;
+using AdminTextToy = AdminToys.TextToy;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
@@ -21,7 +22,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
     /// The definition of a text toy, shared by the client and server runtime representations.
     /// </summary>
     [GitBookPage("Blocks/Definitions/TextToy")]
-    public sealed class TextToyDefinition : ObjectDefinition<TextToyDefinition>
+    public sealed class TextToy : ObjectDefinition<TextToy>
     {
         /// <summary>
         /// Gets or sets the text format string.
@@ -65,14 +66,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// </summary>
         public sealed class Server : global::ThaumielMapEditor.API.Blocks.ServerObject
         {
-            private readonly TextToyDefinition definition;
+            private readonly TextToy definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Server"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Server(ObjectBase data, TextToyDefinition definition)
+            public Server(ObjectBase data, TextToy definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;
@@ -81,7 +82,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             /// <summary>
             /// Gets the underlying <see cref="AdminToys.TextToy"/>.
             /// </summary>
-            public TextToy? Base { get; private set; }
+            public AdminTextToy? Base { get; private set; }
 
             /// <summary>
             /// Gets or sets the text format string.
@@ -120,7 +121,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     return;
                 }
 
-                TextToy textToy = UnityEngine.Object.Instantiate(PrefabHelper.TextToy);
+                AdminTextToy textToy = UnityEngine.Object.Instantiate(PrefabHelper.TextToy);
                 Base = textToy;
                 Object = textToy.gameObject;
                 NetworkServer.UnSpawn(Base.gameObject);
@@ -145,7 +146,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     return;
                 }
 
-                TextToy textToy = UnityEngine.Object.Instantiate(PrefabHelper.TextToy);
+                AdminTextToy textToy = UnityEngine.Object.Instantiate(PrefabHelper.TextToy);
                 Base = textToy;
                 Object = textToy.gameObject;
                 NetworkServer.UnSpawn(Base.gameObject);
@@ -163,14 +164,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// </summary>
         public sealed class Client : ClientObject
         {
-            private readonly TextToyDefinition definition;
+            private readonly TextToy definition;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Client"/> class.
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Client(ObjectBase data, TextToyDefinition definition)
+            public Client(ObjectBase data, TextToy definition)
             {
                 CopyStateFrom(data);
                 this.definition = definition;

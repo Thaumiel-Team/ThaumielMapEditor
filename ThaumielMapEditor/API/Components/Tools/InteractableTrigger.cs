@@ -14,7 +14,7 @@ using System.Collections.Generic;
 using System.IO;
 using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Components.Tools.Helpers;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
@@ -29,6 +29,7 @@ using Warhead = ThaumielMapEditor.API.Components.Tools.Helpers.Warhead;
 using YamlDotNet.Serialization;
 using DrawableLine;
 using ThaumielMapEditor.API.Extensions;
+using InteractableDef = ThaumielMapEditor.API.Blocks.Definitions.Interactable;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
@@ -68,7 +69,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         public Permission Permissions { get; set; } = new();
 
 #pragma warning disable CS8618
-        public InteractionObject Interactable;
+        public InteractableDef.Server Interactable;
 #pragma warning restore CS8618
 
         public override ToolType Type => ToolType.InteractableTrigger;
@@ -90,16 +91,16 @@ namespace ThaumielMapEditor.API.Components.Tools
             Interactable.SpawnObject(schem);
             Interactable.Object?.transform.SetParent(obj.Object?.transform, false);
             Interactable.Object?.transform.localPosition = Vector3.zero;
-            InteractionObject.OnInteracted += Interacted;
-            InteractionObject.OnSearched += Interacted;
+            InteractableDef.Server.OnInteracted += Interacted;
+            InteractableDef.Server.OnSearched += Interacted;
             InteractToyValidatePatch.OnDenied += Denied;
             ExecuteLifecycleBlocks(OnSpawned, EventType.OnSpawned, "spawn");
         }
 
         protected override void OnDestroy()
         {
-            InteractionObject.OnInteracted -= Interacted;
-            InteractionObject.OnSearched -= Interacted;
+            InteractableDef.Server.OnInteracted -= Interacted;
+            InteractableDef.Server.OnSearched -= Interacted;
             InteractToyValidatePatch.OnDenied -= Denied;
             if (OnInteracted.Blocky is { Count: > 0 })
             {
@@ -153,7 +154,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             base.OnDestroy();
         }
 
-        private void Denied(InteractionObject obj, Player player)
+        private void Denied(InteractableDef.Server obj, Player player)
         {
             if (obj != Interactable)
                 return;
@@ -167,7 +168,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             HandleBlocks(OnInteractionDenied, player, EventType.OnInteractionDenied);
         }
 
-        public void Interacted(InteractionObject obj, Player player)
+        public void Interacted(InteractableDef.Server obj, Player player)
         {
             if (obj != Interactable)
                 return;
