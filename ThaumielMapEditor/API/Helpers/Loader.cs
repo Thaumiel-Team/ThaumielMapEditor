@@ -1495,7 +1495,7 @@ namespace ThaumielMapEditor.API.Helpers
 
             if (!serverObjectsById.TryGetValue(serializable.ObjectId, out ServerObject match) || match.Object == null)
             {
-                LogManager.Warn($"Could not find spawned object for animator/tools on '{serializable.Name}' in '{schematic.FileName}'.");
+                LogManager.Warn($"Could not find spawned object for animator/tools on '{serializable.Name}' in '{schematic.FileName}'. Make sure this object was set to be server side.");
                 return;
             }
 
@@ -1522,68 +1522,6 @@ namespace ThaumielMapEditor.API.Helpers
             catch (Exception ex)
             {
                 LogManager.Error($"Failed to apply animator '{serializable.AnimatorName}' on '{serializable.Name}': {ex.Message}");
-            }
-        }
-
-        private static void ApplyAnimators(SerializableSchematic schematic, SchematicData schematicData, Dictionary<int, ServerObject> serverObjectsById)
-        {
-            foreach (SerializableObject serializable in schematic.Objects)
-            {
-                if (string.IsNullOrEmpty(serializable.AnimatorName))
-                    continue;
-
-                if (!serverObjectsById.TryGetValue(serializable.ObjectId, out ServerObject match) || match.Object == null)
-                {
-                    LogManager.Warn($"Could not find spawned object for animator '{serializable.AnimatorName}' in '{schematic.FileName}'.");
-                    continue;
-                }
-
-                ApplyAnimatorForObject(serializable, schematic, match);
-            }
-
-            foreach (SerializableObject serializable in schematic.ServerSideObjects)
-            {
-                if (string.IsNullOrEmpty(serializable.AnimatorName))
-                    continue;
-
-                if (!serverObjectsById.TryGetValue(serializable.ObjectId, out ServerObject match) || match.Object == null)
-                {
-                    LogManager.Warn($"Could not find spawned object for animator '{serializable.AnimatorName}' in '{schematic.FileName}'.");
-                    continue;
-                }
-
-                ApplyAnimatorForObject(serializable, schematic, match);
-            }
-        }
-
-        private static void ApplyTools(SerializableSchematic schematic, SchematicData schematicData, Dictionary<int, ServerObject> serverObjectsById)
-        {
-            foreach (SerializableObject serializable in schematic.Objects)
-            {
-                if (serializable.Tools.Count == 0)
-                    continue;
-
-                if (!serverObjectsById.TryGetValue(serializable.ObjectId, out ServerObject match) || match.Object == null)
-                {
-                    LogManager.Warn($"Could not find spawned object for tools on '{serializable.Name}' in '{schematic.FileName}'.");
-                    continue;
-                }
-
-                ApplyToolsForObject(serializable, schematic, schematicData, match);
-            }
-
-            foreach (SerializableObject serializable in schematic.ServerSideObjects)
-            {
-                if (serializable.Tools.Count == 0)
-                    continue;
-
-                if (!serverObjectsById.TryGetValue(serializable.ObjectId, out ServerObject match) || match.Object == null)
-                {
-                    LogManager.Warn($"Could not find spawned object for tools on '{serializable.Name}' in '{schematic.FileName}'.");
-                    continue;
-                }
-
-                ApplyToolsForObject(serializable, schematic, schematicData, match);
             }
         }
 

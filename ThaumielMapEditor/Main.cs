@@ -21,6 +21,8 @@ using System.IO;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.Events;
 using ThaumielMapEditor.API.Components.Tools;
+using ThaumielMapEditor.API.Binary;
+using ThaumielMapEditor.API.Components.Tools.Helpers;
 
 namespace ThaumielMapEditor
 {
@@ -45,6 +47,7 @@ namespace ThaumielMapEditor
             Instance = this;
             
             Loader.Init();
+            BinaryTypeNames.Register(typeof(Permission), "Permission");
 
             PlayerHandler.Register();
             ServerHandler.Register();

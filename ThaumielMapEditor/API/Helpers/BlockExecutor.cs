@@ -228,10 +228,8 @@ namespace ThaumielMapEditor.API.Helpers
             LogManager.Debug($"Set variable '{block.Name}' = {value}");
         }
 
-        internal void PushScope()
-        {
+        internal void PushScope() =>
             Scopes.Push([]);
-        }
 
         internal void PopScope()
         {
@@ -239,10 +237,8 @@ namespace ThaumielMapEditor.API.Helpers
                 Scopes.Pop();
         }
 
-        internal void SetVariable(string name, object? value)
-        {
+        internal void SetVariable(string name, object? value) =>
             Scopes.Peek()[name] = value;
-        }
 
         internal object? GetVariable(GetVariableBlock block)
         {
@@ -269,14 +265,10 @@ namespace ThaumielMapEditor.API.Helpers
         private void ExecuteParamBlocks(BlockBase block)
         {
             if (_currentServer != null)
-            {
                 block.Execute(_currentServer!);
-            }
 
             if (_currentClient != null)
-            {
                 block.Execute(_currentClient);
-            }
         }
 
         private void ExecuteCreate(PrimitiveCreateBlock block)

@@ -185,6 +185,7 @@ namespace ThaumielMapEditor.API.Binary
                     l.Add(t);
                 }
             }
+            
             return map;
         }
     }
