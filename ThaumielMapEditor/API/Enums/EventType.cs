@@ -16,5 +16,12 @@ namespace ThaumielMapEditor.API.Enums
         OnTriggerExited,
         OnInteraction,
         OnInteractionDenied,
+        OnDoorDestroyed,
+        OnDoorOpened,
+        OnDoorClosed,
+        OnDoorLocked,
+        OnDoorDamaged,
+        OnDoorUnlocked,
+        OnAnimationKey,
     }
 }

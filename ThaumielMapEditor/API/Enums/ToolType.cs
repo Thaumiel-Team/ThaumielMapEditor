@@ -17,5 +17,7 @@ namespace ThaumielMapEditor.API.Enums
         ColliderTrigger = 4,
         InteractableTrigger = 5,
         BlockyRuntime = 6,
+        DoorRuntime = 7,
+        AnimationRuntime = 8,
     }
 }

@@ -20,6 +20,7 @@ using System;
 using System.IO;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.Events;
+using ThaumielMapEditor.API.Components.Tools;
 
 namespace ThaumielMapEditor
 {
@@ -48,6 +49,7 @@ namespace ThaumielMapEditor
             PlayerHandler.Register();
             ServerHandler.Register();
             PrimitiveHandler.Register();
+            DoorHandler.Register();
             CreditHelper.Init();
 
             if (string.IsNullOrEmpty(Config?.AudioPath))
@@ -82,6 +84,8 @@ namespace ThaumielMapEditor
             ServerHandler.Unregister();
             PrimitiveHandler.Unregister();
             SchematicHandler.Unregister();
+            DoorHandler.Unregister();
+            AnimationRuntimeDriver.Shutdown();
 
             try
             {

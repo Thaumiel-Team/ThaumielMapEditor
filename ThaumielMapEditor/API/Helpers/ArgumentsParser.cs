@@ -242,6 +242,13 @@ namespace ThaumielMapEditor.API.Helpers
             ["trigger_exit_event"] = d => ParseEventBlock(d, EventType.OnTriggerExited, "player"),
             ["interaction_event"] = d => ParseEventBlock(d, EventType.OnInteraction, "player"),
             ["interaction_denied_event"] = d => ParseEventBlock(d, EventType.OnInteractionDenied, "player"),
+            ["door_destroyed_event"] = d => ParseEventBlock(d, EventType.OnDoorDestroyed, "door"),
+            ["door_opened_event"] = d => ParseEventBlock(d, EventType.OnDoorOpened, "door"),
+            ["door_closed_event"] = d => ParseEventBlock(d, EventType.OnDoorClosed, "door"),
+            ["door_locked_event"] = d => ParseEventBlock(d, EventType.OnDoorLocked, "door"),
+            ["door_damaged_event"] = d => ParseEventBlock(d, EventType.OnDoorDamaged, "door"),
+            ["door_unlocked_event"] = d => ParseEventBlock(d, EventType.OnDoorUnlocked, "door"),
+            ["animator_time_event"] = d => ParseEventBlock(d, EventType.OnAnimationKey, "ignore"),
 
             ["primitive_create"] = d => new PrimitiveCreateBlock
             {

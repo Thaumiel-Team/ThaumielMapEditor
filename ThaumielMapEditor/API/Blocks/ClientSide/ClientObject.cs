@@ -702,7 +702,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
                 return false;
             }
 
-            if (!obj.TryGetComponent<NetworkIdentity>(out NetworkIdentity identity))
+            if (!obj.TryGetComponent(out NetworkIdentity identity))
             {
                 LogManager.Error($"{obj.name} has no NetworkIdentity component.");
                 return false;

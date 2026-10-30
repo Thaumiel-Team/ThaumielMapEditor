@@ -143,52 +143,19 @@ namespace ThaumielMapEditor.API.Helpers
             AnimatorControllerCache.Clear();
             BundleControllerCache.Clear();
             SchematicLODZones.Clear();
+
             lock (IdLock)
             {
                 _nextId = 0;
             }
 
-            try
-            {
-                AnimationController.ClearAll();
-            }
-            catch { }
-
-            try
-            {
-                DoorLink.ClearAll();
-            }
-            catch { }
-
-            try
-            {
-                SyncManager.ClearClientPending();
-            }
-            catch { }
-
-            try
-            {
-                SyncManager.ClearServerPending();
-            }
-            catch { }
-
-            try
-            {
-                ServerObject.SpawnedObjects.Clear();
-            }
-            catch { }
-
-            try
-            {
-                ColliderHelper.SchematicColliders.Clear();
-            }
-            catch { }
-
-            try
-            {
-                LODHelper.PlayersInLODZones.Clear();
-            }
-            catch { }
+            AnimationController.ClearAll();
+            DoorLink.ClearAll();
+            SyncManager.ClearClientPending();
+            SyncManager.ClearServerPending();
+            ServerObject.SpawnedObjects.Clear();
+            ColliderHelper.SchematicColliders.Clear();
+            LODHelper.PlayersInLODZones.Clear();
         }
 
         /// <summary>
@@ -1674,6 +1641,18 @@ namespace ThaumielMapEditor.API.Helpers
                                 schematicData.Executor?.Execute(ArgumentsParser.Load(blocky.Blocky), null!, EventType.OnSpawned);
                                 
                             match.Tools.AddItem(blocky);
+                            break;
+
+                        case ToolType.DoorRuntime:
+                            DoorRuntime doorBlocky = match.Object.AddComponent<DoorRuntime>();
+                            doorBlocky.Init(match, schematicData, tool.Properties);
+                            match.Tools.AddItem(doorBlocky);
+                            break;
+
+                        case ToolType.AnimationRuntime:
+                            AnimationRuntime animationRuntime = match.Object.AddComponent<AnimationRuntime>();
+                            animationRuntime.Init(match, schematicData, tool.Properties);
+                            match.Tools.AddItem(animationRuntime);
                             break;
                     }
                 }

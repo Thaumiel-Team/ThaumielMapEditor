@@ -141,8 +141,6 @@ namespace ThaumielMapEditor.API.Helpers
                         blockbase.HasActiveTarget = true;
                     }
 
-                    // Invoke exactly one contextual overload so blocks that resolve their own target
-                    // (via ResolveTarget) are not executed once with the player and again with the target.
                     if (target is Player targetPlayer)
                     {
                         blockbase.Execute(targetPlayer);
