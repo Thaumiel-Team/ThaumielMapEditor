@@ -12,6 +12,7 @@ using PlayerRoles;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
@@ -87,13 +88,13 @@ namespace ThaumielMapEditor.Events
 
                 foreach (ServerObject obj in schematic.SpawnedServerObjects)
                 {
-                    if (obj is LightObjectServer serverLight)
+                    if (obj is LightDefinition.Server serverLight)
                         serverLight.Intensity = ev.NewState ? serverLight.Intensity : 0f;
                 }
 
                 foreach (ClientObject obj in schematic.SpawnedClientObjects)
                 {
-                    if (obj is LightObject light)
+                    if (obj is LightDefinition.Client light)
                         light.Intensity = ev.NewState ? light.Intensity : 0f;
                 }
             }

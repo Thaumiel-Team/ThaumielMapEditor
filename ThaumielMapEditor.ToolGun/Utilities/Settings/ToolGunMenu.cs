@@ -13,6 +13,7 @@ using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.ToolGun.Extensions;
@@ -222,7 +223,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             return server != null || client != null;
         }
 
-        public static bool TryGetPrimitive(Player player, out PrimitiveObjectServer? server, out PrimitiveObject? client)
+        public static bool TryGetPrimitive(Player player, out PrimitiveDefinition.Server? server, out PrimitiveDefinition.Client? client)
         {
             server = null;
             client = null;
@@ -230,12 +231,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             if (!TryGetSelection(player, out _, out ServerObject? selectedServer, out ClientObject? selectedClient))
                 return false;
 
-            server = selectedServer as PrimitiveObjectServer;
-            client = server != null ? null : selectedClient as PrimitiveObject;
+            server = selectedServer as PrimitiveDefinition.Server;
+            client = server != null ? null : selectedClient as PrimitiveDefinition.Client;
             return server != null || client != null;
         }
 
-        public static bool TryGetLight(Player player, out LightObjectServer? server, out LightObject? client)
+        public static bool TryGetLight(Player player, out LightDefinition.Server? server, out LightDefinition.Client? client)
         {
             server = null;
             client = null;
@@ -243,12 +244,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             if (!TryGetSelection(player, out _, out ServerObject? selectedServer, out ClientObject? selectedClient))
                 return false;
 
-            server = selectedServer as LightObjectServer;
-            client = server != null ? null : selectedClient as LightObject;
+            server = selectedServer as LightDefinition.Server;
+            client = server != null ? null : selectedClient as LightDefinition.Client;
             return server != null || client != null;
         }
 
-        public static bool TryGetText(Player player, out TextToyObject? server, out TextObject? client)
+        public static bool TryGetText(Player player, out TextToyDefinition.Server? server, out TextToyDefinition.Client? client)
         {
             server = null;
             client = null;
@@ -256,12 +257,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             if (!TryGetSelection(player, out _, out ServerObject? selectedServer, out ClientObject? selectedClient))
                 return false;
 
-            server = selectedServer as TextToyObject;
-            client = server != null ? null : selectedClient as TextObject;
+            server = selectedServer as TextToyDefinition.Server;
+            client = server != null ? null : selectedClient as TextToyDefinition.Client;
             return server != null || client != null;
         }
 
-        public static bool TryGetCapy(Player player, out CapybaraObjectServer? server, out CapybaraObject? client)
+        public static bool TryGetCapy(Player player, out CapybaraDefinition.Server? server, out CapybaraDefinition.Client? client)
         {
             server = null;
             client = null;
@@ -269,12 +270,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             if (!TryGetSelection(player, out _, out ServerObject? selectedServer, out ClientObject? selectedClient))
                 return false;
 
-            server = selectedServer as CapybaraObjectServer;
-            client = server != null ? null : selectedClient as CapybaraObject;
+            server = selectedServer as CapybaraDefinition.Server;
+            client = server != null ? null : selectedClient as CapybaraDefinition.Client;
             return server != null || client != null;
         }
 
-        public static bool TryGetClutter(Player player, out ClutterObject? server, out ClientClutterObject? client)
+        public static bool TryGetClutter(Player player, out ClutterDefinition.Server? server, out ClutterDefinition.Client? client)
         {
             server = null;
             client = null;
@@ -282,12 +283,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             if (!TryGetSelection(player, out _, out ServerObject? selectedServer, out ClientObject? selectedClient))
                 return false;
 
-            server = selectedServer as ClutterObject;
-            client = server != null ? null : selectedClient as ClientClutterObject;
+            server = selectedServer as ClutterDefinition.Server;
+            client = server != null ? null : selectedClient as ClutterDefinition.Client;
             return server != null || client != null;
         }
 
-        public static bool TryGetCullingParent(Player player, out CullingParentObject? server, out ClientCullingParentObject? client)
+        public static bool TryGetCullingParent(Player player, out CullingParentDefinition.Server? server, out CullingParentDefinition.Client? client)
         {
             server = null;
             client = null;
@@ -295,8 +296,8 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             if (!TryGetSelection(player, out _, out ServerObject? selectedServer, out ClientObject? selectedClient))
                 return false;
 
-            server = selectedServer as CullingParentObject;
-            client = server != null ? null : selectedClient as ClientCullingParentObject;
+            server = selectedServer as CullingParentDefinition.Server;
+            client = server != null ? null : selectedClient as CullingParentDefinition.Client;
             return server != null || client != null;
         }
 
@@ -396,12 +397,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
         /// </summary>
         private static SchematicData? GetSchematic(ClientObject obj) => obj switch
         {
-            PrimitiveObject prim => prim.Schematic,
-            LightObject light => light.Schematic,
-            TextObject text => text.Schematic,
-            CapybaraObject capy => capy.Schematic,
-            ClientClutterObject clutter => clutter.Schematic,
-            ClientCullingParentObject culling => culling.Schematic,
+            PrimitiveDefinition.Client prim => prim.Schematic,
+            LightDefinition.Client light => light.Schematic,
+            TextToyDefinition.Client text => text.Schematic,
+            CapybaraDefinition.Client capy => capy.Schematic,
+            ClutterDefinition.Client clutter => clutter.Schematic,
+            CullingParentDefinition.Client culling => culling.Schematic,
             _ => null,
         };
 
@@ -558,10 +559,10 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
 
         public static Color GetColor(Player player)
         {
-            if (TryGetPrimitive(player, out PrimitiveObjectServer? primServer, out PrimitiveObject? primClient))
+            if (TryGetPrimitive(player, out PrimitiveDefinition.Server? primServer, out PrimitiveDefinition.Client? primClient))
                 return primServer != null ? primServer.Color : primClient?.Color ?? Color.white;
 
-            if (TryGetLight(player, out LightObjectServer? lightServer, out LightObject? lightClient))
+            if (TryGetLight(player, out LightDefinition.Server? lightServer, out LightDefinition.Client? lightClient))
                 return lightServer != null ? lightServer.Color : lightClient?.Color ?? Color.white;
 
             return Color.white;
@@ -569,7 +570,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
 
         public static void SetColor(Player player, Color value)
         {
-            if (TryGetPrimitive(player, out PrimitiveObjectServer? primServer, out PrimitiveObject? primClient))
+            if (TryGetPrimitive(player, out PrimitiveDefinition.Server? primServer, out PrimitiveDefinition.Client? primClient))
             {
                 if (primServer != null)
                 {
@@ -581,7 +582,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
                 return;
             }
 
-            if (TryGetLight(player, out LightObjectServer? lightServer, out LightObject? lightClient))
+            if (TryGetLight(player, out LightDefinition.Server? lightServer, out LightDefinition.Client? lightClient))
             {
                 if (lightServer != null)
                 {
@@ -602,12 +603,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
 
             return client switch
             {
-                PrimitiveObject prim => prim.Name,
-                CapybaraObject capy => capy.Name,
-                LightObject light => light.Schematic != null ? $"Light_{light.ObjectId}" : string.Empty,
-                TextObject text => $"Text_{text.ObjectId}",
-                ClientClutterObject clutter => clutter.Name,
-                ClientCullingParentObject culling => culling.Name,
+                PrimitiveDefinition.Client prim => prim.Name,
+                CapybaraDefinition.Client capy => capy.Name,
+                LightDefinition.Client light => light.Schematic != null ? $"Light_{light.ObjectId}" : string.Empty,
+                TextToyDefinition.Client text => $"Text_{text.ObjectId}",
+                ClutterDefinition.Client clutter => clutter.Name,
+                CullingParentDefinition.Client culling => culling.Name,
                 _ => string.Empty,
             };
         }
@@ -625,19 +626,19 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
 
             switch (client)
             {
-                case PrimitiveObject prim:
+                case PrimitiveDefinition.Client prim:
                     prim.Name = value;
                     break;
 
-                case CapybaraObject capy:
+                case CapybaraDefinition.Client capy:
                     capy.Name = value;
                     break;
 
-                case ClientClutterObject clutter:
+                case ClutterDefinition.Client clutter:
                     clutter.Name = value;
                     break;
 
-                case ClientCullingParentObject culling:
+                case CullingParentDefinition.Client culling:
                     culling.Name = value;
                     break;
             }
@@ -651,7 +652,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
             if (server != null)
                 return true;
 
-            return client is PrimitiveObject or CapybaraObject or ClientClutterObject or ClientCullingParentObject;
+            return client is PrimitiveDefinition.Client or CapybaraDefinition.Client or ClutterDefinition.Client or CullingParentDefinition.Client;
         }
 
         public static float Clamp(float value, float min, float max)

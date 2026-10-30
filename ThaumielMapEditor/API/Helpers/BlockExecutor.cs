@@ -10,7 +10,7 @@ using System.Linq;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers.BlockParser;
@@ -279,13 +279,13 @@ namespace ThaumielMapEditor.API.Helpers
             if (_isCurrentServerSide)
             {
                 LogManager.Debug($"Creating server side primitive '{block.Name}'.");
-                if (block.ReturnExecute(Schematic) is PrimitiveObjectServer serverObj)
+                if (block.ReturnExecute(Schematic) is PrimitiveDefinition.Server serverObj)
                     _currentServer = serverObj;
             }
             else
             {
                 LogManager.Debug($"Creating client side primitive '{block.Name}'.");
-                if (block.ReturnExecute(Schematic) is PrimitiveObject clientObj)
+                if (block.ReturnExecute(Schematic) is PrimitiveDefinition.Client clientObj)
                     _currentClient = clientObj;
             }
         }

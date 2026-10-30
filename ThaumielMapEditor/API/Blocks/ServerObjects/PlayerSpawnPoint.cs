@@ -39,12 +39,6 @@ namespace ThaumielMapEditor.API.Blocks.ServerObjects
 
         public bool Disabled { get; set; }
 
-#pragma warning disable CS8618
-        /// <summary>
-        /// The <see cref="SchematicData"/> this <see cref="PlayerSpawnPoint"/> was spawned from.
-        /// </summary>
-        public SchematicData Schematic;
-#pragma warning restore CS8618
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.PlayerSpawnPoint;
 

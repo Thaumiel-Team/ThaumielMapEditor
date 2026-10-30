@@ -11,6 +11,7 @@ using System;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
@@ -219,7 +220,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
                     if (obj == null)
                         continue;
 
-                    if (obj is PrimitiveObject prim && prim.ServerCollider != null && collider == prim.ServerCollider)
+                    if (obj is PrimitiveDefinition.Client prim && prim.ServerCollider != null && collider == prim.ServerCollider)
                     {
                         client = obj;
                         return true;

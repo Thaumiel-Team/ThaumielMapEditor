@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using AdminToys;
 using ThaumielMapEditor.API.Blocks.ClientSide;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using UnityEngine;
@@ -308,7 +308,7 @@ namespace ThaumielMapEditor.API.Helpers
 
             clientObject.ServerColliders = [];
 
-            if (clientObject is PrimitiveObject primitive && primitive.ServerCollider != null)
+            if (clientObject is PrimitiveDefinition.Client primitive && primitive.ServerCollider != null)
             {
                 if (schematic != null && SchematicColliders.TryGetValue(schematic, out HashSet<Collider>? primitiveSet))
                     primitiveSet.Remove(primitive.ServerCollider);
@@ -318,7 +318,7 @@ namespace ThaumielMapEditor.API.Helpers
 
                 primitive.ServerCollider = null;
             }
-            else if (clientObject is PrimitiveObject primitiveNull)
+            else if (clientObject is PrimitiveDefinition.Client primitiveNull)
                 primitiveNull.ServerCollider = null;
         }
 
@@ -431,19 +431,19 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 ObjectType.Primitive => PrefabHelper.PrimitiveObject?.gameObject,
                 ObjectType.Capybara => PrefabHelper.Capybara?.gameObject,
-                ObjectType.Clutter => clientObject is ClientClutterObject clutter ? TryGetClutterPrefab(clutter) : null,
+                ObjectType.Clutter => clientObject is ClutterDefinition.Client clutter ? TryGetClutterPrefab(clutter) : null,
                 _ => null
             };
         }
 
         /// <summary>
-        /// Resolves the clutter prefab for the given <see cref="ClientClutterObject"/>, returning <see langword="null"/> when its type is unknown.
+        /// Resolves the clutter prefab for the given <see cref="ClutterDefinition.Client"/>, returning <see langword="null"/> when its type is unknown.
         /// </summary>
-        private static GameObject? TryGetClutterPrefab(ClientClutterObject clutter)
+        private static GameObject? TryGetClutterPrefab(ClutterDefinition.Client clutter)
         {
             try
             {
-                return ClutterObject.GetClutterPrefab(clutter.Type);
+                return ClutterDefinition.GetClutterPrefab(clutter.Type);
             }
             catch (ArgumentOutOfRangeException ex)
             {
@@ -456,7 +456,7 @@ namespace ThaumielMapEditor.API.Helpers
         /// Creates the colliders for primitives
         /// </summary>
         /// <param name="primitive"></param>
-        public static void CreateCollisionMesh(PrimitiveObject primitive)
+        public static void CreateCollisionMesh(PrimitiveDefinition.Client primitive)
         {
             if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.Schematic == null)
                 return;

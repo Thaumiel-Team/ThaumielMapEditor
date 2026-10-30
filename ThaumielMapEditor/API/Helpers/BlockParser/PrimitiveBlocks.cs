@@ -9,9 +9,10 @@ using System;
 using AdminToys;
 using LabApi.Features.Wrappers;
 using Mirror;
-using ThaumielMapEditor.API.Blocks.ClientSide;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
+using ThaumielMapEditor.API.Enums;
 using UnityEngine;
 
 namespace ThaumielMapEditor.API.Helpers.BlockParser
@@ -25,37 +26,33 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object? ReturnExecute(SchematicData schematic)
         {
+            PrimitiveDefinition definition = new();
+
             if (IsServerSide)
             {
-                PrimitiveObjectServer server = new();
+                PrimitiveDefinition.Server server = new(new ObjectBase { ObjectType = ObjectType.Primitive }, definition);
                 server.SpawnObject(schematic);
                 return server;
             }
-            else
+
+            ObjectBase state = new()
             {
-                PrimitiveObject client = new()
-                {
-                    Name = Name,
-                    NetId = NetworkIdentity.GetNextNetworkId(),
-                    Schematic = schematic
-                };
+                Name = Name,
+                NetId = NetworkIdentity.GetNextNetworkId(),
+                Schematic = schematic,
+            };
 
-                if (PrefabHelper.PrimitiveObject?.netIdentity != null)
-                {
-                    client.AssetId = PrefabHelper.PrimitiveObject.netIdentity.assetId;
-                }
-                else
-                    LogManager.Warn($"Spawning Blocky primitive '{Name}' without a registered primitive prefab; clients will not see it.");
+            if (definition.ClientObject(state) is not PrimitiveDefinition.Client client)
+                return null;
 
-                schematic.SpawnedClientObjects.Add(client);
-                foreach (Player player in Player.ReadyList)
-                {
-                    client.SpawnForPlayer(player);
-                }
-
-                ColliderHelper.CreateCollisionMesh(client);
-                return client;
+            schematic.SpawnedClientObjects.Add(client);
+            foreach (Player player in Player.ReadyList)
+            {
+                client.SpawnForPlayer(player);
             }
+
+            ColliderHelper.CreateCollisionMesh(client);
+            return client;
         }
     }
 
@@ -68,8 +65,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            PrimitiveObject? client = obj as PrimitiveObject;
-            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            PrimitiveDefinition.Client? client = obj as PrimitiveDefinition.Client;
+            PrimitiveDefinition.Server? server = obj as PrimitiveDefinition.Server;
             if (client is null && server is null)
                 return;
 
@@ -107,8 +104,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            PrimitiveObject? client = obj as PrimitiveObject;
-            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            PrimitiveDefinition.Client? client = obj as PrimitiveDefinition.Client;
+            PrimitiveDefinition.Server? server = obj as PrimitiveDefinition.Server;
             if (client is null && server is null)
                 return;
 
@@ -127,8 +124,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            PrimitiveObject? client = obj as PrimitiveObject;
-            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            PrimitiveDefinition.Client? client = obj as PrimitiveDefinition.Client;
+            PrimitiveDefinition.Server? server = obj as PrimitiveDefinition.Server;
             if (client is null && server is null)
                 return;
 
@@ -185,11 +182,11 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         private object GetProperty(object? obj)
         {
-            PrimitiveObject? client = obj as PrimitiveObject;
-            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            PrimitiveDefinition.Client? client = obj as PrimitiveDefinition.Client;
+            PrimitiveDefinition.Server? server = obj as PrimitiveDefinition.Server;
             if (client is null && server is null)
             {
-                LogManager.Warn("obj is not a PrimitiveObject.");
+                LogManager.Warn("obj is not a PrimitiveDefinition.Server or PrimitiveDefinition.Client.");
                 return null!;
             }
 
@@ -211,7 +208,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             };
         }
 
-        private static bool HasServerCollider(PrimitiveObject? client, PrimitiveObjectServer? server)
+        private static bool HasServerCollider(PrimitiveDefinition.Client? client, PrimitiveDefinition.Server? server)
         {
             if (client != null)
                 return client.ServerCollider != null;

@@ -7,7 +7,7 @@
 
 using System.Collections.Generic;
 using LabApi.Features.Wrappers;
-using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
@@ -51,7 +51,7 @@ namespace ThaumielMapEditor.API.Components
         {
             UpdateDictionary(player);
 
-            foreach (PrimitiveObject prim in Schematic.GetClientObject<PrimitiveObject>())
+            foreach (PrimitiveDefinition.Client prim in Schematic.GetClientObject<PrimitiveDefinition.Client>())
             {
                 if (!PrimitivestoUnload.Contains(prim.PrimitiveType))
                     continue;
@@ -68,7 +68,7 @@ namespace ThaumielMapEditor.API.Components
         {
             RemoveFromDictionary(player);
 
-            foreach (PrimitiveObject prim in Schematic.GetClientObject<PrimitiveObject>())
+            foreach (PrimitiveDefinition.Client prim in Schematic.GetClientObject<PrimitiveDefinition.Client>())
             {
                 if (!PrimitivestoUnload.Contains(prim.PrimitiveType))
                     continue;

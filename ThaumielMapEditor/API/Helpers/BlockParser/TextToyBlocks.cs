@@ -5,8 +5,10 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
+using ThaumielMapEditor.API.Enums;
 using UnityEngine;
 
 namespace ThaumielMapEditor.API.Helpers.BlockParser
@@ -19,7 +21,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object? ReturnExecute(SchematicData schematic)
         {
-            TextToyObject server = new();
+            TextToyDefinition.Server server = new(new ObjectBase { ObjectType = ObjectType.TextToy }, new TextToyDefinition());
             server.SpawnObject(schematic);
             LogManager.Debug($"Created TextToy '{Name}'.");
             return server;
@@ -32,9 +34,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not TextToyObject server)
+            if (obj is not TextToyDefinition.Server server)
             {
-                LogManager.Warn("obj is not a TextToyObject.");
+                LogManager.Warn("obj is not a TextToyDefinition.Server.");
                 return;
             }
 
@@ -49,9 +51,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not TextToyObject server)
+            if (obj is not TextToyDefinition.Server server)
             {
-                LogManager.Warn("obj is not a TextToyObject.");
+                LogManager.Warn("obj is not a TextToyDefinition.Server.");
                 return;
             }
 
@@ -71,9 +73,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         private object GetProperty(object? obj)
         {
-            if (obj is not TextToyObject server)
+            if (obj is not TextToyDefinition.Server server)
             {
-                LogManager.Warn("obj is not a TextToyObject.");
+                LogManager.Warn("obj is not a TextToyDefinition.Server.");
                 return null!;
             }
 

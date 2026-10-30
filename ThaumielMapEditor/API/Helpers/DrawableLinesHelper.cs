@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Enums;
 using UnityEngine;
@@ -412,7 +413,7 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 collider = obj switch
                 {
-                    PrimitiveObjectServer prim when prim.Base != null => prim.Base._collider,
+                    PrimitiveDefinition.Server prim when prim.Base != null => prim.Base._collider,
                     InteractionObject inter when inter.Base != null => inter.Base._collider,
                     TeleporterObject tele when tele.TeleporterHandler != null => tele.TeleporterHandler.Collider,
                     _ => obj.Object?.GetComponent<Collider>(),
@@ -434,7 +435,7 @@ namespace ThaumielMapEditor.API.Helpers
 
             ColliderType type = obj switch
             {
-                PrimitiveObjectServer prim => prim.PrimitiveType switch
+                PrimitiveDefinition.Server prim => prim.PrimitiveType switch
                 {
                     PrimitiveType.Sphere => ColliderType.Sphere,
                     PrimitiveType.Capsule or PrimitiveType.Cylinder => ColliderType.Capsule,
@@ -585,7 +586,7 @@ namespace ThaumielMapEditor.API.Helpers
                     }
                 }
 
-                collider ??= (obj as PrimitiveObject)?.ServerCollider;
+                collider ??= (obj as PrimitiveDefinition.Client)?.ServerCollider;
             }
             catch
             {
@@ -603,7 +604,7 @@ namespace ThaumielMapEditor.API.Helpers
 
             switch (obj)
             {
-                case ClientCullingParentObject culling when IsValidSize(culling.BoundsSize) && culling.BoundsSize != Vector3.zero:
+                case CullingParentDefinition.Client culling when IsValidSize(culling.BoundsSize) && culling.BoundsSize != Vector3.zero:
                     (Vector3 cullingPosition, _) = culling.ResolveWorldTransform();
                     if (!IsValidVector(cullingPosition))
                         break;
@@ -611,19 +612,19 @@ namespace ThaumielMapEditor.API.Helpers
                     player.SendBoundsToPlayer(new Bounds(cullingPosition, ClampSize(culling.BoundsSize)), duration, color);
                     break;
 
-                case PrimitiveObject prim when prim.PrimitiveType == PrimitiveType.Sphere && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) > 0f:
+                case PrimitiveDefinition.Client prim when prim.PrimitiveType == PrimitiveType.Sphere && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) > 0f:
                     player.SendSphereToPlayer(position, ClampRadius(Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) * 0.5f), duration, color);
                     break;
 
-                case PrimitiveObject prim when prim.PrimitiveType is PrimitiveType.Capsule or PrimitiveType.Cylinder:
+                case PrimitiveDefinition.Client prim when prim.PrimitiveType is PrimitiveType.Capsule or PrimitiveType.Cylinder:
                     DrawCapsuleApproximate(player, position, scale, duration, color);
                     break;
 
-                case LightObject light when light.Range > 0f && !float.IsNaN(light.Range) && !float.IsInfinity(light.Range):
+                case LightDefinition.Client light when light.Range > 0f && !float.IsNaN(light.Range) && !float.IsInfinity(light.Range):
                     player.SendSphereToPlayer(position, ClampRadius(light.Range), duration, color);
                     break;
 
-                case LightObject:
+                case LightDefinition.Client:
                     break;
 
                 default:

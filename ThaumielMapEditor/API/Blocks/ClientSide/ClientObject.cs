@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using AdminToys;
 using LabApi.Features.Wrappers;
 using Mirror;
+using ThaumielMapEditor.API.Components;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
@@ -20,55 +21,38 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks.ClientSide
 {
+    /// <summary>
+    /// An object that is spawned on clients without existing on the server.
+    /// </summary>
     [GitBookPage("Blocks/Client/ClientObject")]
-    public abstract class ClientObject
+    public abstract class ClientObject : ObjectBase
     {
-        internal SyncFlags SyncFlags { get; private set; } = SyncFlags.None;
-
-        /// <summary>
-        /// True if this object has pending changes that need syncing.
-        /// </summary>
-        public bool IsDirty => SyncFlags != SyncFlags.None;
-
-        /// <summary>
-        /// Marks specific properties as needing to be synced and registers for batch sync.
-        /// </summary>
-        protected void MarkSyncNeeded(SyncFlags flags)
-        {
-            SyncFlags |= flags;
-            SyncManager.RegisterForSync(this);
-        }
-
-        internal void ClearDirtyFlags() => SyncFlags = SyncFlags.None;
-
         public static event Action<Vector3, ClientObject>? PositionUpdated;
         public static event Action<Vector3, ClientObject>? ScaleUpdated;
         public static event Action<Quaternion, ClientObject>? RotationUpdated;
 
         /// <summary>
-        /// All the <see cref="Player"/>s that this <see cref="ClientObject"/> instance has been spawned for.
+        /// Gets all <see cref="Player"/>s this object has been spawned for.
         /// </summary>
         public HashSet<Player> SpawnedPlayers { get; internal set; } = [];
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="ClientObject"/> has been spawned for any players.
+        /// Gets a value indicating whether this object has been spawned for any players.
         /// </summary>
         public bool Spawned => !SpawnedPlayers.IsEmpty();
 
         /// <summary>
-        /// Gets the object id from the <see cref="SerializableObject"/> this <see cref="ClientObject"/> instance was generated from.
+        /// Gets or sets the parent object id.
         /// </summary>
-        public int ObjectId { get; internal set; }
-
-        /// <summary>
-        /// Gets the parent id from the <see cref="SerializableObject"/> this <see cref="ClientObject"/> instance was generated from.
-        /// </summary>
-        public virtual int ParentId
+        public override int ParentId
         {
-            get;
+            get => base.ParentId;
             set
             {
-                field = value;
+                if (base.ParentId == value)
+                    return;
+
+                base.ParentId = value;
 
                 if (Spawned)
                     SetParent(value);
@@ -76,150 +60,141 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Gets or sets the position of the <see cref="ClientObject"/> instance.
+        /// Gets or sets the position of this object.
         /// </summary>
-        /// <remarks>
-        /// This will be automatically synced to players.
-        /// </remarks>
-        public Vector3 Position
+        public override Vector3 Position
         {
-            get;
+            get => base.Position;
             set
             {
-                if (field == value)
+                if (base.Position == value)
                     return;
 
-                field = value;
+                base.Position = value;
                 MarkSyncNeeded(SyncFlags.Position);
                 PositionUpdated?.Invoke(value, this);
             }
         }
 
         /// <summary>
-        /// Gets or sets the scale of the <see cref="ClientObject"/> instance.
+        /// Gets or sets the scale of this object.
         /// </summary>
-        /// <remarks>
-        /// This will be automatically synced to players.
-        /// </remarks>
-        public Vector3 Scale
+        public override Vector3 Scale
         {
-            get;
+            get => base.Scale;
             set
             {
-                if (field == value)
+                if (base.Scale == value)
                     return;
 
-                field = value;
+                base.Scale = value;
                 MarkSyncNeeded(SyncFlags.Scale);
                 ScaleUpdated?.Invoke(value, this);
             }
         }
 
         /// <summary>
-        /// Gets or sets the rotation of the <see cref="ClientObject"/> instance.
+        /// Gets or sets the rotation of this object.
         /// </summary>
-        /// <remarks>
-        /// This will be automatically synced to players.
-        /// </remarks>
-        public Quaternion Rotation
+        public override Quaternion Rotation
         {
-            get;
+            get => base.Rotation;
             set
             {
-                if (field == value)
+                if (base.Rotation == value)
                     return;
 
-                field = value;
+                base.Rotation = value;
                 MarkSyncNeeded(SyncFlags.Rotation);
                 RotationUpdated?.Invoke(value, this);
             }
         }
 
         /// <summary>
-        /// Gets or sets whether or not this <see cref="ClientObject"/> is static.
+        /// Gets or sets whether this object is static.
         /// </summary>
-        public bool IsStatic
+        public override bool IsStatic
         {
-            get;
+            get => base.IsStatic;
             set
             {
-                if (field == value)
+                if (base.IsStatic == value)
                     return;
 
-                field = value;
+                base.IsStatic = value;
                 MarkSyncNeeded(SyncFlags.IsStatic);
             }
         }
 
         /// <summary>
-        /// Gets or sets the sync interval of the <see cref="ClientObject"/>.
+        /// Gets or sets the movement smoothing value.
         /// </summary>
-        public byte MovementSmoothing
+        public override byte MovementSmoothing
         {
-            get;
+            get => base.MovementSmoothing;
             set
             {
-                if (field == value)
+                if (base.MovementSmoothing == value)
                     return;
 
-                field = value;
+                base.MovementSmoothing = value;
                 MarkSyncNeeded(SyncFlags.MovementSmoothing);
             }
         }
 
         /// <summary>
-        /// Gets or sets the sync interval of the <see cref="ClientObject"/>.
-        /// </summary>
-        public byte SyncInterval
-        {
-            get => MovementSmoothing;
-            set => MovementSmoothing = value;
-        }
-
-        /// <summary>
-        /// Gets or sets the world position of the <see cref="ClientObject"/> instance.
+        /// Gets or sets the world position reported to the client.
         /// </summary>
         public Vector3 WorldPosition { get; set; }
 
         /// <summary>
-        /// Gets or sets the world rotation of the <see cref="ClientObject"/> instance.
+        /// Gets or sets the world rotation reported to the client.
         /// </summary>
         public Quaternion WorldRotation { get; set; }
 
         /// <summary>
-        /// Gets or sets the colliders of the <see cref="ClientObject"/> instance.
+        /// Gets or sets the server-side colliders belonging to this object.
         /// </summary>
         public Collider[] ServerColliders { get; set; } = [];
 
         /// <summary>
-        /// Gets or sets the <see cref="GameObject"/> the <see cref="ClientObject"/> is parented to on the client.
+        /// Gets or sets the <see cref="GameObject"/> this object is parented to on the client.
         /// </summary>
         public GameObject? Parent { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the netId of the <see cref="GameObject"/> this <see cref="ClientObject"/> is parented to.
+        /// Gets or sets the netId of the <see cref="GameObject"/> this object is parented to.
         /// </summary>
         public uint ParentNetId { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the netid of the <see cref="ClientObject"/> instance.
-        /// </summary>
-        public uint NetId { get; internal set; }
-
-        /// <summary>
-        /// Gets or sets the object type of the <see cref="ClientObject"/> instance.
-        /// </summary>
-        public abstract ObjectType ObjectType { get; }
-
-        /// <summary>
-        /// Gets or sets the asset id of the <see cref="ClientObject"/> instance.
+        /// Gets or sets the asset id used when spawning this object on a client.
         /// </summary>
         public uint AssetId { get; internal set; }
 
+        /// <inheritdoc/>
+        protected override void RegisterForSync() => SyncManager.RegisterForSync(this);
+
         /// <summary>
-        /// Spawns the <see cref="ClientObject"/> instance for the specified player.
+        /// Called after this object has been added to a <see cref="SchematicData"/> and before it is spawned for players.
         /// </summary>
-        /// <param name="player">The player to spawn the <see cref="ClientObject"/> instance to.</param>
+        /// <param name="schematic">The schematic this object belongs to.</param>
+        public virtual void OnAddedToSchematic(SchematicData schematic)
+        {
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this object should be spawned for the given player when
+        /// <see cref="LODZone"/>s are present.
+        /// </summary>
+        /// <param name="player">The player to check.</param>
+        /// <param name="zones">The LOD zones of the schematic.</param>
+        public virtual bool ShouldSpawnFor(Player player, LODZone[] zones) => true;
+
+        /// <summary>
+        /// Spawns this object for the specified player.
+        /// </summary>
+        /// <param name="player">The player to spawn the object for.</param>
         public virtual void SpawnForPlayer(Player player)
         {
             if (player == null || player.IsDestroyed || player.IsHost || player.IsDummy)
@@ -269,9 +244,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Destroys this <see cref="ClientObject"/> instance for the specified <see cref="Player"/>
+        /// Destroys this object for the specified player.
         /// </summary>
-        /// <param name="player">The <see cref="Player"/> to destroy this object on.</param>
+        /// <param name="player">The player to destroy the object for.</param>
         public void DestroyForPlayer(Player player)
         {
             DrawableLinesHelper.StopDraw(this, player);
@@ -280,7 +255,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Destroys this <see cref="ClientObject"/> instance for all <see cref="Player"/>s
+        /// Destroys this object for all players.
         /// </summary>
         public void DestroyForAllPlayers()
         {
@@ -295,10 +270,10 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// Sets the parent of this object.
         /// </summary>
-        /// <param name="player">The <see cref="Player"/> that will recive the parent message=</param>
-        /// <param name="parentId">The <see cref="NetworkBehaviour.netId"/> of the parent</param>
+        /// <param name="player">The player that will receive the parent message.</param>
+        /// <param name="parentId">The netId of the parent.</param>
         public virtual void SetParent(Player player, int parentId)
         {
             player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, parentId);
@@ -313,10 +288,10 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// Sets the parent of this object.
         /// </summary>
-        /// <param name="network">The <see cref="NetworkBehaviour"/> of the parent</param>
-        /// <param name="player">The <see cref="Player"/> that will recive the parent message=</param>
+        /// <param name="player">The player that will receive the parent message.</param>
+        /// <param name="network">The parent behaviour.</param>
         public virtual void SetParent(Player player, NetworkBehaviour network)
         {
             player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, network.netId);
@@ -326,11 +301,11 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// Sets the parent of this object.
         /// </summary>
-        /// <param name="gameObject">The <see cref="GameObject"/> of the parent</param>
-        /// <param name="player">The <see cref="Player"/> that will recive the parent message=</param>
-        /// <returns><see langword="true"/> if the <see cref="ClientObject"/> was parented</returns>
+        /// <param name="player">The player that will receive the parent message.</param>
+        /// <param name="gameObject">The parent object.</param>
+        /// <returns><see langword="true"/> if the object was parented.</returns>
         public virtual bool SetParent(Player player, GameObject gameObject)
         {
             if (!gameObject.TryGetComponent<NetworkBehaviour>(out var network))
@@ -343,9 +318,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// Sets the parent of this object for every player it is spawned for.
         /// </summary>
-        /// <param name="parentId">The <see cref="NetworkBehaviour.netId"/> of the parent</param>
+        /// <param name="parentId">The netId of the parent.</param>
         public virtual void SetParent(int parentId)
         {
             foreach (Player player in SpawnedPlayers)
@@ -354,18 +329,18 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             }
 
             ParentNetId = (uint)parentId;
-            if (TryFindParentGameObject(ParentNetId, out GameObject? foundAll))
+            if (TryFindParentGameObject(ParentNetId, out GameObject? found))
             {
-                Parent = foundAll;
+                Parent = found;
             }
             else
                 LogManager.Warn($"Failed to find GameObject with NetId {ParentNetId}!");
         }
 
         /// <summary>
-        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// Sets the parent of this object for every player it is spawned for.
         /// </summary>
-        /// <param name="network">The <see cref="NetworkBehaviour"/> of the parent</param>
+        /// <param name="network">The parent behaviour.</param>
         public virtual void SetParent(NetworkBehaviour network)
         {
             foreach (Player player in SpawnedPlayers)
@@ -378,10 +353,10 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Sets the parent of the <see cref="ClientObject"/>.
+        /// Sets the parent of this object for every player it is spawned for.
         /// </summary>
-        /// <param name="gameObject">The <see cref="GameObject"/> of the parent</param>
-        /// <returns><see langword="true"/> if the <see cref="ClientObject"/> was parented</returns>
+        /// <param name="gameObject">The parent object.</param>
+        /// <returns><see langword="true"/> if the object was parented.</returns>
         public virtual bool SetParent(GameObject gameObject)
         {
             if (!gameObject.TryGetComponent<NetworkBehaviour>(out var network))
@@ -422,27 +397,16 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Gets a value from a <see cref="SerializableObject"/> by key, converting it to the specified type.
+        /// Checks if this object is spawned for the specified player.
         /// </summary>
-        /// <typeparam name="T">The type to convert the value to.</typeparam>
-        /// <param name="serializable">The serializable object to retrieve the value from.</param>
-        /// <param name="key">The key of the value to retrieve.</param>
-        /// <returns>The value associated with the key, converted to <typeparamref name="T"/>.</returns>
-        public T GetValue<T>(SerializableObject serializable, string key) =>
-            serializable.Values.GetConvertValue<T>(key);
-
-        /// <summary>
-        /// Checks if this object is spawned for the specified <see cref="Player"/>.
-        /// </summary>
-        /// <param name="player">The <see cref="Player"/> to check</param>
-        /// <returns><see langword="true"/> if <see cref="SpawnedPlayers"/> contains the player else returns false.</returns>
+        /// <param name="player">The player to check.</param>
         public bool IsSpawnedForPlayer(Player player)
             => SpawnedPlayers.Contains(player);
 
         /// <summary>
         /// Hides this object for the specified player.
         /// </summary>
-        /// <param name="player">The player to hide this object for.</param>
+        /// <param name="player">The player to hide the object for.</param>
         public void HideForPlayer(Player player)
         {
             if (player.IsHost)
@@ -455,7 +419,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Shows this object for the specified player.
         /// </summary>
-        /// <param name="player">The player to show this object for.</param>
+        /// <param name="player">The player to show the object for.</param>
         public void ShowForPlayer(Player player)
         {
             if (player.IsHost)
@@ -465,24 +429,24 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Destroys this object for the specified player.
+        /// Despawns this object for the specified player.
         /// </summary>
-        /// <param name="player">The player to despawn this object for.</param>
+        /// <param name="player">The player to despawn the object for.</param>
         public void DespawnForPlayer(Player player)
         {
             if (player.IsHost)
                 return;
 
             DrawableLinesHelper.StopDraw(this, player);
-            ObjectHandler.OnClientObjectDestroyed(new (this, player));
+            ObjectHandler.OnClientObjectDestroyed(new(this, player));
             player.Connection.Send(new ObjectDestroyMessage { netId = NetId });
             SpawnedPlayers.Remove(player);
         }
 
         /// <summary>
-        /// Destroys this object for all ready players.
+        /// Despawns this object for all ready players.
         /// </summary>
-        /// <returns>The number of players this object was despawned for.</returns>
+        /// <returns>The number of players the object was despawned for.</returns>
         public uint DespawnForAllPlayers()
         {
             DrawableLinesHelper.StopDraw(this, null);
@@ -500,12 +464,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Syncs pending changes for the specified <see cref="Player"/> without resending a spawn message.
+        /// Syncs pending changes for the specified player without resending a spawn message.
         /// </summary>
-        /// <remarks>
-        /// Falls back to <see cref="SpawnForPlayer(Player)"/> if this object was not spawned for the player yet.
-        /// </remarks>
-        /// <param name="player">The <see cref="Player"/> to sync to.</param>
+        /// <param name="player">The player to sync to.</param>
         public virtual void SyncForPlayer(Player player)
         {
             if (player.IsHost)
@@ -521,9 +482,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Sends the given <paramref name="flags"/> as a Mirror <c>EntityStateMessage</c>
+        /// Sends the given <paramref name="flags"/> as a Mirror entity state message.
         /// </summary>
-        /// <param name="player">The <see cref="Player"/> to send the message to. Must already have this object spawned.</param>
+        /// <param name="player">The player to send the message to.</param>
         /// <param name="flags">The changes to include in the message.</param>
         public virtual void SendDeltaUpdate(Player player, SyncFlags flags)
         {
@@ -569,7 +530,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             writer.WriteULong(combinedMask);
             if (flags.HasFlagFast(SyncFlags.Position))
                 writer.WriteVector3(Position);
-                
+
             if (flags.HasFlagFast(SyncFlags.Rotation))
                 writer.WriteQuaternion(Rotation);
 
@@ -597,20 +558,19 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// Gets the derived dirty bits for the given <paramref name="flags"/>.
         /// </summary>
         /// <param name="flags">The changes to map to dirty bits.</param>
-        /// <returns>The derived dirty bit mask.</returns>
         protected virtual ulong GetDerivedDirtyBits(SyncFlags flags) => 0UL;
 
         /// <summary>
         /// Writes derived SyncVar values in ascending dirty bit order.
         /// </summary>
-        /// <param name="writer">The <see cref="NetworkWriter"/> to write to.</param>
+        /// <param name="writer">The writer to write to.</param>
         /// <param name="flags">The changes to write.</param>
         protected virtual void WriteDerivedSyncVars(NetworkWriter writer, SyncFlags flags)
         {
         }
 
         /// <summary>
-        /// Syncs the server values to all <see cref="Player"/>s this <see cref="ClientObject"/> is spawned for
+        /// Syncs the server values to all players this object is spawned for.
         /// </summary>
         public void SyncToPlayers()
         {
@@ -630,15 +590,12 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Syncs the server values to the specified <see cref="Player"/>
+        /// Syncs the server values to the specified player.
         /// </summary>
-        /// <param name="player">The <see cref="Player"/> to be synced.</param>
+        /// <param name="player">The player to sync to.</param>
         public void SyncToPlayer(Player player)
         {
-            if (!Spawned)
-                return;
-
-            if (player.IsHost)
+            if (!Spawned || player.IsHost)
                 return;
 
             LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
@@ -649,7 +606,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         /// <summary>
         /// Syncs the server values to the players that match the filter.
         /// </summary>
-        /// <param name="filter">The filter.</param>
+        /// <param name="filter">The player filter.</param>
         public void SyncToPlayer(Func<Player, bool> filter)
         {
             if (!Spawned)
@@ -657,10 +614,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
 
             foreach (Player player in SpawnedPlayers)
             {
-                if (player.IsHost)
-                    continue;
-
-                if (!filter(player))
+                if (player.IsHost || !filter(player))
                     continue;
 
                 LogManager.Debug($"Syncing object with id {NetId} to {player.DisplayName}");
@@ -683,17 +637,17 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
 
                 SyncForPlayer(player);
             }
-            
+
             ClearDirtyFlags();
             LogManager.Debug($"Batched sync completed for object {NetId} ({flags})");
         }
 
         /// <summary>
-        /// Spawns a <see cref="GameObject"/> to the specified <see cref="Player"/>.
+        /// Spawns a <see cref="GameObject"/> to the specified player.
         /// </summary>
-        /// <param name="obj">The <see cref="GameObject"/> to be spawned.</param>
-        /// <param name="player">The <see cref="Player"/> to be spawned for.</param>
-        /// <returns><see langword="true"/> if it is successfully spawned otherwise returns <see langword="false"/></returns>
+        /// <param name="obj">The object to spawn.</param>
+        /// <param name="player">The player to spawn it for.</param>
+        /// <returns><see langword="true"/> if the object was spawned.</returns>
         public virtual bool SpawnObjectOnPlayers(GameObject obj, Player player)
         {
             if (obj == null)
@@ -727,9 +681,9 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         }
 
         /// <summary>
-        /// Writes the sync variables to the specified <see cref="NetworkWriter"/>.
+        /// Writes the shared sync variables to the specified writer.
         /// </summary>
-        /// <param name="payloadWriter">The <see cref="NetworkWriter"/> to write to.</param>
+        /// <param name="payloadWriter">The writer to write to.</param>
         protected virtual void WriteSyncVars(NetworkWriter payloadWriter)
         {
             payloadWriter.WriteVector3(Position);
@@ -738,7 +692,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
             payloadWriter.WriteByte(MovementSmoothing);
             payloadWriter.WriteBool(IsStatic);
         }
-        
+
         protected virtual void WriteSyncObjects(NetworkWriterPooled payloadWriter)
         {
         }

@@ -9,6 +9,7 @@ using System.Text;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.ToolGun.Utilities.Settings;
 using UnityEngine;
@@ -122,12 +123,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities
             {
                 string name = client switch
                 {
-                    PrimitiveObject prim when !string.IsNullOrEmpty(prim.Name) => ToolGunMenu.SanitizeDisplayText(prim.Name, MaxHintNameLength),
-                    CapybaraObject capy when !string.IsNullOrEmpty(capy.Name) => ToolGunMenu.SanitizeDisplayText(capy.Name, MaxHintNameLength),
-                    ClientClutterObject clutter when !string.IsNullOrEmpty(clutter.Name) => ToolGunMenu.SanitizeDisplayText(clutter.Name, MaxHintNameLength),
-                    ClientCullingParentObject culling when !string.IsNullOrEmpty(culling.Name) => ToolGunMenu.SanitizeDisplayText(culling.Name, MaxHintNameLength),
-                    TextObject text => $"Text_{text.ObjectId}",
-                    LightObject => $"Light_{client.ObjectId}",
+                    PrimitiveDefinition.Client prim when !string.IsNullOrEmpty(prim.Name) => ToolGunMenu.SanitizeDisplayText(prim.Name, MaxHintNameLength),
+                    CapybaraDefinition.Client capy when !string.IsNullOrEmpty(capy.Name) => ToolGunMenu.SanitizeDisplayText(capy.Name, MaxHintNameLength),
+                    ClutterDefinition.Client clutter when !string.IsNullOrEmpty(clutter.Name) => ToolGunMenu.SanitizeDisplayText(clutter.Name, MaxHintNameLength),
+                    CullingParentDefinition.Client culling when !string.IsNullOrEmpty(culling.Name) => ToolGunMenu.SanitizeDisplayText(culling.Name, MaxHintNameLength),
+                    TextToyDefinition.Client text => $"Text_{text.ObjectId}",
+                    LightDefinition.Client => $"Light_{client.ObjectId}",
                     _ => $"id {client.ObjectId}",
                 };
 

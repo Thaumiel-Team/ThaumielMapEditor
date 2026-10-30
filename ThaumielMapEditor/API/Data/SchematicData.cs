@@ -141,7 +141,7 @@ namespace ThaumielMapEditor.API.Data
         public BlockExecutor? Executor { get; internal set; }
 
         /// <summary>
-        /// Gets the <see cref="GameObject"/> of the base <see cref="PrimitiveObject"/> of this Schematic
+        /// Gets the <see cref="GameObject"/> of the base <see cref="LabPrimitive"/> of this Schematic
         /// </summary>
         public GameObject? GameObject => Primitive?.GameObject;
 

@@ -1006,11 +1006,7 @@ namespace ThaumielMapEditor.API.Helpers
         /// </summary>
         /// <param name="type">The object type to check.</param>
         /// <returns><see langword="true"/> if <paramref name="type"/> can be spawned with either side.</returns>
-        public static bool IsDualType(ObjectType type) => type switch
-        {
-            ObjectType.Primitive or ObjectType.Light or ObjectType.TextToy or ObjectType.Capybara or ObjectType.Clutter or ObjectType.CullingParent or ObjectType.GameObject => true,
-            _ => false,
-        };
+        public static bool IsDualType(ObjectType type) => ObjectRegistry.IsDualType(type);
 
         /// <summary>
         /// Spawns a single object without requiring a schematic file.
@@ -1365,7 +1361,7 @@ namespace ThaumielMapEditor.API.Helpers
             schematicData.ServerSideTransforms[obj.ObjectId] = dummyNode.transform;
         }
 
-        private static void EnsureGameObjectNode(SerializableObject serializable, SchematicData schematicData)
+        internal static void EnsureGameObjectNode(SerializableObject serializable, SchematicData schematicData)
         {
             if (serializable.ObjectType != ObjectType.GameObject && serializable.ObjectType != ObjectType.CullingParent)
                 return;
@@ -1601,518 +1597,65 @@ namespace ThaumielMapEditor.API.Helpers
             }
         }
 
-        /// <summary>
-        /// Deserializes custom block values from <see cref="SerializableObject.Values"/> into an instance of <typeparamref name="T"/> without a YAML string round-trip.
-        /// </summary>
-        /// <typeparam name="T">The object type to deserialize into.</typeparam>
-        /// <param name="serializable">The serializable object containing the values dictionary.</param>
-        /// <returns>An instance of <typeparamref name="T"/> populated from the values dictionary.</returns>
-        private static T DeserializeObject<T>(SerializableObject serializable) where T : new()
-        {
-            if (serializable.Values == null || serializable.Values.Count == 0)
-                return new T();
-
-            try
-            {
-                return serializable.Values.ConvertTo<T>();
-            }
-            catch (Exception ex)
-            {
-                LogManager.Warn($"Failed to deserialize object values for '{serializable.Name}' as {typeof(T).Name}: {ex.Message}");
-                return new T();
-            }
-        }
-
         private static uint SpawnSerializableObject(SerializableObject serializable, SchematicData schematicData, uint parentNetId, LODZone[] lodZones, bool serverside = false)
         {
             NetworkServer.spawned.TryGetValue(parentNetId, out NetworkIdentity? identity);
 
-            switch (serializable.ObjectType)
+            ObjectDefinition? definition = ObjectRegistry.Create(serializable.ObjectType);
+            if (definition == null)
             {
-                case ObjectType.Primitive:
-                    if (serverside)
-                    {
-                        PrimitiveObjectServer serverprim = DeserializeObject<PrimitiveObjectServer>(serializable);
-                        SetServerObjectProperties(serverprim, serializable);
-
-                        serverprim.SpawnObject(schematicData, serializable);
-                        if (identity != null)
-                            serverprim.Object?.transform.SetParent(identity.transform, false);
-
-                        serverprim.Name = serializable.Name;
-                        return serverprim.NetId;
-                    }
-                    else
-                    {
-                        if (PrefabHelper.PrimitiveObject?.netIdentity == null)
-                        {
-                            LogManager.Warn($"Skipping primitive '{serializable.Name}': Primitive prefab not registered.");
-                            return parentNetId;
-                        }
-
-                        PrimitiveObject primitive = DeserializeObject<PrimitiveObject>(serializable);
-                        primitive.Name = serializable.Name;
-                        primitive.ParentNetId = parentNetId;
-                        primitive.NetId = NetworkIdentity.GetNextNetworkId();
-                        primitive.Scale = serializable.Scale;
-                        primitive.IsStatic = serializable.IsStatic;
-                        primitive.Position = serializable.Position;
-                        primitive.Rotation = serializable.Rotation;
-                        primitive.MovementSmoothing = serializable.MovementSmoothing;
-                        primitive.AssetId = PrefabHelper.PrimitiveObject.netIdentity.assetId;
-                        primitive.Schematic = schematicData;
-                        primitive.ObjectId = serializable.ObjectId;
-                        primitive.ParentId = serializable.ParentId;
-
-                        schematicData.SpawnedClientObjects.Add(primitive);
-                        if (lodZones.IsEmpty())
-                        {
-                            foreach (Player player in Player.ReadyList.ToArray())
-                            {
-                                primitive.SpawnForPlayer(player);
-                            }
-                        }
-                        else
-                        {
-                            foreach (LODZone zone in lodZones)
-                            {
-                                if (zone == null || !zone.PrimitivestoUnload.Contains(primitive.PrimitiveType) || zone.Collider == null)
-                                    continue;
-
-                                Bounds zoneBounds = zone.Collider.bounds;
-                                foreach (Player player in Player.ReadyList.ToArray())
-                                {
-                                    if (zoneBounds.Contains(player.Position))
-                                        primitive.SpawnForPlayer(player);
-                                }
-                            }
-                        }
-
-                        ColliderHelper.CreateCollisionMesh(primitive);
-                        return primitive.NetId;
-                    }
-
-                case ObjectType.GameObject:
-                    if (serverside)
-                    {
-                        PrimitiveObjectServer serverprim = DeserializeObject<PrimitiveObjectServer>(serializable);
-
-                        serverprim.SpawnObject(schematicData, serializable);
-                        if (identity != null)
-                            serverprim.Object?.transform.SetParent(identity.transform, false);
-
-                        serverprim.Name = serializable.Name;
-                        EnsureGameObjectNode(serializable, schematicData);
-                        return serverprim.NetId;
-                    }
-                    else
-                    {
-                        PrimitiveObject gameObject = DeserializeObject<PrimitiveObject>(serializable);
-                        gameObject.Name = serializable.Name;
-                        gameObject.ParentNetId = parentNetId;
-                        gameObject.NetId = NetworkIdentity.GetNextNetworkId();
-                        gameObject.Scale = serializable.Scale;
-                        gameObject.IsStatic = serializable.IsStatic;
-                        gameObject.Position = serializable.Position;
-                        gameObject.Rotation = serializable.Rotation;
-                        gameObject.MovementSmoothing = serializable.MovementSmoothing;
-                        gameObject.AssetId = PrefabHelper.PrimitiveObject!.netIdentity.assetId;
-                        gameObject.Schematic = schematicData;
-                        gameObject.PrimitiveFlags = PrimitiveFlags.None;
-                        gameObject.PrimitiveType = PrimitiveType.Cube;
-                        gameObject.Color = Color.white;
-                        gameObject.ObjectId = serializable.ObjectId;
-                        gameObject.ParentId = serializable.ParentId;
-
-                        schematicData.SpawnedClientObjects.Add(gameObject);
-                        EnsureGameObjectNode(serializable, schematicData);
-                        foreach (Player player in Player.ReadyList)
-                        {
-                            gameObject.SpawnForPlayer(player);
-                        }
-
-                        return gameObject.NetId;
-                    }
-
-                case ObjectType.Capybara:
-                    if (serverside)
-                    {
-                        CapybaraObjectServer servercapy = DeserializeObject<CapybaraObjectServer>(serializable);
-
-                        SetServerObjectProperties(servercapy, serializable);
-
-                        servercapy.SpawnObject(schematicData, serializable);
-                        if (identity != null)
-                            servercapy.Object?.transform.SetParent(identity.transform, false);
-
-                        servercapy.Name = serializable.Name;
-                        return servercapy.NetId;
-                    }
-                    else
-                    {
-                        CapybaraObject capybara = DeserializeObject<CapybaraObject>(serializable);
-                        capybara.Name = serializable.Name;
-                        capybara.ParentNetId = parentNetId;
-                        capybara.NetId = NetworkIdentity.GetNextNetworkId();
-                        capybara.Scale = serializable.Scale;
-                        capybara.IsStatic = serializable.IsStatic;
-                        capybara.Position = serializable.Position;
-                        capybara.Rotation = serializable.Rotation;
-                        capybara.MovementSmoothing = serializable.MovementSmoothing;
-                        capybara.Schematic = schematicData;
-                        capybara.ObjectId = serializable.ObjectId;
-                        capybara.ParentId = serializable.ParentId;
-
-                        schematicData.SpawnedClientObjects.Add(capybara);
-
-                        foreach (Player player in Player.ReadyList.ToArray())
-                        {
-                            capybara.SpawnForPlayer(player);
-                        }
-
-                        if (capybara.CollisionsEnabled)
-                            ColliderHelper.CreateClientObjectColliders(capybara, schematicData);
-
-                        return capybara.NetId;
-                    }
-
-                case ObjectType.Light:
-                    if (serverside)
-                    {
-                        LightObjectServer serverlight = DeserializeObject<LightObjectServer>(serializable);
-
-                        SetServerObjectProperties(serverlight, serializable);
-
-                        serverlight.SpawnObject(schematicData, serializable);
-                        if (identity != null)
-                            serverlight.Object?.transform.SetParent(identity.transform, false);
-
-                        serverlight.Name = serializable.Name;
-                        return serverlight.NetId;
-                    }
-                    else
-                    {
-                        if (PrefabHelper.LightSource?.netIdentity == null)
-                        {
-                            LogManager.Warn($"Skipping light '{serializable.Name}': Light prefab not registered.");
-                            return parentNetId;
-                        }
-
-                        LightObject light = DeserializeObject<LightObject>(serializable);
-                        light.ParentNetId = parentNetId;
-                        light.NetId = NetworkIdentity.GetNextNetworkId();
-                        light.AssetId = PrefabHelper.LightSource.netIdentity.assetId;
-                        light.Scale = serializable.Scale;
-                        light.IsStatic = serializable.IsStatic;
-                        light.Position = serializable.Position;
-                        light.Rotation = serializable.Rotation;
-                        light.MovementSmoothing = serializable.MovementSmoothing;
-                        light.Schematic = schematicData;
-                        light.ObjectId = serializable.ObjectId;
-                        light.ParentId = serializable.ParentId;
-
-                        schematicData.SpawnedClientObjects.Add(light);
-                        ColliderHelper.CreateSelectionSphere(light, schematicData);
-
-                        foreach (Player player in Player.ReadyList.ToArray())
-                        {
-                            light.SpawnForPlayer(player);
-                        }
-
-                        return light.NetId;
-                    }
-
-                case ObjectType.Clutter:
-                    if (serverside)
-                    {
-                        ClutterObject clutter = DeserializeObject<ClutterObject>(serializable);
-
-                        SetServerObjectProperties(clutter, serializable);
-
-                        clutter.SpawnObject(schematicData, serializable);
-                        clutter.Name = serializable.Name;
-                        return clutter.NetId;
-                    }
-                    else
-                    {
-                        ClientClutterObject clientClutter = DeserializeObject<ClientClutterObject>(serializable);
-
-                        uint clutterAssetId;
-                        try
-                        {
-                            clutterAssetId = PrefabHelper.GetAssetId(ClutterObject.GetClutterPrefab(clientClutter.Type));
-                        }
-                        catch (ArgumentOutOfRangeException ex)
-                        {
-                            LogManager.Warn($"Skipping client clutter '{serializable.Name}': {ex.Message}");
-                            return parentNetId;
-                        }
-
-                        if (clutterAssetId == 0)
-                        {
-                            LogManager.Warn($"Skipping client clutter '{serializable.Name}': clutter prefab has no NetworkIdentity.");
-                            return parentNetId;
-                        }
-
-                        clientClutter.Name = serializable.Name;
-                        clientClutter.ParentNetId = parentNetId;
-                        clientClutter.NetId = NetworkIdentity.GetNextNetworkId();
-                        clientClutter.Scale = serializable.Scale;
-                        clientClutter.IsStatic = serializable.IsStatic;
-                        clientClutter.Position = serializable.Position;
-                        clientClutter.Rotation = serializable.Rotation;
-                        clientClutter.MovementSmoothing = serializable.MovementSmoothing;
-                        clientClutter.AssetId = clutterAssetId;
-                        clientClutter.Schematic = schematicData;
-                        clientClutter.ObjectId = serializable.ObjectId;
-                        clientClutter.ParentId = serializable.ParentId;
-
-                        schematicData.SpawnedClientObjects.Add(clientClutter);
-
-                        foreach (Player player in Player.ReadyList.ToArray())
-                        {
-                            clientClutter.SpawnForPlayer(player);
-                        }
-
-                        ColliderHelper.CreateClientObjectColliders(clientClutter, schematicData);
-
-                        clientClutter.ClearDirtyFlags();
-                        SyncManager.RemoveFromPending(clientClutter);
-
-                        return clientClutter.NetId;
-                    }
-
-                case ObjectType.CullingParent:
-                    if (serverside)
-                    {
-                        CullingParentObject serverculling = DeserializeObject<CullingParentObject>(serializable);
-
-                        if (PrefabHelper.CullingParent == null)
-                        {
-                            LogManager.Warn($"Skipping culling parent '{serializable.Name}': culling parent prefab not registered.");
-                            return parentNetId;
-                        }
-
-                        if (serverculling.BoundsSize == Vector3.zero)
-                        {
-                            LogManager.Warn($"Skipping culling parent '{serializable.Name}': BoundsSize is zero.");
-                            return parentNetId;
-                        }
-
-                        serverculling.Name = serializable.Name;
-                        serverculling.Position = serializable.Position;
-                        serverculling.Rotation = serializable.Rotation;
-                        serverculling.Scale = serializable.Scale;
-                        serverculling.IsStatic = serializable.IsStatic;
-
-                        serverculling.SpawnObject(schematicData, serializable);
-                        if (serverculling.Object == null)
-                            return parentNetId;
-
-                        schematicData.ServerSideTransforms[serializable.ObjectId] = serverculling.Object.transform;
-                        LogManager.Debug($"Spawned server culling parent '{serverculling.Name}' with NetId {serverculling.NetId}.");
-                        return serverculling.NetId;
-                    }
-                    else
-                    {
-                        ClientCullingParentObject clientculling = DeserializeObject<ClientCullingParentObject>(serializable);
-
-                        if (PrefabHelper.CullingParent?.netIdentity == null)
-                        {
-                            LogManager.Warn($"Skipping client culling parent '{serializable.Name}': culling parent prefab not registered.");
-                            return parentNetId;
-                        }
-
-                        if (clientculling.BoundsSize == Vector3.zero)
-                        {
-                            LogManager.Warn($"Skipping client culling parent '{serializable.Name}': BoundsSize is zero.");
-                            return parentNetId;
-                        }
-
-                        clientculling.Name = serializable.Name;
-                        clientculling.ParentNetId = parentNetId;
-                        clientculling.NetId = NetworkIdentity.GetNextNetworkId();
-                        clientculling.AssetId = PrefabHelper.CullingParent.netIdentity.assetId;
-                        clientculling.Position = serializable.Position;
-                        clientculling.Rotation = serializable.Rotation;
-                        clientculling.Scale = Vector3.one;
-                        clientculling.IsStatic = serializable.IsStatic;
-                        clientculling.MovementSmoothing = serializable.MovementSmoothing;
-                        clientculling.ObjectId = serializable.ObjectId;
-                        clientculling.ParentId = serializable.ParentId;
-                        clientculling.Schematic = schematicData;
-
-                        schematicData.SpawnedClientObjects.Add(clientculling);
-                        EnsureGameObjectNode(serializable, schematicData);
-
-                        foreach (Player player in Player.ReadyList.ToArray())
-                        {
-                            clientculling.SpawnForPlayer(player);
-                        }
-
-                        clientculling.ClearDirtyFlags();
-                        SyncManager.RemoveFromPending(clientculling);
-
-                        LogManager.Debug($"Spawned client culling parent '{clientculling.Name}' with NetId {clientculling.NetId} at {clientculling.ResolveWorldTransform().Position} (local {clientculling.Position}).");
-                        return clientculling.NetId;
-                    }
-
-                case ObjectType.Door:
-                    DoorObject door = DeserializeObject<DoorObject>(serializable);
-
-                    SetServerObjectProperties(door, serializable);
-
-                    door.SpawnObject(schematicData, serializable);
-                    door.Name = serializable.Name;
-                    return door.NetId;
-
-                case ObjectType.TextToy:
-                    if (serverside)
-                    {
-                        TextToyObject textToy = DeserializeObject<TextToyObject>(serializable);
-
-                        SetServerObjectProperties(textToy, serializable);
-
-                        textToy.SpawnObject(schematicData, serializable);
-                        textToy.Name = serializable.Name;
-                        return textToy.NetId;
-                    }
-                    else
-                    {
-                        if (PrefabHelper.TextToy?.netIdentity == null)
-                        {
-                            LogManager.Warn($"Skipping text toy '{serializable.Name}': TextToy prefab not registered.");
-                            return parentNetId;
-                        }
-
-                        TextObject textObject = DeserializeObject<TextObject>(serializable);
-                        textObject.ParentNetId = parentNetId;
-                        textObject.NetId = NetworkIdentity.GetNextNetworkId();
-                        textObject.AssetId = PrefabHelper.TextToy.netIdentity.assetId;
-                        textObject.Scale = serializable.Scale;
-                        textObject.IsStatic = serializable.IsStatic;
-                        textObject.Position = serializable.Position;
-                        textObject.Rotation = serializable.Rotation;
-                        textObject.MovementSmoothing = serializable.MovementSmoothing;
-                        textObject.Schematic = schematicData;
-                        textObject.ObjectId = serializable.ObjectId;
-                        textObject.ParentId = serializable.ParentId;
-
-                        schematicData.SpawnedClientObjects.Add(textObject);
-
-                        foreach (Player player in Player.ReadyList.ToArray())
-                        {
-                            textObject.SpawnForPlayer(player);
-                        }
-
-                        return textObject.NetId;
-                    }
-
-                case ObjectType.Workstation:
-                    WorkstationObject workstation = DeserializeObject<WorkstationObject>(serializable);
-
-                    SetServerObjectProperties(workstation, serializable);
-
-                    workstation.SpawnObject(schematicData, serializable);
-                    workstation.Name = serializable.Name;
-                    return workstation.NetId;
-
-                case ObjectType.Camera:
-                    CameraObject camera = DeserializeObject<CameraObject>(serializable);
-                    camera.Position = serializable.Position;
-                    camera.Rotation = serializable.Rotation;
-                    camera.Scale = serializable.Scale;
-                    camera.IsStatic = serializable.IsStatic;
-
-                    camera.SpawnObject(schematicData, serializable);
-                    camera.Name = serializable.Name;
-                    return camera.NetId;
-
-                case ObjectType.Interactable:
-                    InteractionObject interaction = DeserializeObject<InteractionObject>(serializable);
-
-                    SetServerObjectProperties(interaction, serializable);
-
-                    interaction.SpawnObject(schematicData, serializable);
-                    interaction.Name = serializable.Name;
-                    return interaction.NetId;
-
-                case ObjectType.Waypoint:
-                    WaypointObject waypoint = DeserializeObject<WaypointObject>(serializable);
-
-                    SetServerObjectProperties(waypoint, serializable);
-
-                    waypoint.SpawnObject(schematicData, serializable);
-                    waypoint.Name = serializable.Name;
-                    return waypoint.NetId;
-
-                case ObjectType.Locker:
-                    LockerObject locker = DeserializeObject<LockerObject>(serializable);
-
-                    SetServerObjectProperties(locker, serializable);
-
-                    locker.SpawnObject(schematicData, serializable);
-                    locker.Name = serializable.Name;
-                    return locker.NetId;
-
-                case ObjectType.Pickup:
-                    PickupObject pickup = DeserializeObject<PickupObject>(serializable);
-
-                    SetServerObjectProperties(pickup, serializable);
-
-                    pickup.SpawnObject(schematicData, serializable);
-                    pickup.Name = serializable.Name;
-                    return pickup.NetId;
-
-                case ObjectType.Target:
-                    TargetDummyObject target = DeserializeObject<TargetDummyObject>(serializable);
-
-                    SetServerObjectProperties(target, serializable);
-
-                    target.SpawnObject(schematicData, serializable);
-                    target.Name = serializable.Name;
-                    return target.NetId;
-
-                case ObjectType.Teleporter:
-                    TeleporterObject teleporter = DeserializeObject<TeleporterObject>(serializable);
-
-                    SetServerObjectProperties(teleporter, serializable);
-
-                    teleporter.SpawnObject(schematicData, serializable);
-                    teleporter.Name = serializable.Name;
-                    return teleporter.NetId;
-
-                case ObjectType.Speaker:
-                    SpeakerObject speaker = DeserializeObject<SpeakerObject>(serializable);
-
-                    SetServerObjectProperties(speaker, serializable);
-
-                    speaker.SpawnObject(schematicData, serializable);
-                    speaker.Name = serializable.Name;
-                    return speaker.NetId;
-
-                case ObjectType.PlayerSpawnPoint:
-                    PlayerSpawnPoint spawn = DeserializeObject<PlayerSpawnPoint>(serializable);
-
-                    SetServerObjectProperties(spawn, serializable);
-
-                    spawn.SpawnObject(schematicData, serializable);
-                    spawn.Name = serializable.Name;
-                    return spawn.NetId;
-
-                case ObjectType.RagdollSpawner:
-                    RagdollSpawner ragdoll = DeserializeObject<RagdollSpawner>(serializable);
-
-                    SetServerObjectProperties(ragdoll, serializable);
-
-                    ragdoll.SpawnObject(schematicData, serializable);
-                    ragdoll.Name = serializable.Name;
-                    return 0;
-
-                default:
-                    LogManager.Warn($"Unhandled ObjectType '{serializable.ObjectType}' on object '{serializable.Name}', skipping.");
-                    return 0;
+                LogManager.Warn($"Unhandled ObjectType '{serializable.ObjectType}' on object '{serializable.Name}', skipping.");
+                return 0;
             }
+
+            definition.Load(serializable);
+
+            ObjectBase data = new();
+            data.LoadFrom(serializable, schematicData);
+
+            if (serverside || !definition.SupportsClient)
+            {
+                if (!definition.SupportsServer)
+                {
+                    LogManager.Warn($"Object type '{serializable.ObjectType}' on object '{serializable.Name}' has no server implementation, skipping.");
+                    return parentNetId;
+                }
+
+                ServerObject? server = definition.ServerObject(data);
+                if (server == null)
+                    return parentNetId;
+
+                server.SpawnObject(schematicData, serializable);
+
+                if (server.ParentToSpawnTransform && identity != null)
+                    server.Object?.transform.SetParent(identity.transform, false);
+
+                server.OnSpawned(schematicData);
+                if (serializable.ObjectType == ObjectType.CullingParent && server.Object == null)
+                    return parentNetId;
+
+                return server.SpawnResult;
+            }
+
+            ClientObject? client = definition.ClientObject(data);
+            if (client == null)
+                return parentNetId;
+
+            client.ParentNetId = parentNetId;
+            client.NetId = NetworkIdentity.GetNextNetworkId();
+            client.ObjectId = serializable.ObjectId;
+            client.ParentId = serializable.ParentId;
+
+            schematicData.SpawnedClientObjects.Add(client);
+            client.OnAddedToSchematic(schematicData);
+
+            foreach (Player player in Player.ReadyList.ToArray())
+            {
+                if (client.ShouldSpawnFor(player, lodZones))
+                    client.SpawnForPlayer(player);
+            }
+
+            return client.NetId;
         }
 
         /// <summary>
@@ -2161,12 +1704,5 @@ namespace ThaumielMapEditor.API.Helpers
             return map;
         }
 
-        private static void SetServerObjectProperties(ServerObject obj, SerializableObject serializable)
-        {
-            obj.Position = serializable.Position;
-            obj.Rotation = serializable.Rotation;
-            obj.Scale = serializable.Scale;
-            obj.IsStatic = serializable.IsStatic;
-        }
     }
 }

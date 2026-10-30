@@ -8,6 +8,7 @@
 using System;
 using AdminToys;
 using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
 
@@ -36,19 +37,19 @@ namespace ThaumielMapEditor.Events
 
         private static void OnScaleUpdated(Vector3 scale, ClientObject client)
         {
-            if (client is CapybaraObject capy)
+            if (client is CapybaraDefinition.Client capy)
             {
                 ColliderHelper.SyncClientObjectColliders(capy, capy.Schematic);
                 return;
             }
 
-            if (client is ClientClutterObject clutter)
+            if (client is ClutterDefinition.Client clutter)
             {
                 ColliderHelper.SyncClientObjectColliders(clutter, clutter.Schematic);
                 return;
             }
 
-            if (client is not PrimitiveObject primitive)
+            if (client is not PrimitiveDefinition.Client primitive)
                 return;
 
             if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
@@ -59,31 +60,31 @@ namespace ThaumielMapEditor.Events
 
         private static void OnPositionUpdated(Vector3 position, ClientObject client)
         {
-            if (client is LightObject light)
+            if (client is LightDefinition.Client light)
             {
                 ColliderHelper.SyncSelectionSpheres(light, light.Schematic);
                 return;
             }
 
-            if (client is CapybaraObject capy)
+            if (client is CapybaraDefinition.Client capy)
             {
                 ColliderHelper.SyncClientObjectColliders(capy, capy.Schematic);
                 return;
             }
 
-            if (client is ClientClutterObject clutter)
+            if (client is ClutterDefinition.Client clutter)
             {
                 ColliderHelper.SyncClientObjectColliders(clutter, clutter.Schematic);
                 return;
             }
 
-            if (client is ClientCullingParentObject culling)
+            if (client is CullingParentDefinition.Client culling)
             {
                 ColliderHelper.SyncSelectionSpheres(culling, culling.Schematic);
                 return;
             }
 
-            if (client is not PrimitiveObject primitive)
+            if (client is not PrimitiveDefinition.Client primitive)
                 return;
 
             if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
@@ -99,31 +100,31 @@ namespace ThaumielMapEditor.Events
 
         private static void OnRotationUpdated(Quaternion rotation, ClientObject client)
         {
-            if (client is LightObject light)
+            if (client is LightDefinition.Client light)
             {
                 ColliderHelper.SyncSelectionSpheres(light, light.Schematic);
                 return;
             }
 
-            if (client is CapybaraObject capy)
+            if (client is CapybaraDefinition.Client capy)
             {
                 ColliderHelper.SyncClientObjectColliders(capy, capy.Schematic);
                 return;
             }
 
-            if (client is ClientClutterObject clutter)
+            if (client is ClutterDefinition.Client clutter)
             {
                 ColliderHelper.SyncClientObjectColliders(clutter, clutter.Schematic);
                 return;
             }
 
-            if (client is ClientCullingParentObject culling)
+            if (client is CullingParentDefinition.Client culling)
             {
                 ColliderHelper.SyncSelectionSpheres(culling, culling.Schematic);
                 return;
             }
 
-            if (client is not PrimitiveObject primitive)
+            if (client is not PrimitiveDefinition.Client primitive)
                 return;
 
             if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
@@ -139,19 +140,19 @@ namespace ThaumielMapEditor.Events
 
         private static void OnSchematicPositionUpdated(SchematicData schematic)
         {
-            foreach (LightObject light in schematic.GetClientObject<LightObject>())
+            foreach (LightDefinition.Client light in schematic.GetClientObject<LightDefinition.Client>())
                 ColliderHelper.SyncSelectionSpheres(light, schematic);
 
-            foreach (ClientCullingParentObject culling in schematic.GetClientObject<ClientCullingParentObject>())
+            foreach (CullingParentDefinition.Client culling in schematic.GetClientObject<CullingParentDefinition.Client>())
                 ColliderHelper.SyncSelectionSpheres(culling, schematic);
 
-            foreach (CapybaraObject capy in schematic.GetClientObject<CapybaraObject>())
+            foreach (CapybaraDefinition.Client capy in schematic.GetClientObject<CapybaraDefinition.Client>())
                 ColliderHelper.SyncClientObjectColliders(capy, schematic);
 
-            foreach (ClientClutterObject clutter in schematic.GetClientObject<ClientClutterObject>())
+            foreach (ClutterDefinition.Client clutter in schematic.GetClientObject<ClutterDefinition.Client>())
                 ColliderHelper.SyncClientObjectColliders(clutter, schematic);
 
-            foreach (PrimitiveObject primitive in schematic.GetClientObject<PrimitiveObject>())
+            foreach (PrimitiveDefinition.Client primitive in schematic.GetClientObject<PrimitiveDefinition.Client>())
             {
                 if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || schematic.Primitive == null)
                     continue;
@@ -167,19 +168,19 @@ namespace ThaumielMapEditor.Events
 
         private static void OnSchematicRotationUpdated(SchematicData schematic)
         {
-            foreach (LightObject light in schematic.GetClientObject<LightObject>())
+            foreach (LightDefinition.Client light in schematic.GetClientObject<LightDefinition.Client>())
                 ColliderHelper.SyncSelectionSpheres(light, schematic);
 
-            foreach (ClientCullingParentObject culling in schematic.GetClientObject<ClientCullingParentObject>())
+            foreach (CullingParentDefinition.Client culling in schematic.GetClientObject<CullingParentDefinition.Client>())
                 ColliderHelper.SyncSelectionSpheres(culling, schematic);
 
-            foreach (CapybaraObject capy in schematic.GetClientObject<CapybaraObject>())
+            foreach (CapybaraDefinition.Client capy in schematic.GetClientObject<CapybaraDefinition.Client>())
                 ColliderHelper.SyncClientObjectColliders(capy, schematic);
 
-            foreach (ClientClutterObject clutter in schematic.GetClientObject<ClientClutterObject>())
+            foreach (ClutterDefinition.Client clutter in schematic.GetClientObject<ClutterDefinition.Client>())
                 ColliderHelper.SyncClientObjectColliders(clutter, schematic);
 
-            foreach (PrimitiveObject primitive in schematic.GetClientObject<PrimitiveObject>())
+            foreach (PrimitiveDefinition.Client primitive in schematic.GetClientObject<PrimitiveDefinition.Client>())
             {
                 if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null)
                     continue;
