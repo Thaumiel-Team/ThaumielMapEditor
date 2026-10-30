@@ -61,7 +61,9 @@ namespace ThaumielMapEditor.API.Components.Tools
             if (Object == null)
                 return;
 
-            Object.Tools = Object.Tools.Where(t => t != this).ToList();
+            List<ToolBase> temp = Object.Tools.ToList();
+            temp.Remove(this);
+            Object.Tools = temp;
         }
 
         public T? MapToObject<T>(object data)
