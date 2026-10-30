@@ -19,10 +19,10 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Property { get; set; } = string.Empty;
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => GetProperty(ResolveTarget());
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
             => GetProperty(ResolveTarget(obj));
 
         private object GetProperty(object? obj)
@@ -150,7 +150,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
     public class PlayerListBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Player.ReadyList;
     }
 
@@ -237,7 +237,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object? ReturnExecute() => ReturnExecute(null!);
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
         {
             Player? player = Player.Get(UserId);
             if (player == null)

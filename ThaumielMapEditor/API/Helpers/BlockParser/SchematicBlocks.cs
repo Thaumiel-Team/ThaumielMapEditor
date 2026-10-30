@@ -30,7 +30,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? Rotation { get; set; }
         public object? Scale { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             Vector3 position = ResolveVector3(Position, Vector3.zero);
             bool hasRotation = Rotation != null;
@@ -53,9 +53,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             return schematic!;
         }
 
-        public override object ReturnExecute(object obj) => ReturnExecute();
+        public override object? ReturnExecute(object obj) => ReturnExecute();
 
-        public override object ReturnExecute(SchematicData schematic) => ReturnExecute();
+        public override object? ReturnExecute(SchematicData schematic) => ReturnExecute();
 
         private SchematicData? SpawnByName(Vector3 position, bool hasRotation, bool hasScale, Quaternion rotation, Vector3 scale)
         {

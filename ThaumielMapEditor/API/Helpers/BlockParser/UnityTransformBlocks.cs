@@ -13,7 +13,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object OBJ { get; set; } = null!;
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
         {
             if (OBJ is not Transform t)
             {

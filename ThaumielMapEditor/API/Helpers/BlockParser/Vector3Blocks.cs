@@ -13,7 +13,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? Y { get; set; }
         public object? Z { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             float x = BlockValueResolver.ResolveFloat(X, null);
             float y = BlockValueResolver.ResolveFloat(Y, null);
@@ -21,21 +21,21 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             return new Vector3(x, y, z);
         }
 
-        public override object ReturnExecute(object obj) => ReturnExecute();
+        public override object? ReturnExecute(object obj) => ReturnExecute();
     }
 
     public class UnityVec3ZeroBlock : BlockBase
     {
-        public override object ReturnExecute() => Vector3.zero;
+        public override object? ReturnExecute() => Vector3.zero;
 
-        public override object ReturnExecute(object obj) => Vector3.zero;
+        public override object? ReturnExecute(object obj) => Vector3.zero;
     }
 
     public class UnityVec3UpBlock : BlockBase
     {
-        public override object ReturnExecute() => Vector3.up;
+        public override object? ReturnExecute() => Vector3.up;
 
-        public override object ReturnExecute(object obj) => Vector3.up;
+        public override object? ReturnExecute(object obj) => Vector3.up;
     }
 
     public class UnityDistanceBlock : BlockBase
@@ -43,7 +43,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? A { get; set; }
         public object? B { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             Vector3 a = BlockValueResolver.ResolveVector3(A, null);
             Vector3 b = BlockValueResolver.ResolveVector3(B, null);
@@ -52,7 +52,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             return distance;
         }
 
-        public override object ReturnExecute(object obj) => ReturnExecute();
+        public override object? ReturnExecute(object obj) => ReturnExecute();
     }
 
     public class UnityLerpBlock : BlockBase
@@ -61,7 +61,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? B { get; set; }
         public object? T { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             Vector3 a = BlockValueResolver.ResolveVector3(A, null);
             Vector3 b = BlockValueResolver.ResolveVector3(B, null);
@@ -71,14 +71,14 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             return result;
         }
 
-        public override object ReturnExecute(object obj) => ReturnExecute();
+        public override object? ReturnExecute(object obj) => ReturnExecute();
     }
 
     public class UnityNormalizeBlock : BlockBase
     {
         public object? V { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             Vector3 v = BlockValueResolver.ResolveVector3(V, null);
             Vector3 normalized = v.normalized;
@@ -86,6 +86,6 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             return normalized;
         }
 
-        public override object ReturnExecute(object obj) => ReturnExecute();
+        public override object? ReturnExecute(object obj) => ReturnExecute();
     }
 }

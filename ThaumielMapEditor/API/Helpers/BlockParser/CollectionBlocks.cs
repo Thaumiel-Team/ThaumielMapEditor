@@ -12,7 +12,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 {
     public class DictCreateBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => new Dictionary<object, object>();
     }
 
@@ -46,7 +46,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? DICT { get; set; }
         public object? KEY { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(DICT) is Dictionary<object, object> dict && dict.ContainsKey(ResolveValue(KEY)!);
     }
 
@@ -55,7 +55,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? DICT { get; set; }
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(DICT) is Dictionary<object, object> dict && dict.ContainsValue(ResolveValue(VALUE)!);
     }
 
@@ -64,7 +64,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? DICT { get; set; }
         public object? KEY { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             if (ResolveValue(DICT) is Dictionary<object, object> dict && dict.TryGetValue(ResolveValue(KEY)!, out object? value))
                 return value;
@@ -90,7 +90,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? DICT { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(DICT) is Dictionary<object, object> dict ? dict.Count : 0;
     }
 
@@ -98,7 +98,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? DICT { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(DICT) is Dictionary<object, object> dict ? dict.Keys.ToList() : new List<object>();
     }
 
@@ -106,7 +106,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? DICT { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(DICT) is Dictionary<object, object> dict ? dict.Values.ToList() : new List<object>();
     }
 
@@ -123,7 +123,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
     public class HashSetCreateBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => new HashSet<object>();
     }
 
@@ -156,7 +156,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? SET { get; set; }
         public object? ITEM { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(SET) is HashSet<object> set && set.Contains(ResolveValue(ITEM)!);
     }
 
@@ -164,7 +164,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? SET { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(SET) is HashSet<object> set ? set.Count : 0;
     }
 
@@ -205,7 +205,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
     public class StackCreateBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => new Stack<object>();
     }
 
@@ -225,7 +225,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STACK { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(STACK) is Stack<object> stack && stack.Count > 0 ? stack.Pop() : null!;
     }
 
@@ -233,7 +233,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STACK { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(STACK) is Stack<object> stack && stack.Count > 0 ? stack.Peek() : null!;
     }
 
@@ -241,13 +241,13 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STACK { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(STACK) is Stack<object> stack ? stack.Count : 0;
     }
 
     public class QueueCreateBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => new Queue<object>();
     }
 
@@ -267,7 +267,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? QUEUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(QUEUE) is Queue<object> queue && queue.Count > 0 ? queue.Dequeue() : null!;
     }
 
@@ -275,7 +275,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? QUEUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(QUEUE) is Queue<object> queue && queue.Count > 0 ? queue.Peek() : null!;
     }
 
@@ -283,7 +283,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? QUEUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(QUEUE) is Queue<object> queue ? queue.Count : 0;
     }
 
@@ -291,7 +291,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? SIZE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => new object[ResolveInt(SIZE)];
     }
 
@@ -299,7 +299,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? ARR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(ARR) is object[] array ? array.Length : 0;
     }
 
@@ -308,7 +308,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? ARR { get; set; }
         public object? INDEX { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             if (ResolveValue(ARR) is object[] array)
             {

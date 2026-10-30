@@ -14,7 +14,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(VALUE)?.ToString() ?? string.Empty;
     }
 
@@ -22,7 +22,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveInt(VALUE);
     }
 
@@ -30,7 +30,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveFloat(VALUE);
     }
 
@@ -38,7 +38,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => (double)ResolveFloat(VALUE);
     }
 
@@ -46,7 +46,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveBool(VALUE);
     }
 
@@ -54,7 +54,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             if (int.TryParse(ResolveString(STR), NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
                 return result;
@@ -67,7 +67,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             if (float.TryParse(ResolveString(STR), NumberStyles.Float, CultureInfo.InvariantCulture, out float result))
                 return result;
@@ -80,7 +80,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             if (double.TryParse(ResolveString(STR), NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
                 return result;
@@ -93,7 +93,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             if (bool.TryParse(ResolveString(STR), out bool result))
                 return result;
@@ -107,7 +107,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? VALUE { get; set; }
         public object? FMT { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             object? value = ResolveValue(VALUE);
             string format = ResolveString(FMT);

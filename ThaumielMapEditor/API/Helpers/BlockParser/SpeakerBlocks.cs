@@ -14,9 +14,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Name { get; set; } = string.Empty;
 
-        public override object ReturnExecute() => ReturnExecute(Executor!.Schematic);
+        public override object? ReturnExecute() => ReturnExecute(Executor!.Schematic);
 
-        public override object ReturnExecute(SchematicData schematic)
+        public override object? ReturnExecute(SchematicData schematic)
         {
             SpeakerObject server = new();
             server.SpawnObject(schematic);
@@ -173,12 +173,12 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Property { get; set; } = string.Empty;
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             return ResolveTarget() is SpeakerObject server ? GetProperty(server) : null!;
         }
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
         {
             if (ResolveTarget(obj) is not SpeakerObject server)
             {

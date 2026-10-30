@@ -15,7 +15,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? A { get; set; }
         public object? B { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             float a = ResolveFloat(A);
             float b = ResolveFloat(B);
@@ -40,7 +40,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public string OP { get; set; } = "ABS";
         public object? NUM { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             float num = ResolveFloat(NUM);
 
@@ -66,7 +66,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public string OP { get; set; } = "SIN";
         public object? NUM { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             float degrees = ResolveFloat(NUM);
             float radians = degrees * Mathf.Deg2Rad;
@@ -92,7 +92,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public string OP { get; set; } = "ROUND";
         public object? NUM { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             float num = ResolveFloat(NUM);
 
@@ -114,7 +114,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? DIVIDEND { get; set; }
         public object? DIVISOR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             float dividend = ResolveFloat(DIVIDEND);
             float divisor = ResolveFloat(DIVISOR, 1f);
@@ -132,7 +132,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? LOW { get; set; }
         public object? HIGH { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             float value = ResolveFloat(VALUE);
             float low = ResolveFloat(LOW, 0f);
@@ -147,7 +147,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
     public class MathRandomFloatBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             float result = Random.value;
             LogManager.Debug($"{result}");
@@ -160,7 +160,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? A { get; set; }
         public object? B { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Mathf.Min(ResolveFloat(A), ResolveFloat(B));
     }
 
@@ -169,7 +169,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? A { get; set; }
         public object? B { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Mathf.Max(ResolveFloat(A), ResolveFloat(B));
     }
 
@@ -177,7 +177,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Mathf.Clamp01(ResolveFloat(VALUE));
     }
 
@@ -187,7 +187,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? B { get; set; }
         public object? T { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Mathf.Lerp(ResolveFloat(A), ResolveFloat(B), ResolveFloat(T));
     }
 
@@ -197,7 +197,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? TARGET { get; set; }
         public object? MAXDELTA { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Mathf.MoveTowards(ResolveFloat(CURRENT), ResolveFloat(TARGET), ResolveFloat(MAXDELTA));
     }
 
@@ -206,7 +206,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? MIN { get; set; }
         public object? MAX { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Random.Range(ResolveInt(MIN), ResolveInt(MAX));
     }
 
@@ -215,7 +215,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? MIN { get; set; }
         public object? MAX { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Random.Range(ResolveFloat(MIN), ResolveFloat(MAX));
     }
 
@@ -223,7 +223,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             float value = ResolveFloat(VALUE);
             return value > 0f ? 1 : value < 0f ? -1 : 0;
@@ -234,7 +234,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Mathf.FloorToInt(ResolveFloat(VALUE));
     }
 
@@ -242,7 +242,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Mathf.CeilToInt(ResolveFloat(VALUE));
     }
 
@@ -250,7 +250,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Mathf.RoundToInt(ResolveFloat(VALUE));
     }
 
@@ -259,7 +259,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? VALUE { get; set; }
         public object? DIGITS { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             int digits = ResolveInt(DIGITS);
             if (digits < 0)
@@ -277,7 +277,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? VALUE { get; set; }
         public object? LENGTH { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Mathf.PingPong(ResolveFloat(VALUE), ResolveFloat(LENGTH, 1f));
     }
 
@@ -286,13 +286,13 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? VALUE { get; set; }
         public object? LENGTH { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Mathf.Repeat(ResolveFloat(VALUE), ResolveFloat(LENGTH, 1f));
     }
 
     public class MathPiBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => Mathf.PI;
     }
 
@@ -300,7 +300,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveFloat(VALUE) * Mathf.Deg2Rad;
     }
 
@@ -308,7 +308,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveFloat(VALUE) * Mathf.Rad2Deg;
     }
 
@@ -316,7 +316,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => float.IsNaN(ResolveFloat(VALUE));
     }
 
@@ -324,7 +324,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => float.IsInfinity(ResolveFloat(VALUE));
     }
 }

@@ -21,9 +21,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public string Name { get; set; } = string.Empty;
         public bool IsServerSide { get; set; }
 
-        public override object ReturnExecute() => ReturnExecute(Executor!.Schematic);
+        public override object? ReturnExecute() => ReturnExecute(Executor!.Schematic);
 
-        public override object ReturnExecute(SchematicData schematic)
+        public override object? ReturnExecute(SchematicData schematic)
         {
             if (IsServerSide)
             {
@@ -177,10 +177,10 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Property { get; set; } = string.Empty;
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => GetProperty(ResolveTarget());
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
             => GetProperty(ResolveTarget(obj));
 
         private object GetProperty(object? obj)

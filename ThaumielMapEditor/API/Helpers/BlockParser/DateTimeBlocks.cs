@@ -11,13 +11,13 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 {
     public class DateTimeNowBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => DateTime.Now;
     }
 
     public class DateTimeUtcNowBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => DateTime.UtcNow;
     }
 
@@ -26,7 +26,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? DT { get; set; }
         public string PART { get; set; } = "Year";
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             DateTime? date = ResolveValue(DT) as DateTime?;
 
@@ -54,7 +54,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public string UNIT { get; set; } = "Seconds";
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             DateTime? date = ResolveValue(DT) as DateTime?;
 
@@ -80,7 +80,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? A { get; set; }
         public object? B { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             DateTime? a = ResolveValue(A) as DateTime?;
             DateTime? b = ResolveValue(B) as DateTime?;
@@ -96,7 +96,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? DT { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             DateTime? date = ResolveValue(DT) as DateTime?;
             return date?.ToString() ?? string.Empty;
@@ -108,7 +108,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? DT { get; set; }
         public object? FMT { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             DateTime? date = ResolveValue(DT) as DateTime?;
             return date?.ToString(ResolveString(FMT)) ?? string.Empty;
@@ -119,7 +119,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             if (DateTime.TryParse(ResolveString(STR), out DateTime result))
                 return result;
@@ -132,7 +132,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? DT { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveValue(DT) is DateTime date ? date.Ticks : 0L;
     }
 
@@ -141,7 +141,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? VALUE { get; set; }
         public string UNIT { get; set; } = "Seconds";
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             double amount = ResolveFloat(VALUE);
 
@@ -162,7 +162,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? TS { get; set; }
         public string PART { get; set; } = "TotalSeconds";
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             if (ResolveValue(TS) is not TimeSpan span)
                 return 0;
@@ -186,7 +186,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
     public class TimeSpanZeroBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => TimeSpan.Zero;
     }
 }

@@ -11,7 +11,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 {
     public class ListCreateBlock : BlockBase
     {
-        public override object ReturnExecute() => new List<object>();
+        public override object? ReturnExecute() => new List<object>();
     }
 
     public class ListAddBlock : BlockBase
@@ -61,7 +61,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? List { get; set; }
         public int Index { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             if ((List is BlockBase bL ? bL.ReturnExecute() : List) is List<object> list && Index >= 0 && Index < list.Count)
                 return list[Index];
@@ -74,7 +74,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? List { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             List<object>? list = (List is BlockBase bL ? bL.ReturnExecute() : List) as List<object>;
             return list?.Count ?? 0;
@@ -86,7 +86,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? List { get; set; }
         public object? Item { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             List<object>? list = (List is BlockBase bL ? bL.ReturnExecute() : List) as List<object>;
             object? item = Item is BlockBase bI ? bI.ReturnExecute() : Item;
@@ -98,7 +98,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? List { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => (List is BlockBase bL ? bL.ReturnExecute() : List) is List<object> list && list.Count > 0 ? list[0] : null!;
     }
 
@@ -106,7 +106,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? List { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => (List is BlockBase bL ? bL.ReturnExecute() : List) is List<object> list && list.Count > 0 ? list[list.Count - 1] : null!;
     }
 }

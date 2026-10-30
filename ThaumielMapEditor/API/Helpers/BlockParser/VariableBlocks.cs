@@ -20,12 +20,12 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public string Name { get; set; } = string.Empty;
         public object? Value { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             return Resolve();
         }
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
         {
             return Resolve();
         }

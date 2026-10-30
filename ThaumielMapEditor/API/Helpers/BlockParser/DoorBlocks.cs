@@ -38,12 +38,12 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public string Property { get; set; } = string.Empty;
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             return ResolveTarget() is DoorObject door ? GetProperty(door) : null!;
         }
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
         {
             if (ResolveTarget(obj) is not DoorObject door)
                 return null!;
@@ -84,7 +84,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Name { get; set; } = string.Empty;
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             if (!DoorCache.DoorNameCache.TryGetValue(Executor?.Schematic!, out var cache))
             {
@@ -111,7 +111,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public bool RequireAllPermissions { get; set; }
         public bool Bypass2176 { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             DoorObject door = new()
             {
@@ -187,28 +187,28 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
     public class DoorIsOpenBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveTarget() as DoorObject is { } door && door.IsOpen;
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
             => ResolveTarget(obj) as DoorObject is { } door && door.IsOpen;
     }
 
     public class DoorIsClosedBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveTarget() as DoorObject is { IsOpen: false };
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
             => ResolveTarget(obj) as DoorObject is { IsOpen: false };
     }
 
     public class DoorIsOpeningBlock : BlockBase
     {
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => IsMoving(ResolveTarget() as DoorObject);
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
             => IsMoving(ResolveTarget(obj) as DoorObject);
 
         private static bool IsMoving(DoorObject? door)

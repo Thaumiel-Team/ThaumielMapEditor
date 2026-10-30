@@ -14,7 +14,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? Text { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveString(Text).Length;
     }
 
@@ -22,7 +22,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public List<string> Strings { get; set; } = [];
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             StringBuilder sb = new();
 

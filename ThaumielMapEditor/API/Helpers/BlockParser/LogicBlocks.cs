@@ -16,7 +16,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? A { get; set; }
         public object? B { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             object? valA = A is BlockBase bA ? bA.ReturnExecute() : A;
             object? valB = B is BlockBase bB ? bB.ReturnExecute() : B;
@@ -45,7 +45,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? A { get; set; }
         public object? B { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             bool valA = A is BlockBase bA ? (bool?)bA.ReturnExecute() ?? false : (A is bool b && b);
             bool valB = B is BlockBase bB ? (bool?)bB.ReturnExecute() ?? false : (B is bool b2 && b2);
@@ -58,7 +58,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? Bool { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             bool val = Bool is BlockBase b ? (bool?)b.ReturnExecute() ?? false : (Bool is bool boolean && boolean);
             return !val;

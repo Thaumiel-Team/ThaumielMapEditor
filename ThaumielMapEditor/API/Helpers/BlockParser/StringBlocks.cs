@@ -17,7 +17,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? STR { get; set; }
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveString(STR).Contains(ResolveString(VALUE));
     }
 
@@ -26,7 +26,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? STR { get; set; }
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveString(STR).StartsWith(ResolveString(VALUE));
     }
 
@@ -35,7 +35,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? STR { get; set; }
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveString(STR).EndsWith(ResolveString(VALUE));
     }
 
@@ -43,7 +43,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveString(STR).ToUpper();
     }
 
@@ -51,7 +51,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveString(STR).ToLower();
     }
 
@@ -59,7 +59,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveString(STR).Trim();
     }
 
@@ -69,7 +69,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? START { get; set; }
         public object? LENGTH { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             string str = ResolveString(STR);
             int start = ResolveInt(START);
@@ -91,7 +91,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? OLD { get; set; }
         public object? NEW { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveString(STR).Replace(ResolveString(OLD), ResolveString(NEW));
     }
 
@@ -100,7 +100,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? STR { get; set; }
         public object? VALUE { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveString(STR).IndexOf(ResolveString(VALUE));
     }
 
@@ -109,7 +109,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? STR { get; set; }
         public object? INDEX { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             string str = ResolveString(STR);
             int index = ResolveInt(INDEX);
@@ -128,7 +128,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? ARG2 { get; set; }
         public object? ARG3 { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             object?[] args = [ResolveValue(ARG1), ResolveValue(ARG2), ResolveValue(ARG3)];
             return string.Format(CultureInfo.InvariantCulture, ResolveString(FMT), args);
@@ -139,7 +139,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => string.IsNullOrEmpty(ResolveString(STR));
     }
 
@@ -147,7 +147,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? STR { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => string.IsNullOrWhiteSpace(ResolveString(STR));
     }
 
@@ -156,7 +156,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? STR { get; set; }
         public object? TOTAL { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveString(STR).PadLeft(ResolveInt(TOTAL));
     }
 
@@ -165,7 +165,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? STR { get; set; }
         public object? TOTAL { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
             => ResolveString(STR).PadRight(ResolveInt(TOTAL));
     }
 
@@ -174,7 +174,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? SEP { get; set; }
         public object? LIST { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             object? resolved = ResolveValue(LIST);
 
@@ -193,7 +193,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? STR { get; set; }
         public object? SEP { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             string[] parts = ResolveString(STR).Split([ResolveString(SEP)], System.StringSplitOptions.None);
             return new List<object>(parts);
