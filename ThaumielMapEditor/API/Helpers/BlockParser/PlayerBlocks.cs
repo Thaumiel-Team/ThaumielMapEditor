@@ -158,9 +158,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? Collider { get; set; }
 
-        public override object ReturnExecute() => ReturnExecute(null!);
+        public override object? ReturnExecute() => ReturnExecute(null!);
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
         {
             object? target = Collider is BlockBase block ? block.ReturnExecute() : Collider ?? obj;
 
@@ -182,7 +182,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 }
             }
 
-            return null!;
+            return null;
         }
     }
 
@@ -216,9 +216,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public int PlayerId { get; set; }
 
-        public override object ReturnExecute() => ReturnExecute(null!);
+        public override object? ReturnExecute() => ReturnExecute(null!);
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
         {
             Player? player = Player.Get(PlayerId);
             if (player == null)
@@ -235,7 +235,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string UserId { get; set; } = string.Empty;
 
-        public override object ReturnExecute() => ReturnExecute(null!);
+        public override object? ReturnExecute() => ReturnExecute(null!);
 
         public override object ReturnExecute(object obj)
         {

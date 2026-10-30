@@ -261,8 +261,9 @@ namespace ThaumielMapEditor.API.Helpers
 
         private void ExecuteReturns(BlockBase block, object param)
         {
-            object obj = block.ReturnExecute(param);
-            UpdateEntries(block, obj);
+            object? obj = block.ReturnExecute(param);
+            if (obj != null)
+                UpdateEntries(block, obj);
         }
 
         private void ExecuteParamBlocks(BlockBase block)
@@ -301,7 +302,8 @@ namespace ThaumielMapEditor.API.Helpers
 
             LogManager.Debug($"Creating {typeName} '{name}'.");
             _isCurrentServerSide = true;
-            _currentServer = (ServerObject)block.ReturnExecute(Schematic);
+            if (block.ReturnExecute(Schematic) is ServerObject obj)
+                _currentServer = obj;
         }
 
         private void UpdateEntries(BlockBase block, object obj)

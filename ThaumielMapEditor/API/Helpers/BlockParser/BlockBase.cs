@@ -92,20 +92,11 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         }
 
-        public virtual object ReturnExecute()
-        {
-            return null!;
-        }
+        public virtual object? ReturnExecute() => null;
 
-        public virtual object ReturnExecute(object obj)
-        {
-            return null!;
-        }
+        public virtual object? ReturnExecute(object obj) => null;
 
-        public virtual object ReturnExecute(SchematicData schematic)
-        {
-            return null!;
-        }
+        public virtual object? ReturnExecute(SchematicData schematic) => null;
 
         /// <summary>
         /// Resolves a value to a float. If the value is a <see cref="BlockBase"/>, its <see cref="ReturnExecute()"/> is called first.
