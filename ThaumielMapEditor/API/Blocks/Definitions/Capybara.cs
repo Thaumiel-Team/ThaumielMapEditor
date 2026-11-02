@@ -7,7 +7,6 @@
 
 using AdminToys;
 using Mirror;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -16,9 +15,6 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
-    /// <summary>
-    /// The definition of a capybara object, shared by the client and server runtime representations.
-    /// </summary>
     [GitBookPage("Blocks/Definitions/Capybara")]
     public sealed class Capybara : ObjectDefinition<Capybara>
     {
@@ -35,7 +31,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         public override ObjectType ObjectType => ObjectType.Capybara;
 
         /// <inheritdoc/>
-        public override Blocks.ServerObject? ServerObject(ObjectBase data)
+        public override ServerObject? ServerObject(ObjectBase data)
             => new Server(data, this);
 
         /// <inheritdoc/>
@@ -53,10 +49,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
-        /// <summary>
-        /// The server-side representation of a capybara.
-        /// </summary>
-        public sealed class Server : Blocks.ServerObject
+        public sealed class Server : ServerObject
         {
             private readonly Capybara definition;
 
@@ -112,9 +105,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
         }
 
-        /// <summary>
-        /// The client-side representation of a capybara.
-        /// </summary>
         public sealed class Client : ClientObject
         {
             private readonly Capybara definition;

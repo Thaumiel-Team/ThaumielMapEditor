@@ -8,13 +8,13 @@
 using System;
 using System.Collections.Generic;
 using AdminToys;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using UnityEngine;
 using UnityGameObject = UnityEngine.GameObject;
 using ClutterDef = ThaumielMapEditor.API.Blocks.Definitions.Clutter;
+using ThaumielMapEditor.API.Blocks;
 
 namespace ThaumielMapEditor.API.Helpers
 {

@@ -4,6 +4,7 @@
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
+
 using System.Collections.Generic;
 using System.Linq;
 using LabApi.Features.Wrappers;
@@ -26,9 +27,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Pickup;
 
-        /// <summary>
-        /// The server-side representation of a pickup.
-        /// </summary>
         public sealed class Server : ServerObject
         {
             [YamlIgnore]
@@ -46,6 +44,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     instance.SpawnedSerials.Clear();
                 }
+
                 Instances.Clear();
             }
 
@@ -59,6 +58,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                         return true;
                     }
                 }
+
                 inst = null;
                 return false;
             }
@@ -73,6 +73,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                         return true;
                     }
                 }
+
                 inst = null;
                 return false;
             }
@@ -86,9 +87,11 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     if (Object == null)
                         return;
+
                     Respawn();
                 }
             }
@@ -113,6 +116,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             
                 if (SpawnPercentage < 100f && UnityEngine.Random.Range(0f, 100f) > SpawnPercentage)
                     return;
+
                 SpawnPickup();
                 Object = new();
                 Object.transform.SetPositionAndRotation(Position, Rotation);
@@ -146,12 +150,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             {
                 if (MaxAmount > 0 && SpawnAmount >= MaxAmount)
                     return;
+
                 LabPickup? pickup = LabPickup.Create(ItemToSpawn, Position, Rotation, Scale);
                 if (pickup == null)
                 {
                     LogManager.Warn($"Failed to create pickup of type {ItemToSpawn}.");
                     return;
                 }
+
                 pickup.Spawn();
                 SpawnedSerials.Add(pickup.Serial);
                 SpawnAmount++;
@@ -162,14 +168,18 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             {
                 if (SpawnedSerials.Count == 0)
                     return;
+
                 foreach (LabPickup pickup in LabPickup.List.ToArray())
                 {
                     if (pickup == null || pickup.IsDestroyed)
                         continue;
+
                     if (!SpawnedSerials.Contains(pickup.Serial))
                         continue;
+                        
                     pickup.Destroy();
                 }
+
                 SpawnedSerials.Clear();
             }
         }

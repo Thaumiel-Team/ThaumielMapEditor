@@ -4,6 +4,7 @@
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
+
 using System;
 using AdminToys;
 using Mirror;
@@ -25,9 +26,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Target;
 
-        /// <summary>
-        /// The server-side representation of a target dummy.
-        /// </summary>
         public sealed class Server : ServerObject
         {
             /// <summary>
@@ -51,9 +49,11 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     if (Base == null || Object == null)
                         return;
+                        
                     NetworkServer.Destroy(Object);
                     SpawnObject();
                 }

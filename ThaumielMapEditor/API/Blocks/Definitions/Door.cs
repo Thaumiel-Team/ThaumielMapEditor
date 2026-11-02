@@ -4,6 +4,7 @@
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
+
 using Interactables.Interobjects;
 using Interactables.Interobjects.DoorUtils;
 using MapGeneration.RoomConnectors;
@@ -30,9 +31,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Door;
 
-        /// <summary>
-        /// The server-side representation of a door.
-        /// </summary>
         public sealed class Server : ServerObject
         {
             /// <summary>
@@ -74,9 +72,11 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     if (Base == null || Object == null)
                         return;
+
                     NetworkServer.Destroy(Object);
                     SpawnObject();
                 }
@@ -84,7 +84,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
 
             /// <summary>
             /// The keycard permission flags required to interact with this door.
-            /// Syncs to the live door object when changed after spawning.
             /// </summary>
             [YamlMember(Alias = "Permissions")]
             [BinaryProperty(Name = "Permissions")]
@@ -95,14 +94,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     Base?.RequiredPermissions = new(value, RequireAllPermissions, Bypass2176);
                     field = value;
                 }
             }
 
             /// <summary>
-            /// If <see langword="true"/>, the player must hold <b>all</b> listed permissions rather than just one.
-            /// Syncs to the live door object when changed after spawning.
+            /// If <see langword="true"/>, the player must hold all listed permissions rather than just one.
             /// </summary>
             [YamlMember(Alias = "RequireAllPermissions")]
             [BinaryProperty(Name = "RequireAllPermissions")]
@@ -113,6 +112,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     Base?.RequiredPermissions = new(Permissions, value, Bypass2176);
                     field = value;
                 }
@@ -120,7 +120,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
 
             /// <summary>
             /// If <see langword="true"/>, SCP-2176 can bypass this door's permissions.
-            /// Syncs to the live door object when changed after spawning.
             /// </summary>
             [YamlMember(Alias = "Bypass2176")]
             [BinaryProperty(Name = "Bypass2176")]
@@ -131,6 +130,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     Base?.RequiredPermissions = new(Permissions, RequireAllPermissions, value);
                     field = value;
                 }
@@ -139,7 +139,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             /// <summary>
             /// The maximum health of this door. Only applies to doors that extend <see cref="BreakableDoor"/>.
             /// Ignored for non-breakable door types.
-            /// Syncs to the live door object when changed after spawning.
             /// </summary>
             [YamlMember(Alias = "MaxHealth")]
             [BinaryProperty(Name = "MaxHealth")]
@@ -150,6 +149,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value || Base == null || Base is not BreakableDoor breakable)
                         return;
+
                     breakable.MaxHealth = value;
                     field = value;
                 }
@@ -158,7 +158,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             /// <summary>
             /// The current remaining health of this door. Only applies to doors that extend <see cref="BreakableDoor"/>.
             /// Ignored for non-breakable door types.
-            /// Syncs to the live door object when changed after spawning.
             /// </summary>
             [YamlMember(Alias = "Health")]
             [BinaryProperty(Name = "Health")]
@@ -169,6 +168,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value || Base == null || Base is not BreakableDoor breakable)
                         return;
+
                     breakable.RemainingHealth = value;
                     field = value;
                 }
@@ -186,6 +186,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     Base?.NetworkTargetState = value;
                     field = value;
                 }
@@ -193,7 +194,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
 
             /// <summary>
             /// Whether the door is locked via admin command.
-            /// Syncs to the live door object when changed after spawning.
             /// </summary>
             [YamlMember(Alias = "IsLocked")]
             [BinaryProperty(Name = "IsLocked")]
@@ -204,14 +204,12 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     Base?.ServerChangeLock(DoorLockReason.SpecialDoorFeature, value);
                     field = value;
                 }
             }
 
-            /// <summary>
-            /// The object type identifier for this server object. Always <see cref="ObjectType.Door"/>.
-            /// </summary>
             public override ObjectType ObjectType { get; set; } = ObjectType.Door;
 
             /// <inheritdoc/>
@@ -225,10 +223,13 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 }
                 DoorVariant doorPrefab = UnityEngine.Object.Instantiate(door);
                 NetworkServer.UnSpawn(doorPrefab.gameObject);
+
                 if (doorPrefab.TryGetComponent<WallableSmallNodeRoomConnector>(out var con) && DoorType == DoorType.Hcz)
                     con.Network_syncBitmask = 3;
+
                 if (doorPrefab.TryGetComponent(out DoorRandomInitialStateExtension doorRandomInitialStateExtension))
                     UnityEngine.Object.Destroy(doorRandomInitialStateExtension);
+
                 Object = doorPrefab.gameObject;
                 Base = doorPrefab;
                 SetWorldTransform(schematic);
@@ -247,12 +248,16 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     LogManager.Warn($"Failed to get DoorVariant from {schematic.FileName}, DoorType: {DoorType}");
                     return;
                 }
+
                 DoorVariant doorPrefab = UnityEngine.Object.Instantiate(door);
                 NetworkServer.UnSpawn(doorPrefab.gameObject);
+
                 if (doorPrefab.TryGetComponent<WallableSmallNodeRoomConnector>(out var con) && DoorType == DoorType.Hcz)
                     con.Network_syncBitmask = 3;
+
                 if (doorPrefab.TryGetComponent(out DoorRandomInitialStateExtension doorRandomInitialStateExtension))
                     UnityEngine.Object.Destroy(doorRandomInitialStateExtension);
+
                 Object = doorPrefab.gameObject;
                 Base = doorPrefab;
                 SetWorldTransform(schematic);
@@ -273,12 +278,16 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     LogManager.Warn($"Failed to get DoorVariant, DoorType: {DoorType}");
                     return;
                 }
+
                 DoorVariant doorPrefab = UnityEngine.Object.Instantiate(door);
                 NetworkServer.UnSpawn(doorPrefab.gameObject);
+
                 if (doorPrefab.TryGetComponent<WallableSmallNodeRoomConnector>(out var con) && DoorType == DoorType.Hcz)
                     con.Network_syncBitmask = 3;
+
                 if (doorPrefab.TryGetComponent(out DoorRandomInitialStateExtension doorRandomInitialStateExtension))
                     UnityEngine.Object.Destroy(doorRandomInitialStateExtension);
+
                 Object = doorPrefab.gameObject;
                 Base = doorPrefab;
                 Base.gameObject.transform.SetPositionAndRotation(Position, Rotation);
@@ -299,6 +308,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     breakable.MaxHealth = MaxHealth;
                     breakable.RemainingHealth = Health;
                 }
+                
                 door.NetworkTargetState = IsOpen;
                 door.ServerChangeLock(DoorLockReason.SpecialDoorFeature, IsLocked);
                 door.RequiredPermissions = new(Permissions, RequireAllPermissions, Bypass2176);

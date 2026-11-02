@@ -13,10 +13,6 @@ using ThaumielMapEditor.API.Enums;
 
 namespace ThaumielMapEditor.API.Blocks
 {
-    /// <summary>
-    /// Maps every supported <see cref="ObjectType"/> to the <see cref="ObjectDefinition"/> that knows how
-    /// to create its server and client runtime objects.
-    /// </summary>
     [GitBookPage("Blocks/ObjectRegistry")]
     public static class ObjectRegistry
     {
@@ -64,13 +60,8 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         /// <param name="type">The type to register.</param>
         /// <param name="factory">The factory that creates the definition.</param>
-        public static void Register(ObjectType type, Func<ObjectDefinition> factory)
-        {
-            if (factory == null)
-                throw new ArgumentNullException(nameof(factory));
-
-            Factories[type] = factory;
-        }
+        public static void Register(ObjectType type, Func<ObjectDefinition> factory) =>
+            Factories[type] = factory ?? throw new ArgumentNullException(nameof(factory));
 
         /// <summary>
         /// Determines whether the given <paramref name="type"/> has both client and server implementations.

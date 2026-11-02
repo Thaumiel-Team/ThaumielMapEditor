@@ -10,7 +10,6 @@ using System.Linq;
 using LabApi.Features.Wrappers;
 using MapGeneration.RoomConnectors;
 using Mirror;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -22,9 +21,6 @@ using UnityGameObject = UnityEngine.GameObject;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
-    /// <summary>
-    /// The definition of a clutter object, shared by the client and server runtime representations.
-    /// </summary>
     [GitBookPage("Blocks/Definitions/Clutter")]
     public sealed class Clutter : ObjectDefinition<Clutter>
     {
@@ -65,7 +61,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         }
 
         /// <inheritdoc/>
-        public override global::ThaumielMapEditor.API.Blocks.ServerObject? ServerObject(ObjectBase data)
+        public override ServerObject? ServerObject(ObjectBase data)
             => new Server(data, this);
 
         /// <inheritdoc/>
@@ -101,10 +97,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
-        /// <summary>
-        /// The server-side representation of a clutter object.
-        /// </summary>
-        public sealed class Server : global::ThaumielMapEditor.API.Blocks.ServerObject
+        public sealed class Server : ServerObject
         {
             private readonly Clutter definition;
 
@@ -187,10 +180,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     NetId = network.netId;
             }
         }
-
-        /// <summary>
-        /// The client-side representation of a clutter object.
-        /// </summary>
+        
         public sealed class Client : ClientObject
         {
             private readonly Clutter definition;
@@ -395,7 +385,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
 
             /// <summary>
-            /// Recreates the server-side colliders of this clutter object.
+            /// Recreates the server side colliders of this clutter object.
             /// </summary>
             public void RefreshColliders()
             {

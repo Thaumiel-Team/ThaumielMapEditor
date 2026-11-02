@@ -10,7 +10,6 @@ using LabApi.Features.Wrappers;
 using System;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.Definitions;
 using LabPickup = LabApi.Features.Wrappers.Pickup;
 using PickupDef = ThaumielMapEditor.API.Blocks.Definitions.Pickup;

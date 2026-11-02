@@ -8,7 +8,6 @@
 using System.Text;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.ToolGun.Utilities.Settings;

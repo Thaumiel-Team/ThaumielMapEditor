@@ -7,7 +7,6 @@
 
 using AdminToys;
 using Mirror;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -18,9 +17,6 @@ using AdminTextToy = AdminToys.TextToy;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
-    /// <summary>
-    /// The definition of a text toy, shared by the client and server runtime representations.
-    /// </summary>
     [GitBookPage("Blocks/Definitions/TextToy")]
     public sealed class TextToy : ObjectDefinition<TextToy>
     {
@@ -43,7 +39,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         public override ObjectType ObjectType => ObjectType.TextToy;
 
         /// <inheritdoc/>
-        public override global::ThaumielMapEditor.API.Blocks.ServerObject? ServerObject(ObjectBase data)
+        public override ServerObject? ServerObject(ObjectBase data)
             => new Server(data, this);
 
         /// <inheritdoc/>
@@ -61,10 +57,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
-        /// <summary>
-        /// The server-side representation of a text toy.
-        /// </summary>
-        public sealed class Server : global::ThaumielMapEditor.API.Blocks.ServerObject
+        public sealed class Server : ServerObject
         {
             private readonly TextToy definition;
 
@@ -93,8 +86,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.Text = value;
-                    if (Base != null)
-                        Base.TextFormat = value;
+                    Base?.TextFormat = value;
                 }
             }
 
@@ -107,8 +99,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.DisplaySize = value;
-                    if (Base != null)
-                        Base.DisplaySize = value;
+                    Base?.DisplaySize = value;
                 }
             }
 
@@ -159,9 +150,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
         }
 
-        /// <summary>
-        /// The client-side representation of a text toy.
-        /// </summary>
         public sealed class Client : ClientObject
         {
             private readonly TextToy definition;

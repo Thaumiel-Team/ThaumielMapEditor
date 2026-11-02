@@ -1494,6 +1494,7 @@ namespace ThaumielMapEditor.API.Binary
                 Func<object, object?>? func = CompileGetter(type, propertyInfo);
                 Func<object, object?> getter = func ?? new Func<object, object>(propertyInfo.GetValue);
                 Action<object, object?>? setter = null;
+                
                 if (setMethod is not null)
                 {
                     MethodInfo s = setMethod;
@@ -1632,6 +1633,7 @@ namespace ThaumielMapEditor.API.Binary
                             array5 = array7;
                         }
                     }
+
                     if (constructorInfo4 is not null)
                     {
                         constructorInfo = constructorInfo4;
@@ -1802,6 +1804,7 @@ namespace ThaumielMapEditor.API.Binary
                 Type elementType = type.GetElementType();
                 return (elementType is null) ? default : new EnumerableShape(isEnumerable: true, elementType);
             }
+
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(KeyValuePair<, >))
                 return default;
             

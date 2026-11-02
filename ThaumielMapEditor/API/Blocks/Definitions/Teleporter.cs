@@ -4,6 +4,7 @@
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
+
 using System;
 using System.Collections.Generic;
 using DrawableLine;
@@ -27,9 +28,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Teleporter;
 
-        /// <summary>
-        /// The server-side representation of a teleporter.
-        /// </summary>
         public sealed class Server : ServerObject
         {
             private static readonly Dictionary<Guid, Server> RegisteredTeleporters = [];
@@ -110,6 +108,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 RegisteredTeleporters.Remove(Id);
                 if (TeleporterHandler != null && TeleporterHandler.gameObject != null)
                     UnityEngine.Object.Destroy(TeleporterHandler.gameObject);
+
                 base.DestroyObject(schematic);
             }
 
@@ -117,6 +116,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             {
                 if (TeleporterHandler.Collider == null)
                     return;
+                    
                 DrawableLines.GenerateBounds(TeleporterHandler.Collider.bounds);
             }
         }

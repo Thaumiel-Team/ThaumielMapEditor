@@ -4,6 +4,7 @@
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
+
 using AdminToys;
 using LabApi.Features.Wrappers;
 using MapGeneration;
@@ -30,9 +31,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Camera;
 
-        /// <summary>
-        /// The server-side representation of a camera.
-        /// </summary>
         public sealed class Server : ServerObject
         {
             /// <summary>
@@ -44,8 +42,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             #pragma warning restore CS8618
 
             /// <summary>
-            /// The camera prefab type.
-            /// Setting this on a spawned camera respawns it in place with the new prefab.
+            /// Gets or sets the camera prefab type.
             /// </summary>
             [YamlMember(Alias = "CameraType")]
             [BinaryProperty(Name = "CameraType")]
@@ -56,17 +53,18 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     if (Base == null || Object == null)
                         return;
+
                     NetworkServer.Destroy(Object);
                     Respawn();
                 }
             }
 
             /// <summary>
-            /// Display label for the camera. Setting this property updates the networked label on
-            /// the underlying <see cref="Base"/> when available.
+            /// Gets or sets the display label for the camera.
             /// </summary>
             [YamlMember(Alias = "Label")]
             [BinaryProperty(Name = "Label")]
@@ -77,16 +75,17 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+                        
                     field = value;
                     if (Base == null)
                         return;
+
                     Base.NetworkLabel = value;
                 }
             } = string.Empty;
 
             /// <summary>
             /// The <see cref="Room"/> that the camera belongs to.
-            /// Setting this property updates <see cref="Scp079CameraToy.NetworkRoom"/> on <see cref="Base"/>.
             /// </summary>
             [YamlIgnore]
             public Room Room
@@ -96,16 +95,15 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     if (Base == null || value == null)
                         return;
+
                     Base.NetworkRoom = value.Base;
                 }
             } = Room.Get(RoomName.Outside).First();
 
-            /// <summary>
-            /// Proxy property for <see cref="Room"/> to allow serialization as <see cref="RoomName"/>.
-            /// </summary>
             [YamlMember(Alias = "Room")]
             [BinaryProperty(Name = "Room")]
             public RoomName RoomName
@@ -116,7 +114,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
 
             /// <summary>
             /// Vertical rotation constraint applied to the camera.
-            /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkVerticalConstraint"/>.
             /// </summary>
             [YamlMember(Alias = "VerticalConstraint")]
             [BinaryProperty(Name = "VerticalConstraint")]
@@ -127,16 +124,17 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     if (Base == null)
                         return;
+
                     Base.NetworkVerticalConstraint = value;
                 }
             }
 
             /// <summary>
             /// Horizontal rotation constraint applied to the camera.
-            /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkHorizontalConstraint"/>.
             /// </summary>
             [YamlMember(Alias = "HorizontalConstraint")]
             [BinaryProperty(Name = "HorizontalConstraint")]
@@ -147,16 +145,17 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     if (Base == null)
                         return;
+
                     Base.NetworkHorizontalConstraint = value;
                 }
             }
         
             /// <summary>
             /// Zoom constraint for the camera (min/max).
-            /// When set, the value is copied to <see cref="Scp079CameraToy.NetworkZoomConstraint"/>.
             /// </summary>
             [YamlMember(Alias = "ZoomConstraint")]
             [BinaryProperty(Name = "ZoomConstraint")]
@@ -167,9 +166,11 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     if (Base == null)
                         return;
+
                     Base.NetworkZoomConstraint = value;
                 }
             }
@@ -238,6 +239,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 camera.NetworkLabel = Label;
                 if (Room != null)
                     camera.NetworkRoom = Room.Base;
+                    
                 camera.NetworkVerticalConstraint = VerticalConstraint;
                 camera.NetworkHorizontalConstraint = HorizontalConstraint;
                 camera.NetworkZoomConstraint = ZoomConstraint;

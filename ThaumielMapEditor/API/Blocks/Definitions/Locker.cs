@@ -4,6 +4,7 @@
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
+
 using System;
 using System.Collections.Generic;
 using MapGeneration.Distributors;
@@ -20,8 +21,8 @@ using UnityGameObject = UnityEngine.GameObject;
 using LabLocker = LabApi.Features.Wrappers.Locker;
 using MEC;
 using GameLocker = MapGeneration.Distributors.Locker;
-using ConfigLockerChamber = ThaumielMapEditor.API.Blocks.ServerObjects.Lockers.LockerChamber;
-using ThaumielMapEditor.API.Blocks.ServerObjects.Lockers;
+using ConfigLockerChamber = ThaumielMapEditor.API.Blocks.Lockers.LockerChamber;
+using ThaumielMapEditor.API.Blocks.Lockers;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
@@ -34,9 +35,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Locker;
 
-        /// <summary>
-        /// The server-side representation of a locker.
-        /// </summary>
         public sealed class Server : ServerObject
         {
             private static readonly ItemType[] AllItemTypes = (ItemType[])Enum.GetValues(typeof(ItemType));
@@ -58,7 +56,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             public override ObjectType ObjectType { get; set; } = ObjectType.Locker;
 
             /// <summary>
-            /// The <see cref="LockerType"/> variant for this locker (e.g., Medkit, RifleRack, Misc).
+            /// The <see cref="LockerType"/> variant for this locker.
             /// Setting this on a spawned locker respawns it in place with the new prefab
             /// </summary>
             [YamlMember(Alias = "LockerType")]
@@ -70,11 +68,14 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     if (value == LockerType.None)
                         return;
+
                     field = value;
                     if (Base == null || Object == null)
                         return;
+
                     NetworkServer.Destroy(Object);
                     Respawn();
                 }
@@ -114,8 +115,10 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (chamber.Index != (int)value)
                         continue;
+
                     return chamber;
                 }
+                
                 return null;
             }
 
@@ -145,18 +148,21 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     LogManager.Warn($"Failed to get locker prefab.");
                     return;
                 }
+
                 UnityGameObject lockerobj = UnityEngine.Object.Instantiate(prefab.gameObject);
                 if (!lockerobj.TryGetComponent<GameLocker>(out var locker))
                 {
                     LogManager.Warn($"Failed to get GameLocker component from prefab.");
                     return;
                 }
+
                 Base = locker;
                 Object = locker.gameObject;
                 NetworkServer.UnSpawn(locker.gameObject);
                 SetWorldTransform(schematic);
                 Object.transform.localScale = Scale;
                 locker.gameObject.name += " [TME Locker]";
+
                 if (locker.TryGetComponent<StructurePositionSync>(out var posSync))
                 {
                     posSync.Network_position = Position;
@@ -164,6 +170,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up);
                     posSync.Network_rotationY = (sbyte)Mathf.RoundToInt(Rotation.eulerAngles.y / 5.625f);
                 }
+
                 locker.ParentRoom = RoomExtensions.GetClosestRoomToPosition(Position)?.Base ?? null;
                 ParseChambers();
                 NetworkServer.Spawn(locker.gameObject);
@@ -175,6 +182,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     locker._serverChambersFilled = true;
                     PopulateChambers();
                 });
+
                 base.SpawnObject(schematic, serializable);
             }
 
@@ -190,6 +198,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     LogManager.Warn($"Failed to get locker prefab for respawn (LockerType: {Type}).");
                     return;
                 }
+
                 UnityGameObject lockerobj = UnityEngine.Object.Instantiate(prefab.gameObject);
                 if (!lockerobj.TryGetComponent<GameLocker>(out var locker))
                 {
@@ -197,18 +206,21 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     UnityEngine.Object.Destroy(lockerobj);
                     return;
                 }
+
                 Base = locker;
                 Object = locker.gameObject;
                 NetworkServer.UnSpawn(locker.gameObject);
                 Object.transform.SetPositionAndRotation(Position, Rotation);
                 Object.transform.localScale = Scale;
                 locker.gameObject.name += " [TME Locker]";
+
                 if (locker.TryGetComponent<StructurePositionSync>(out var posSync))
                 {
                     posSync.Network_position = Position;
                     Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up);
                     posSync.Network_rotationY = (sbyte)Mathf.RoundToInt(Rotation.eulerAngles.y / 5.625f);
                 }
+
                 locker.ParentRoom = RoomExtensions.GetClosestRoomToPosition(Position)?.Base ?? null;
                 ParseChambers();
                 NetworkServer.Spawn(locker.gameObject);
@@ -232,6 +244,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             {
                 if (Base == null || Base.Chambers == null)
                     return;
+
                 for (int i = 0; i < Base.Chambers.Length; i++)
                 {
                     MapGeneration.Distributors.LockerChamber chamber = Base.Chambers[i];
@@ -240,11 +253,13 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     {
                         if (lockerChamber.Index != i)
                             continue;
+
                         chamber.RequiredPermissions = lockerChamber.Permissions;
                         foreach (ChamberData chamberData in lockerChamber.Data)
                         {
                             if (UnityEngine.Random.Range(0f, 100f) > chamberData.SpawnPercent)
                                 continue;
+
                             chamber.SpawnItem(chamberData.ItemType, chamberData.AmountToSpawn);
                             LogManager.Debug($"Spawned item in Chamber {i}");
                         }
@@ -259,6 +274,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             {
                 if (Base == null)
                     return;
+                    
                 LabLocker labLocker = LabLocker.Get(Base);
                 labLocker.ClearAllChambers();
                 labLocker.ClearLockerLoot();

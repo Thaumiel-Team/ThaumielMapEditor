@@ -7,7 +7,6 @@
 
 using AdminToys;
 using LabApi.Features.Wrappers;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Components;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
@@ -16,14 +15,6 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
-    /// <summary>
-    /// The definition of a transform-only game object node.
-    /// </summary>
-    /// <remarks>
-    /// Game object nodes do not render anything by themselves; they only exist so other objects can be
-    /// parented to them. The server representation uses an invisible primitive so the node still has a
-    /// network identity.
-    /// </remarks>
     [GitBookPage("Blocks/Definitions/GameObject")]
     public sealed class GameObject : Primitive
     {
@@ -37,8 +28,8 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         protected override bool ApplyServerTransform => false;
 
         /// <inheritdoc/>
-        public override global::ThaumielMapEditor.API.Blocks.ServerObject? ServerObject(ObjectBase data)
-            => new Server(data, this);
+        public override ServerObject? ServerObject(ObjectBase data) =>
+            new Server(data, this);
 
         /// <inheritdoc/>
         public override ClientObject? ClientObject(ObjectBase data)
@@ -55,9 +46,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
-        /// <summary>
-        /// The server-side representation of a game object node.
-        /// </summary>
         public new sealed class Server : Primitive.Server
         {
             /// <summary>
@@ -65,8 +53,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Server(ObjectBase data, GameObject definition)
-                : base(data, definition)
+            public Server(ObjectBase data, GameObject definition) : base(data, definition)
             {
             }
 
@@ -77,10 +64,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     Loader.EnsureGameObjectNode(Serialization, schematic);
             }
         }
-
-        /// <summary>
-        /// The client-side representation of a game object node.
-        /// </summary>
+        
         public new sealed class Client : Primitive.Client
         {
             /// <summary>
@@ -88,8 +72,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             /// </summary>
             /// <param name="data">The shared object state.</param>
             /// <param name="definition">The definition that owns the serialized values.</param>
-            public Client(ObjectBase data, GameObject definition)
-                : base(data, definition)
+            public Client(ObjectBase data, GameObject definition) : base(data, definition)
             {
                 definition.Color = Color.white;
                 definition.PrimitiveType = PrimitiveType.Cube;

@@ -8,7 +8,6 @@
 using AdminToys;
 using LabApi.Features.Wrappers;
 using Mirror;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Components;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
@@ -20,9 +19,6 @@ using PrimitiveObjectToy = AdminToys.PrimitiveObjectToy;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
-    /// <summary>
-    /// The definition of a primitive object, shared by the client and server runtime representations.
-    /// </summary>
     [GitBookPage("Blocks/Definitions/Primitive")]
     public class Primitive : ObjectDefinition<Primitive>
     {
@@ -56,7 +52,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         protected virtual bool ApplyServerTransform => true;
 
         /// <inheritdoc/>
-        public override global::ThaumielMapEditor.API.Blocks.ServerObject? ServerObject(ObjectBase data)
+        public override ServerObject? ServerObject(ObjectBase data)
             => new Server(data, this);
 
         /// <inheritdoc/>
@@ -74,10 +70,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
-        /// <summary>
-        /// The server-side representation of a primitive.
-        /// </summary>
-        public class Server : global::ThaumielMapEditor.API.Blocks.ServerObject
+        public class Server : ServerObject
         {
             private readonly Primitive definition;
 
@@ -106,8 +99,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.Color = value;
-                    if (Base != null)
-                        Base.MaterialColor = value;
+                    Base?.MaterialColor = value;
                 }
             }
 
@@ -120,8 +112,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.PrimitiveType = value;
-                    if (Base != null)
-                        Base.PrimitiveType = value;
+                    Base?.PrimitiveType = value;
                 }
             }
 
@@ -134,8 +125,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.PrimitiveFlags = value;
-                    if (Base != null)
-                        Base.PrimitiveFlags = value;
+                    Base?.PrimitiveFlags = value;
                 }
             }
 
@@ -189,9 +179,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             private bool ApplyTransform => definition.ApplyServerTransform;
         }
 
-        /// <summary>
-        /// The client-side representation of a primitive.
-        /// </summary>
         public class Client : ClientObject
         {
             private readonly Primitive definition;
@@ -208,7 +195,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
 
             /// <summary>
-            /// Gets or sets the server-side collider used for this primitive.
+            /// Gets or sets the server side collider used for this primitive.
             /// </summary>
             public MeshCollider? ServerCollider { get; set; }
 

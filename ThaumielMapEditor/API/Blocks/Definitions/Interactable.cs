@@ -4,6 +4,7 @@
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
+
 using AdminToys;
 using Mirror;
 using ThaumielMapEditor.API.Binary.Attributes;
@@ -32,9 +33,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Interactable;
 
-        /// <summary>
-        /// The server-side representation of an interactable.
-        /// </summary>
         public sealed class Server : ServerObject
         {
             private static readonly Dictionary<InvisibleInteractableToy, Server> InteractionCache = [];
@@ -66,6 +64,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     Base?.Shape = value;
                 }
@@ -80,6 +79,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     Base?.InteractionDuration = value;
                 }
@@ -128,6 +128,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     LogManager.Warn($"Failed to spawn Interact Object. Prefab is null.");
                     return;
                 }
+
                 InvisibleInteractableToy toy = UnityEngine.Object.Instantiate(PrefabHelper.Interactable);
                 NetworkServer.UnSpawn(toy.gameObject);
                 Base = toy;
@@ -154,6 +155,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     LogManager.Warn($"Failed to spawn Interact Object. Prefab is null.");
                     return;
                 }
+
                 InvisibleInteractableToy toy = UnityEngine.Object.Instantiate(PrefabHelper.Interactable);
                 NetworkServer.UnSpawn(toy.gameObject);
                 Base = toy;
@@ -186,6 +188,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     Base.OnSearched -= HandleSearched;
                     Base.OnSearchAborted -= HandleSearchAborted;
                 }
+                
                 base.DestroyObject(schematic);
             }
 

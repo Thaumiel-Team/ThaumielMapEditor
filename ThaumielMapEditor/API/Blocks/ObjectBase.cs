@@ -11,102 +11,51 @@ using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Serialization;
-using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks
 {
-    /// <summary>
-    /// Shared state for every object spawned by the map editor, regardless of whether the object is
-    /// replicated by the server or faked on the client.
-    /// </summary>
-    /// <remarks>
-    /// This type also acts as the data packet passed from an <see cref="ObjectDefinition"/> to the
-    /// object it creates, see <see cref="CopyStateFrom(ObjectBase)"/>.
-    /// </remarks>
     [GitBookPage("Blocks/ObjectBase")]
     public class ObjectBase
     {
-        private protected string objectName = string.Empty;
-        private protected int objectId;
-        private protected int parentId;
-        private protected Vector3 position;
-        private protected Quaternion rotation = Quaternion.identity;
-        private protected Vector3 scale = Vector3.one;
-        private protected bool isStatic;
-        private protected byte movementSmoothing;
-        private protected uint netId;
-
         /// <summary>
         /// Gets or sets the display name of this object.
         /// </summary>
-        public string Name
-        {
-            get => objectName;
-            set => objectName = value;
-        }
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets the id of the <see cref="SerializableObject"/> this instance was generated from.
         /// </summary>
-        public int ObjectId
-        {
-            get => objectId;
-            internal set => objectId = value;
-        }
+        public int ObjectId { get; internal set; }
 
         /// <summary>
         /// Gets or sets the id of the <see cref="SerializableObject"/> that acts as this object's parent.
         /// </summary>
-        public virtual int ParentId
-        {
-            get => parentId;
-            set => parentId = value;
-        }
+        public virtual int ParentId { get; set; }
 
         /// <summary>
         /// Gets or sets the local position of this object relative to its parent.
         /// </summary>
-        public virtual Vector3 Position
-        {
-            get => position;
-            set => position = value;
-        }
+        public virtual Vector3 Position { get; set; }
 
         /// <summary>
         /// Gets or sets the rotation of this object.
         /// </summary>
-        public virtual Quaternion Rotation
-        {
-            get => rotation;
-            set => rotation = value;
-        }
+        public virtual Quaternion Rotation { get; set; } = Quaternion.identity;
 
         /// <summary>
         /// Gets or sets the local scale of this object.
         /// </summary>
-        public virtual Vector3 Scale
-        {
-            get => scale;
-            set => scale = value;
-        }
+        public virtual Vector3 Scale { get; set; } = Vector3.one;
 
         /// <summary>
         /// Gets or sets whether this object should be treated as static.
         /// </summary>
-        public virtual bool IsStatic
-        {
-            get => isStatic;
-            set => isStatic = value;
-        }
+        public virtual bool IsStatic { get; set; }
 
         /// <summary>
         /// Gets or sets how many ticks the server waits between movement updates.
         /// </summary>
-        public virtual byte MovementSmoothing
-        {
-            get => movementSmoothing;
-            set => movementSmoothing = value;
-        }
+        public virtual byte MovementSmoothing { get; set; }
 
         /// <summary>
         /// Gets or sets the movement smoothing value.
@@ -120,11 +69,7 @@ namespace ThaumielMapEditor.API.Blocks
         /// <summary>
         /// Gets the netId of the spawned object, or <c>0</c> if it has not been spawned yet.
         /// </summary>
-        public uint NetId
-        {
-            get => netId;
-            internal set => netId = value;
-        }
+        public uint NetId { get; internal set; }
 
         /// <summary>
         /// Gets or sets the kind of object this instance represents.
@@ -181,15 +126,15 @@ namespace ThaumielMapEditor.API.Blocks
             if (source == null || ReferenceEquals(source, this))
                 return;
 
-            objectName = source.objectName;
-            objectId = source.objectId;
-            parentId = source.parentId;
-            position = source.position;
-            rotation = source.rotation;
-            scale = source.scale;
-            isStatic = source.isStatic;
-            movementSmoothing = source.movementSmoothing;
-            netId = source.netId;
+            Name = source.Name;
+            ObjectId = source.ObjectId;
+            ParentId = source.ParentId;
+            Position = source.Position;
+            Rotation = source.Rotation;
+            Scale = source.Scale;
+            IsStatic = source.IsStatic;
+            MovementSmoothing = source.MovementSmoothing;
+            NetId = source.NetId;
             ObjectType = source.ObjectType;
             Schematic = source.Schematic;
             Serialization = source.Serialization;

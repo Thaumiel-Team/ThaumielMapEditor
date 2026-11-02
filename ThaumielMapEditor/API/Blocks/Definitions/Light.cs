@@ -7,7 +7,6 @@
 
 using AdminToys;
 using Mirror;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -17,9 +16,6 @@ using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
-    /// <summary>
-    /// The definition of a light source, shared by the client and server runtime representations.
-    /// </summary>
     [GitBookPage("Blocks/Definitions/Light")]
     public sealed class Light : ObjectDefinition<Light>
     {
@@ -86,7 +82,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         public override ObjectType ObjectType => ObjectType.Light;
 
         /// <inheritdoc/>
-        public override global::ThaumielMapEditor.API.Blocks.ServerObject? ServerObject(ObjectBase data)
+        public override ServerObject? ServerObject(ObjectBase data)
             => new Server(data, this);
 
         /// <inheritdoc/>
@@ -104,10 +100,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
-        /// <summary>
-        /// The server-side representation of a light source.
-        /// </summary>
-        public sealed class Server : global::ThaumielMapEditor.API.Blocks.ServerObject
+        public sealed class Server : ServerObject
         {
             private readonly Light definition;
 
@@ -136,8 +129,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.Intensity = value;
-                    if (Base != null)
-                        Base.LightIntensity = value;
+                    Base?.LightIntensity = value;
                 }
             }
 
@@ -150,8 +142,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.Range = value;
-                    if (Base != null)
-                        Base.LightRange = value;
+                    Base?.LightRange = value;
                 }
             }
 
@@ -164,8 +155,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.Color = value;
-                    if (Base != null)
-                        Base.LightColor = value;
+                    Base?.LightColor = value;
                 }
             }
 
@@ -178,8 +168,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.Shadows = value;
-                    if (Base != null)
-                        Base.ShadowType = value;
+                    Base?.ShadowType = value;
                 }
             }
 
@@ -192,8 +181,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.ShadowStrength = value;
-                    if (Base != null)
-                        Base.ShadowStrength = value;
+                    Base?.ShadowStrength = value;
                 }
             }
 
@@ -206,8 +194,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.Type = value;
-                    if (Base != null)
-                        Base.LightType = value;
+                    Base?.LightType = value;
                 }
             }
 
@@ -220,8 +207,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.SpotAngle = value;
-                    if (Base != null)
-                        Base.SpotAngle = value;
+                    Base?.SpotAngle = value;
                 }
             }
 
@@ -255,9 +241,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
         }
 
-        /// <summary>
-        /// The client-side representation of a light source.
-        /// </summary>
         public sealed class Client : ClientObject
         {
             private readonly Light definition;

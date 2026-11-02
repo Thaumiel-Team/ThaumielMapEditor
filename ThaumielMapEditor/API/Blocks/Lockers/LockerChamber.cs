@@ -10,12 +10,8 @@ using Interactables.Interobjects.DoorUtils;
 using ThaumielMapEditor.API.Binary.Attributes;
 using YamlDotNet.Serialization;
 
-namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
+namespace ThaumielMapEditor.API.Blocks.Lockers
 {
-    /// <summary>
-    /// Represents a single chamber configuration for a locker.
-    /// A locker may contain multiple chambers, each with permissions and item spawn definitions.
-    /// </summary>
     [GitBookPage("Blocks/Definitions/Locker/LockerChamber")]
     public class LockerChamber
     {

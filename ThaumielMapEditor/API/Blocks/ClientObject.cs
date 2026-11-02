@@ -19,11 +19,8 @@ using ThaumielMapEditor.API.Serialization;
 using ThaumielMapEditor.Events.EventArgs.Handlers;
 using UnityEngine;
 
-namespace ThaumielMapEditor.API.Blocks.ClientSide
+namespace ThaumielMapEditor.API.Blocks
 {
-    /// <summary>
-    /// An object that is spawned on clients without existing on the server.
-    /// </summary>
     [GitBookPage("Blocks/Client/ClientObject")]
     public abstract class ClientObject : ObjectBase
     {
@@ -153,7 +150,7 @@ namespace ThaumielMapEditor.API.Blocks.ClientSide
         public Quaternion WorldRotation { get; set; }
 
         /// <summary>
-        /// Gets or sets the server-side colliders belonging to this object.
+        /// Gets or sets the server side colliders belonging to this object.
         /// </summary>
         public Collider[] ServerColliders { get; set; } = [];
 

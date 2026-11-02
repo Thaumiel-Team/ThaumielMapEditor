@@ -19,7 +19,6 @@ using AdminToys;
 using Interactables.Interobjects.DoorUtils;
 using MapGeneration;
 using PlayerRoles;
-using ThaumielMapEditor.API.Blocks.ServerObjects.Lockers;
 using ThaumielMapEditor.API.Helpers;
 using static AdminToys.InvisibleInteractableToy;
 using ThaumielMapEditor.API.Extensions;
@@ -27,6 +26,7 @@ using TmeCameraType = ThaumielMapEditor.API.Enums.CameraType;
 using TmeDoorType = ThaumielMapEditor.API.Enums.DoorType;
 using TmeLockerType = ThaumielMapEditor.API.Enums.LockerType;
 using TmeTargetType = ThaumielMapEditor.API.Enums.TargetType;
+using ThaumielMapEditor.API.Blocks.Lockers;
 
 namespace ThaumielMapEditor.API.Conversion
 {

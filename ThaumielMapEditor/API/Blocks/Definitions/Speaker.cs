@@ -4,6 +4,7 @@
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
+
 using System.IO;
 using LabApi.Features.Wrappers;
 using LabApiExtensions.FakeExtension;
@@ -27,9 +28,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Speaker;
 
-        /// <summary>
-        /// The server-side representation of a speaker.
-        /// </summary>
         public sealed class Server : ServerObject
         {
             /// <summary>
@@ -186,6 +184,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 }
                 else if (System.IO.Path.IsPathRooted(path))
                     return false;
+                    
                 return true;
             }
 
@@ -202,6 +201,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     MaxDistance = MaxDistance,
                     MinDistance = MinDistance
                 };
+
                 Player = AudioPlayer.Create(1, settings);
                 if (!string.IsNullOrEmpty(Path))
                 {
@@ -212,6 +212,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     else
                         Player.UseFile(Path, Loop);
                 }
+
                 base.SpawnObject(schematic, serializable);
                 SetWorldTransform(schematic);
                 Object = new();
@@ -241,6 +242,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     MaxDistance = MaxDistance,
                     MinDistance = MinDistance
                 };
+
                 Player = AudioPlayer.Create(1, settings);
                 if (!string.IsNullOrEmpty(Path))
                 {
@@ -251,6 +253,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     else
                         Player.UseFile(Path, Loop);
                 }
+                
                 SetWorldTransform(schematic);
                 Object = new();
                 Object.transform.SetPositionAndRotation(Position, Rotation);

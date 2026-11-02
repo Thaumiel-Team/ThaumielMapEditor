@@ -11,7 +11,6 @@ using LabApi.Events.Handlers;
 using PlayerRoles;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;

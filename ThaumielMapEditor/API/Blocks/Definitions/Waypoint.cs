@@ -4,6 +4,7 @@
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
+
 using AdminToys;
 using Mirror;
 using ThaumielMapEditor.API.Binary.Attributes;
@@ -24,9 +25,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Waypoint;
 
-        /// <summary>
-        /// The server-side representation of a waypoint.
-        /// </summary>
         public sealed class Server : ServerObject
         {
             /// <summary>
@@ -52,6 +50,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     Base?.VisualizeBounds = value;
                 }
@@ -70,6 +69,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     Base?.Priority = value;
                 }
@@ -87,6 +87,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (field == value)
                         return;
+
                     field = value;
                     Base?.BoundsSize = value;
                 }
@@ -106,6 +107,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     LogManager.Warn($"Failed to spawn Waypoint. Prefab is null");
                     return;
                 }
+
                 WaypointToy toy = UnityEngine.Object.Instantiate(PrefabHelper.WaypointToy);
                 Base = toy;
                 NetworkServer.UnSpawn(Base.gameObject);
@@ -126,6 +128,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     LogManager.Warn($"Failed to spawn Waypoint. Prefab is null");
                     return;
                 }
+                
                 WaypointToy toy = UnityEngine.Object.Instantiate(PrefabHelper.WaypointToy);
                 Base = toy;
                 NetworkServer.UnSpawn(Base.gameObject);

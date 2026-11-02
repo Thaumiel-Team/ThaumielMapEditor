@@ -5,21 +5,12 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks
 {
-    /// <summary>
-    /// Describes a single kind of object that can be spawned by the map editor.
-    /// </summary>
-    /// <remarks>
-    /// A definition owns the serialized values of one object and knows how to turn those values into the
-    /// server and client runtime objects. This replaces the old pattern of maintaining a separate
-    /// <c>ClientNAMEObject</c> and <c>ServerNAMEObject</c> pair per object kind.
-    /// </remarks>
     [GitBookPage("Blocks/ObjectDefinition")]
     public abstract class ObjectDefinition
     {
@@ -57,7 +48,7 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         /// <param name="data">The shared object state that was read from the map file.</param>
         /// <returns>The server object, or <see langword="null"/> when the object cannot be spawned.</returns>
-        public abstract global::ThaumielMapEditor.API.Blocks.ServerObject? ServerObject(ObjectBase data);
+        public abstract ServerObject? ServerObject(ObjectBase data);
 
         /// <summary>
         /// Creates the client runtime object for this definition.
@@ -67,11 +58,6 @@ namespace ThaumielMapEditor.API.Blocks
         public abstract ClientObject? ClientObject(ObjectBase data);
     }
 
-    /// <summary>
-    /// An <see cref="ObjectDefinition"/> that automatically populates its serialized properties from
-    /// <see cref="SerializableObject.Values"/>.
-    /// </summary>
-    /// <typeparam name="TSelf">The concrete definition type.</typeparam>
     public abstract class ObjectDefinition<TSelf> : ObjectDefinition where TSelf : ObjectDefinition<TSelf>, new()
     {
         /// <inheritdoc/>
@@ -81,11 +67,6 @@ namespace ThaumielMapEditor.API.Blocks
         }
     }
 
-    /// <summary>
-    /// An <see cref="ObjectDefinition"/> for server-only object kinds. The definition forwards the
-    /// serialized values to the nested runtime object.
-    /// </summary>
-    /// <typeparam name="TServer">The server object type.</typeparam>
     public abstract class ServerDefinition<TServer> : ObjectDefinition where TServer : ServerObject, new()
     {
         private SerializableObject? source;
@@ -100,7 +81,7 @@ namespace ThaumielMapEditor.API.Blocks
         }
 
         /// <inheritdoc/>
-        public override global::ThaumielMapEditor.API.Blocks.ServerObject? ServerObject(ObjectBase data)
+        public override ServerObject? ServerObject(ObjectBase data)
         {
             if (source == null)
                 return null;

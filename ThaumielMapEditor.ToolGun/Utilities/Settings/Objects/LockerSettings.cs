@@ -11,10 +11,10 @@ using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
 using ThaumielMapEditor.API.Blocks.Definitions;
 using LockerDef = ThaumielMapEditor.API.Blocks.Definitions.Locker;
-using ThaumielMapEditor.API.Blocks.ServerObjects.Lockers;
-using TmeChamber = ThaumielMapEditor.API.Blocks.ServerObjects.Lockers.LockerChamber;
+using TmeChamber = ThaumielMapEditor.API.Blocks.Lockers.LockerChamber;
 using ThaumielMapEditor.API.Enums;
 using static UserSettings.ServerSpecific.SSDropdownSetting;
+using ThaumielMapEditor.API.Blocks.Lockers;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 {

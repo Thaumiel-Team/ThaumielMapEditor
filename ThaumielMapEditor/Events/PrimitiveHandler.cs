@@ -7,11 +7,11 @@
 
 using System;
 using AdminToys;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.Definitions;
 using ClutterDef = ThaumielMapEditor.API.Blocks.Definitions.Clutter;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
+using ThaumielMapEditor.API.Blocks;
 
 namespace ThaumielMapEditor.Events
 {

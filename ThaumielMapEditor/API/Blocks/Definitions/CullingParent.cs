@@ -10,7 +10,6 @@ using System.Linq;
 using AdminToys;
 using LabApi.Features.Wrappers;
 using Mirror;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -23,9 +22,6 @@ using UnityGameObject = UnityEngine.GameObject;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
-    /// <summary>
-    /// The definition of a culling parent, shared by the client and server runtime representations.
-    /// </summary>
     [GitBookPage("Blocks/Definitions/CullingParent")]
     public sealed class CullingParent : ObjectDefinition<CullingParent>
     {
@@ -42,7 +38,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         public override ObjectType ObjectType => ObjectType.CullingParent;
 
         /// <inheritdoc/>
-        public override global::ThaumielMapEditor.API.Blocks.ServerObject? ServerObject(ObjectBase data)
+        public override ServerObject? ServerObject(ObjectBase data)
         {
             if (PrefabHelper.CullingParent == null)
             {
@@ -81,10 +77,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
-        /// <summary>
-        /// The server-side representation of a culling parent.
-        /// </summary>
-        public sealed class Server : global::ThaumielMapEditor.API.Blocks.ServerObject
+        public sealed class Server : ServerObject
         {
             private readonly CullingParent definition;
 
@@ -113,8 +106,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     definition.BoundsSize = value;
-                    if (Base != null)
-                        Base.NetworkBoundsSize = value;
+                    Base?.NetworkBoundsSize = value;
                 }
             }
 
@@ -127,10 +119,8 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     base.Position = value;
-                    if (Base != null)
-                        Base.NetworkBoundsPosition = value;
-                    if (Object != null)
-                        Object.transform.position = value;
+                    Base?.NetworkBoundsPosition = value;
+                    Object?.transform.position = value;
                 }
             }
 
@@ -143,8 +133,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 set
                 {
                     base.Scale = value;
-                    if (Object != null)
-                        Object.transform.localScale = Vector3.one;
+                    Object?.transform.localScale = Vector3.one;
                 }
             }
 
@@ -198,9 +187,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
         }
 
-        /// <summary>
-        /// The client-side representation of a culling parent.
-        /// </summary>
         public sealed class Client : ClientObject
         {
             private readonly CullingParent definition;

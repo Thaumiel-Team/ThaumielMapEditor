@@ -4,6 +4,7 @@
 // Licensed under the GNU General Public License v3.0 (GPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
+
 using InventorySystem.Items.Firearms.Attachments;
 using MapGeneration.Distributors;
 using Mirror;
@@ -28,9 +29,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Workstation;
 
-        /// <summary>
-        /// The server-side representation of a workstation.
-        /// </summary>
         public sealed class Server : ServerObject
         {
             [YamlIgnore, BinaryIgnore]
@@ -76,6 +74,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     LogManager.Warn($"Workstation prefab is null!");
                     return;
                 }
+
                 WorkstationController workstationPrefab = UnityEngine.Object.Instantiate(PrefabHelper.Workstation);
                 NetworkServer.UnSpawn(workstationPrefab.gameObject);
                 Base = workstationPrefab;
@@ -83,6 +82,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 workstationPrefab.NetworkStatus = (byte)(AllowInteractions ? 0 : 4);
                 SetWorldTransform(schematic);
                 Object.transform.localScale = Scale;
+                
                 if (workstationPrefab.TryGetComponent(out StructurePositionSync structurePositionSync))
                 {
                     structurePositionSync.Network_position = workstationPrefab.transform.position;
@@ -90,6 +90,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up);
                     structurePositionSync.Network_rotationY = (sbyte)Mathf.RoundToInt(workstationPrefab.transform.rotation.eulerAngles.y / 5.625f);
                 }
+
                 NetworkServer.Spawn(workstationPrefab.gameObject);
                 NetId = Base.netId;
                 WorkstationCache.Add(workstationPrefab, this);

@@ -9,7 +9,6 @@ using LabApi.Features.Wrappers;
 using System;
 using System.Collections.Generic;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Enums;
 
 namespace ThaumielMapEditor.ToolGun.Utilities

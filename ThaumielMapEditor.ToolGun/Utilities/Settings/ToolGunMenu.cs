@@ -12,7 +12,6 @@ using LabApi.Events.Handlers;
 using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.ToolGun.Extensions;

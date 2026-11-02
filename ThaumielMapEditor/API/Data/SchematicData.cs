@@ -11,7 +11,6 @@ using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.Definitions;
 using DoorDef = ThaumielMapEditor.API.Blocks.Definitions.Door;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using LabPrimitive = LabApi.Features.Wrappers.PrimitiveObjectToy;
 using System;
 using ThaumielMapEditor.API.Animation;

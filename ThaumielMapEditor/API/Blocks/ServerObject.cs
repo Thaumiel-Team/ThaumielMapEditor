@@ -20,9 +20,6 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks
 {
-    /// <summary>
-    /// A server replicated object spawned by the map editor.
-    /// </summary>
     [GitBookPage("Components/Tools/ServerObject")]
     public class ServerObject : ObjectBase
     {
@@ -57,8 +54,7 @@ namespace ThaumielMapEditor.API.Blocks
         public virtual GameObject? Object { get; internal set; }
 
         /// <summary>
-        /// Gets a value indicating whether this object should be parented to the transform of the
-        /// <see cref="SerializableObject.ParentId"/> after it has been spawned.
+        /// Gets a value indicating whether this object should be parented to the transform of the <see cref="SerializableObject.ParentId"/> after it has been spawned.
         /// </summary>
         public virtual bool ParentToSpawnTransform => false;
 

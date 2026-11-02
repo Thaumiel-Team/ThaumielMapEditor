@@ -5,7 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace ThaumielMapEditor.API.Blocks.ServerObjects.Lockers
+namespace ThaumielMapEditor.API.Blocks.Lockers
 {
     public enum Chambers
     {
