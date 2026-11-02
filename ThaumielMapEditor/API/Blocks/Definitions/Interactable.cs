@@ -37,12 +37,28 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         {
             private static readonly Dictionary<InvisibleInteractableToy, Server> InteractionCache = [];
 
+            /// <summary>
+            /// Invoked when the <see cref="Player"/> interacts with the <see cref="InvisibleInteractableToy"/> base object.
+            /// Only invoked if <see cref="InteractionDuration"/> is 0.
+            /// </summary>
             public static event Action<Server, Player>? OnInteracted;
 
+            /// <summary>
+            /// Invoked when the <see cref="Player"/> starts interacting with the <see cref="InvisibleInteractableToy"/> base object.
+            /// Only invoked if <see cref="InteractionDuration"/> is greater than 0.
+            /// </summary>
             public static event Action<Server, Player>? OnSearching;
 
+            /// <summary>
+            /// Invoked when the <see cref="Player"/> finishes interacting with the <see cref="InvisibleInteractableToy"/> base object.
+            /// Only invoked if <see cref="InteractionDuration"/> is greater than 0.
+            /// </summary>
             public static event Action<Server, Player>? OnSearched;
 
+            /// <summary>
+            /// Invoked when the <see cref="Player"/> cancels their interaction with the <see cref="InvisibleInteractableToy"/> base object.
+            /// Only invoked if <see cref="InteractionDuration"/> is greater than 0.
+            /// </summary>
             public static event Action<Server, Player>? OnSearchAborted;
 
             /// <summary>

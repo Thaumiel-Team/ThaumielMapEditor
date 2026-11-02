@@ -229,6 +229,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 {
                     if (Base == null)
                         return;
+                    
                     LabLocker labLocker = LabLocker.Get(Base);
                     labLocker.ClearAllChambers();
                     labLocker.ClearLockerLoot();
@@ -284,12 +285,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             /// Gets the number of runtime chambers on the spawned locker prefab, or 0 when not spawned.
             /// </summary>
             public int ChamberCount => Base?.Chambers?.Length ?? 0;
-
-            /// <summary>
-            /// Gets the serialized chamber definition for the given index, or <see langword="null"/> when not configured.
-            /// </summary>
-            [Obsolete()]
-            public ConfigLockerChamber? GetChamber(int index) => GetChamber((Chambers)index);
 
             /// <summary>
             /// Removes the serialized chamber definition for the given index.
