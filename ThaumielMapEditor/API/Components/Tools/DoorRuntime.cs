@@ -6,11 +6,8 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
 using ThaumielMapEditor.API.Binary.Attributes;
-using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.Definitions;
-using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;

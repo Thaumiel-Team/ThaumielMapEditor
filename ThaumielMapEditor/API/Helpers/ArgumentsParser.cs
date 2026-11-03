@@ -5,8 +5,8 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using Discord;
 using ThaumielMapEditor.API.Serialization;
 using ThaumielMapEditor.API.Helpers.BlockParser;
@@ -23,58 +23,129 @@ namespace ThaumielMapEditor.API.Helpers
 {
     public class ArgumentsParser
     {
-        public static ConcurrentDictionary<string, List<object>> Cache { get; set; } = [];
+        private const int CacheCapacity = 256;
+
+        private static readonly object CacheGate = new();
+        private static readonly Dictionary<string, ScriptProgram> Cache = new(StringComparer.Ordinal);
+        private static readonly LinkedList<string> CacheOrder = new();
 
         public static readonly IDeserializer Deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
 
-        public static List<object> Load(BlockyPayload payload)
+        /// <summary>
+        /// Parses or returns a cached script for <paramref name="payload"/>.
+        /// </summary>
+        /// <remarks>
+        /// The returned program is immutable and safe to execute from any schematic.
+        /// </remarks>
+        public static ScriptProgram Load(BlockyPayload payload)
         {
-            if (string.IsNullOrEmpty(payload.Code))
-                return [];
+            if (payload == null || string.IsNullOrEmpty(payload.Code))
+                return ScriptProgram.Empty;
 
-            if (Cache.Count > 500)
-                Cache.Clear();
+            string code = payload.Code;
 
-            return Cache.GetOrAdd(payload.Code, static code =>
+            lock (CacheGate)
             {
-                List<object> parsedBlocks = [];
-                List<Dictionary<string, object>> values = Deserializer.Deserialize<List<Dictionary<string, object>>>(code);
-                if (values == null)
-                    return parsedBlocks;
+                if (Cache.TryGetValue(code, out ScriptProgram? cached))
+                {
+                    CacheOrder.Remove(code);
+                    CacheOrder.AddLast(code);
+                    return cached;
+                }
+            }
 
-                foreach (Dictionary<string, object> dict in values)
+            ScriptProgram program = ParseProgram(code);
+
+            lock (CacheGate)
+            {
+                if (!Cache.ContainsKey(code))
+                {
+                    if (Cache.Count >= CacheCapacity && CacheOrder.First is { } oldest)
+                    {
+                        Cache.Remove(oldest.Value);
+                        CacheOrder.RemoveFirst();
+                    }
+
+                    Cache[code] = program;
+                    CacheOrder.AddLast(code);
+                }
+            }
+
+            return program;
+        }
+
+        /// <summary>
+        /// Drops every cached program.
+        /// The next <see cref="Load"/> call reparses from the payload.
+        /// </summary>
+        public static void ClearCache()
+        {
+            lock (CacheGate)
+            {
+                Cache.Clear();
+                CacheOrder.Clear();
+            }
+        }
+
+        private static ScriptProgram ParseProgram(string code)
+        {
+            List<Dictionary<string, object>> values;
+
+            try
+            {
+                values = Deserializer.Deserialize<List<Dictionary<string, object>>>(code);
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"Failed to parse Blockly script: {ex.Message}");
+                return ScriptProgram.Empty;
+            }
+
+            if (values == null || values.Count == 0)
+                return ScriptProgram.Empty;
+
+            List<object> parsedBlocks = new(values.Count);
+
+            foreach (Dictionary<string, object> dict in values)
+            {
+                try
                 {
                     object? result = ParseBlock(dict);
 
                     if (result is UnknownBlock)
-                    {
-                        string? blockType = dict.TryGetValue("type", out object? t) ? t?.ToString() : null;
-
-                        if (blockType != null && blockType.StartsWith("enum_"))
-                        {
-                            result = blockType.EndsWith("_combine")
-                                ? new EnumCombineBlock
-                                {
-                                    InputA = ParseValue(dict.GetValueOrDefault("A")),
-                                    InputB = ParseValue(dict.GetValueOrDefault("B"))
-                                }
-                                : new EnumBlock
-                                {
-                                    Value = dict.GetValueOrDefault("Value")
-                                };
-                        }
-                    }
+                        result = ParseEnumFallback(dict, result);
 
                     if (result != null)
-                    {
                         parsedBlocks.Add(result);
-                    }
                 }
+                catch (Exception ex)
+                {
+                    LogManager.Error($"Failed to parse Blockly block '{dict.GetValueOrDefault("type")}': {ex.Message}");
+                }
+            }
 
-                return parsedBlocks;
-            });
+            return new ScriptProgram(parsedBlocks);
+        }
+
+        private static object? ParseEnumFallback(Dictionary<string, object> dict, object? result)
+        {
+            string? blockType = dict.TryGetValue("type", out object? t) ? t?.ToString() : null;
+
+            if (blockType == null || !blockType.StartsWith("enum_", StringComparison.Ordinal))
+                return result;
+
+            return blockType.EndsWith("_combine", StringComparison.Ordinal)
+                ? new EnumCombineBlock
+                {
+                    InputA = ParseValue(dict.GetValueOrDefault("A")),
+                    InputB = ParseValue(dict.GetValueOrDefault("B"))
+                }
+                : new EnumBlock
+                {
+                    Value = dict.GetValueOrDefault("Value")
+                };
         }
 
         private static readonly Dictionary<string, Func<Dictionary<string, object>, object?>> BlockParsers = new()
@@ -421,21 +492,8 @@ namespace ThaumielMapEditor.API.Helpers
                 KeepPosition = ParseBoolAny(d, "KEEP_POSITION", "Keep Position")
             },
 
-            ["give_player_item"] = d => new PlayerGiveItemBlock
-            {
-                Target = ParseValue(d.GetValueOrDefault("Player")),
-                Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType item) ? item : ItemType.None,
-                Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
-                DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
-            },
-
-            ["give_player_items"] = d => new PlayerGiveItemBlock
-            {
-                Target = ParseValue(d.GetValueOrDefault("Player")),
-                Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType stackedItem) ? stackedItem : ItemType.None,
-                Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
-                DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
-            },
+            ["give_player_item"] = ParsePlayerGiveItem,
+            ["give_player_items"] = ParsePlayerGiveItem,
 
             ["remove_player_item"] = d => new PlayerRemoveItemBlock
             {
@@ -790,12 +848,7 @@ namespace ThaumielMapEditor.API.Helpers
                 Item = ParseValue(d.GetValueOrDefault("ITEM"))
             },
 
-            ["list_clear"] = d =>
-            {
-                List<object>? list = ParseValue(d.GetValueOrDefault("LIST")) as List<object>;
-                list?.Clear();
-                return null;
-            },
+            ["list_clear"] = d => new ListClearBlock { List = ParseValue(d.GetValueOrDefault("LIST")) },
 
             ["foreach_loop"] = d => new ForeachBlock
             {
@@ -1086,6 +1139,15 @@ namespace ThaumielMapEditor.API.Helpers
             };
         }
 
+        private static PlayerGiveItemBlock ParsePlayerGiveItem(Dictionary<string, object> d) =>
+            new()
+            {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
+                Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType item) ? item : ItemType.None,
+                Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
+                DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
+            };
+
         private static List<object?> ParseStack(Dictionary<string, object> d, string key)
         {
             if (!d.TryGetValue(key, out object? raw))
@@ -1255,7 +1317,7 @@ namespace ThaumielMapEditor.API.Helpers
                 ulong ul => ul,
                 ushort us => us,
                 sbyte sb => sb,
-                string str when float.TryParse(str, out float result) => result,
+                string str when float.TryParse(str, NumberStyles.Float, CultureInfo.InvariantCulture, out float result) => result,
                 _ => defaultVal
             };
         }

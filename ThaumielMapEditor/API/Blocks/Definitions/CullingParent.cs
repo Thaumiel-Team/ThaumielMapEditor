@@ -7,7 +7,6 @@
 
 using System;
 using System.Linq;
-using AdminToys;
 using LabApi.Features.Wrappers;
 using Mirror;
 using ThaumielMapEditor.API.Data;
@@ -18,7 +17,6 @@ using ThaumielMapEditor.Events.EventArgs.Handlers;
 using UnityEngine;
 using YamlDotNet.Serialization;
 using SpawnableCullingParent = AdminToys.SpawnableCullingParent;
-using UnityGameObject = UnityEngine.GameObject;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
 {
@@ -146,21 +144,13 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     return;
                 }
 
-                UnityGameObject instance = UnityEngine.Object.Instantiate(PrefabHelper.CullingParent.gameObject);
-                Object = instance;
+                SpawnableCullingParent instance = UnityEngine.Object.Instantiate(PrefabHelper.CullingParent);
+                Object = instance.gameObject;
 
                 SetWorldTransform(schematic);
                 Object.transform.localScale = Vector3.one;
 
-                Base = Object.GetComponent<SpawnableCullingParent>();
-                if (Base == null)
-                {
-                    LogManager.Warn($"Skipping culling parent '{Name}': spawned instance has no SpawnableCullingParent component.");
-                    UnityEngine.Object.Destroy(Object);
-                    Object = null;
-                    return;
-                }
-
+                Base = instance;
                 Base.NetworkBoundsPosition = base.Position;
                 Base.NetworkBoundsSize = definition.BoundsSize;
 
@@ -263,6 +253,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 SendBoundsDelta(player, worldPosition);
                 ObjectHandler.OnClientObjectSpawned(new(this, player));
                 SpawnedPlayers.Add(player);
+                LogManager.Debug($"Spawned client culling parent '{Name}' with NetId {NetId}.");
             }
 
             /// <inheritdoc/>

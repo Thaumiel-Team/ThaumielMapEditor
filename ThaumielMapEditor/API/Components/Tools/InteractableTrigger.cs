@@ -19,6 +19,7 @@ using ThaumielMapEditor.API.Components.Tools.Helpers;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
+using ThaumielMapEditor.API.Helpers.BlockParser;
 using ThaumielMapEditor.API.Serialization;
 using ThaumielMapEditor.Commands;
 using ThaumielMapEditor.HarmonyPatches;
@@ -129,7 +130,7 @@ namespace ThaumielMapEditor.API.Components.Tools
 
                     try
                     {
-                        Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                        Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null, EventType.OnDestroyed);
                     }
                     catch (Exception ex)
                     {
@@ -186,7 +187,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         {
             foreach (BlockyPayload blocky in classes.Blocky)
             {
-                List<object> blocks = ArgumentsParser.Load(blocky);
+                ScriptProgram blocks = ArgumentsParser.Load(blocky);
                 Schematic?.Executor?.Execute(blocks, player, eventType);
             }
         }

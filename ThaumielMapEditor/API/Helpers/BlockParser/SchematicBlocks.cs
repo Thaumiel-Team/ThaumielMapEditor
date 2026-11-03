@@ -7,7 +7,6 @@
 
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Serialization;
-using UnityEngine;
 
 namespace ThaumielMapEditor.API.Helpers.BlockParser
 {

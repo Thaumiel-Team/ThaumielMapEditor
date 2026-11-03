@@ -5,7 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using LabApi.Features.Wrappers;
 
 namespace ThaumielMapEditor.API.Helpers.BlockParser
@@ -18,10 +20,10 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object? ReturnExecute()
         {
-            object? valA = A is BlockBase bA ? bA.ReturnExecute() : A;
-            object? valB = B is BlockBase bB ? bB.ReturnExecute() : B;
+            object? valA = ResolveValue(A);
+            object? valB = ResolveValue(B);
 
-            if (float.TryParse(valA?.ToString(), out float fA) && float.TryParse(valB?.ToString(), out float fB))
+            if (TryParseFloat(valA, out float fA) && TryParseFloat(valB, out float fB))
             {
                 return OP switch
                 {
@@ -34,8 +36,37 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                     _ => false
                 };
             }
-            
+
             return OP == "EQ" ? Equals(valA, valB) : !Equals(valA, valB);
+        }
+
+        private static bool TryParseFloat(object? value, out float result)
+        {
+            switch (value)
+            {
+                case float f:
+                    result = f;
+                    return true;
+
+                case double d:
+                    result = (float)d;
+                    return true;
+
+                case int i:
+                    result = i;
+                    return true;
+
+                case long l:
+                    result = l;
+                    return true;
+
+                case decimal m:
+                    result = (float)m;
+                    return true;
+
+                default:
+                    return float.TryParse(value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+            }
         }
     }
 
@@ -47,8 +78,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object? ReturnExecute()
         {
-            bool valA = A is BlockBase bA ? (bool?)bA.ReturnExecute() ?? false : (A is bool b && b);
-            bool valB = B is BlockBase bB ? (bool?)bB.ReturnExecute() ?? false : (B is bool b2 && b2);
+            bool valA = ResolveBool(A);
+            bool valB = ResolveBool(B);
 
             return OP == "AND" ? valA && valB : valA || valB;
         }
@@ -58,11 +89,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? Bool { get; set; }
 
-        public override object? ReturnExecute()
-        {
-            bool val = Bool is BlockBase b ? (bool?)b.ReturnExecute() ?? false : (Bool is bool boolean && boolean);
-            return !val;
-        }
+        public override object? ReturnExecute() => !ResolveBool(Bool);
     }
 
     public class ControlsIfBlock : BlockBase
@@ -75,11 +102,11 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         {
             if (Condition?.ReturnExecute() is bool b && b)
             {
-                Executor?.ExecuteStack(IfStack!, player);
+                Executor?.ExecuteStack(IfStack, player);
             }
             else if (ElseStack.Count > 0)
             {
-                Executor?.ExecuteStack(ElseStack!, player);
+                Executor?.ExecuteStack(ElseStack, player);
             }
         }
     }

@@ -21,10 +21,19 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute()
         {
-            List<object>? list = (List is BlockBase bL ? bL.ReturnExecute() : List) as List<object>;
-            object? item = Item is BlockBase bI ? bI.ReturnExecute() : Item;
+            if (ResolveValue(List) is List<object> list)
+                list.Add(ResolveValue(Item)!);
+        }
+    }
 
-            list?.Add(item!);
+    public class ListClearBlock : BlockBase
+    {
+        public object? List { get; set; }
+
+        public override void Execute()
+        {
+            if (ResolveValue(List) is List<object> list)
+                list.Clear();
         }
     }
 
@@ -35,10 +44,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute()
         {
-            List<object>? list = (List is BlockBase bL ? bL.ReturnExecute() : List) as List<object>;
-            object? item = Item is BlockBase bI ? bI.ReturnExecute() : Item;
-
-            list?.Remove(item!);
+            if (ResolveValue(List) is List<object> list)
+                list.Remove(ResolveValue(Item)!);
         }
     }
 
@@ -51,7 +58,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         {
             int index = (int)ResolveFloat(Index, -1f);
 
-            if ((List is BlockBase bL ? bL.ReturnExecute() : List) is List<object> list && index >= 0 && index < list.Count)
+            if (ResolveValue(List) is List<object> list && index >= 0 && index < list.Count)
                 list.RemoveAt(index);
         }
     }
@@ -63,10 +70,10 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override object? ReturnExecute()
         {
-            if ((List is BlockBase bL ? bL.ReturnExecute() : List) is List<object> list && Index >= 0 && Index < list.Count)
+            if (ResolveValue(List) is List<object> list && Index >= 0 && Index < list.Count)
                 return list[Index];
 
-            return null!;
+            return null;
         }
     }
 
@@ -74,11 +81,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public object? List { get; set; }
 
-        public override object? ReturnExecute()
-        {
-            List<object>? list = (List is BlockBase bL ? bL.ReturnExecute() : List) as List<object>;
-            return list?.Count ?? 0;
-        }
+        public override object? ReturnExecute() =>
+            ResolveValue(List) is List<object> list ? list.Count : 0;
     }
 
     public class ListContainsBlock : BlockBase
@@ -86,27 +90,23 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? List { get; set; }
         public object? Item { get; set; }
 
-        public override object? ReturnExecute()
-        {
-            List<object>? list = (List is BlockBase bL ? bL.ReturnExecute() : List) as List<object>;
-            object? item = Item is BlockBase bI ? bI.ReturnExecute() : Item;
-            return list?.Contains(item!) ?? false;
-        }
+        public override object? ReturnExecute() =>
+            ResolveValue(List) is List<object> list && list.Contains(ResolveValue(Item)!);
     }
 
     public class ListFirstBlock : BlockBase
     {
         public object? List { get; set; }
 
-        public override object? ReturnExecute()
-            => (List is BlockBase bL ? bL.ReturnExecute() : List) is List<object> list && list.Count > 0 ? list[0] : null!;
+        public override object? ReturnExecute() =>
+            ResolveValue(List) is List<object> { Count: > 0 } list ? list[0] : null;
     }
 
     public class ListLastBlock : BlockBase
     {
         public object? List { get; set; }
 
-        public override object? ReturnExecute()
-            => (List is BlockBase bL ? bL.ReturnExecute() : List) is List<object> list && list.Count > 0 ? list[list.Count - 1] : null!;
+        public override object? ReturnExecute() =>
+            ResolveValue(List) is List<object> { Count: > 0 } list ? list[list.Count - 1] : null;
     }
 }

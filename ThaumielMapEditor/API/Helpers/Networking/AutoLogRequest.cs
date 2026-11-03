@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 using ThaumielMapEditor.API.Enums;
 
 namespace ThaumielMapEditor.API.Helpers.Networking

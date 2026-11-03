@@ -17,7 +17,6 @@ using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using UnityEngine;
 using YamlDotNet.Serialization;
-using UnityGameObject = UnityEngine.GameObject;
 using LabLocker = LabApi.Features.Wrappers.Locker;
 using MEC;
 using GameLocker = MapGeneration.Distributors.Locker;
@@ -149,37 +148,31 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     return;
                 }
 
-                UnityGameObject lockerobj = UnityEngine.Object.Instantiate(prefab.gameObject);
-                if (!lockerobj.TryGetComponent<GameLocker>(out var locker))
-                {
-                    LogManager.Warn($"Failed to get GameLocker component from prefab.");
-                    return;
-                }
+                GameLocker lockerobj = UnityEngine.Object.Instantiate(prefab);
 
-                Base = locker;
-                Object = locker.gameObject;
-                NetworkServer.UnSpawn(locker.gameObject);
+                Base = lockerobj;
+                Object = lockerobj.gameObject;
+                NetworkServer.UnSpawn(lockerobj.gameObject);
                 SetWorldTransform(schematic);
                 Object.transform.localScale = Scale;
-                locker.gameObject.name += " [TME Locker]";
+                lockerobj.gameObject.name += " [TME Locker]";
 
-                if (locker.TryGetComponent<StructurePositionSync>(out var posSync))
+                if (lockerobj.TryGetComponent<StructurePositionSync>(out var posSync))
                 {
                     posSync.Network_position = Position;
-                
                     Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up);
                     posSync.Network_rotationY = (sbyte)Mathf.RoundToInt(Rotation.eulerAngles.y / 5.625f);
                 }
 
-                locker.ParentRoom = RoomExtensions.GetClosestRoomToPosition(Position)?.Base ?? null;
+                lockerobj.ParentRoom = RoomExtensions.GetClosestRoomToPosition(Position)?.Base ?? null;
                 ParseChambers();
-                NetworkServer.Spawn(locker.gameObject);
+                NetworkServer.Spawn(lockerobj.gameObject);
                 Timing.CallDelayed(Timing.WaitForOneFrame, () =>
                 {
-                    LabLocker labLocker = LabLocker.Get(locker);
+                    LabLocker labLocker = LabLocker.Get(lockerobj);
                     labLocker.ClearAllChambers();
                     labLocker.ClearLockerLoot();
-                    locker._serverChambersFilled = true;
+                    lockerobj._serverChambersFilled = true;
                     PopulateChambers();
                 });
 
@@ -199,32 +192,25 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     return;
                 }
 
-                UnityGameObject lockerobj = UnityEngine.Object.Instantiate(prefab.gameObject);
-                if (!lockerobj.TryGetComponent<GameLocker>(out var locker))
-                {
-                    LogManager.Warn($"Failed to get GameLocker component from prefab on respawn.");
-                    UnityEngine.Object.Destroy(lockerobj);
-                    return;
-                }
-
-                Base = locker;
-                Object = locker.gameObject;
-                NetworkServer.UnSpawn(locker.gameObject);
+                GameLocker lockerobj = UnityEngine.Object.Instantiate(prefab);
+                Base = lockerobj;
+                Object = lockerobj.gameObject;
+                NetworkServer.UnSpawn(lockerobj.gameObject);
                 Object.transform.SetPositionAndRotation(Position, Rotation);
                 Object.transform.localScale = Scale;
-                locker.gameObject.name += " [TME Locker]";
+                lockerobj.gameObject.name += " [TME Locker]";
 
-                if (locker.TryGetComponent<StructurePositionSync>(out var posSync))
+                if (lockerobj.TryGetComponent<StructurePositionSync>(out var posSync))
                 {
                     posSync.Network_position = Position;
                     Base.transform.rotation = Quaternion.AngleAxis(Rotation.y, Vector3.up);
                     posSync.Network_rotationY = (sbyte)Mathf.RoundToInt(Rotation.eulerAngles.y / 5.625f);
                 }
 
-                locker.ParentRoom = RoomExtensions.GetClosestRoomToPosition(Position)?.Base ?? null;
+                lockerobj.ParentRoom = RoomExtensions.GetClosestRoomToPosition(Position)?.Base ?? null;
                 ParseChambers();
-                NetworkServer.Spawn(locker.gameObject);
-                NetId = locker.netId;
+                NetworkServer.Spawn(lockerobj.gameObject);
+                NetId = lockerobj.netId;
                 Timing.CallDelayed(Timing.WaitForOneFrame, () =>
                 {
                     if (Base == null)
@@ -290,7 +276,8 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             /// Removes the serialized chamber definition for the given index.
             /// </summary>
             /// <returns><see langword="true"/> when an entry was removed.</returns>
-            public bool RemoveChamber(int index) => Chambers.RemoveAll(c => c.Index == (uint)index) > 0;
+            public bool RemoveChamber(int index) =>
+                Chambers.RemoveAll(c => c.Index == (uint)index) > 0;
 
             /// <summary>
             /// Clears runtime chambers and repopulates them from the serialized <see cref="Chambers"/> data.

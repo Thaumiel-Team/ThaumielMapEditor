@@ -5,19 +5,11 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System.Collections.Generic;
-
 namespace ThaumielMapEditor.API.Serialization
 {
     [GitBookPage("Serialization/BlockyPayload")]
     public class BlockyPayload
     {
         public string Code { get; set; } = string.Empty;
-
-        public string Xml { get; set; } = string.Empty;
-
-        public List<object> Blocks { get; set; } = [];
-
-        public string Timestamp { get; set; } = string.Empty;
     }
 }
