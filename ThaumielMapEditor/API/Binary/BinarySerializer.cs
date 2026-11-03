@@ -430,6 +430,12 @@ namespace ThaumielMapEditor.API.Binary
                 return;
             }
 
+            if (actual == typeof(Quaternion))
+            {
+                WriteValue(writer, ((Quaternion)value).eulerAngles, typeof(Vector3));
+                return;
+            }
+
             if (TryGetDictionaryTypes(actual, out Type? keyType, out Type? valueType))
             {
                 writer.Write((byte)22);
@@ -714,6 +720,9 @@ namespace ThaumielMapEditor.API.Binary
                     return ReadDictionary(reader, declaredType, type);
 
                 case BinKind.Object:
+                    if (type == typeof(Quaternion))
+                        return ReadEulerQuaternion(reader);
+
                     return ReadObject(reader, type);
 
                 default:
@@ -1084,6 +1093,48 @@ namespace ThaumielMapEditor.API.Binary
                 WriteValue(writer, value2, memberAccessor.MemberType);
             }
         }
+
+        private static Quaternion ReadEulerQuaternion(BinaryReader reader)
+        {
+            int count = reader.ReadInt32();
+            if (!CheckCount(count))
+                return Quaternion.identity;
+
+            float x = 0f;
+            float y = 0f;
+            float z = 0f;
+            float w = 0f;
+            bool hasW = false;
+
+            for (int i = 0; i < count; i++)
+            {
+                string name = reader.ReadString();
+                if (string.Equals(name, "x", StringComparison.OrdinalIgnoreCase))
+                {
+                    x = ReadFloatValue(reader);
+                }
+                else if (string.Equals(name, "y", StringComparison.OrdinalIgnoreCase))
+                {
+                    y = ReadFloatValue(reader);
+                }
+                else if (string.Equals(name, "z", StringComparison.OrdinalIgnoreCase))
+                {
+                    z = ReadFloatValue(reader);
+                }
+                else if (string.Equals(name, "w", StringComparison.OrdinalIgnoreCase))
+                {
+                    w = ReadFloatValue(reader);
+                    hasW = true;
+                }
+                else
+                    SkipValue(reader);
+            }
+
+            return hasW ? new Quaternion(x, y, z, w) : Quaternion.Euler(x, y, z);
+        }
+
+        private static float ReadFloatValue(BinaryReader reader)
+            => ReadValue(reader, typeof(float)) is float value ? value : 0f;
 
         private static object? ReadObject(BinaryReader reader, Type target)
         {
@@ -1679,6 +1730,7 @@ namespace ThaumielMapEditor.API.Binary
                     dictionary.Add(item.Field.Name, item);
                 }
             }
+
             Func<object>? create = (constructorInfo is null || constructorInfo.GetParameters().Length == 0) ? CompileFactory(type, constructorInfo) : null;
             Func<object?[], object>? createWithArgs = (constructorInfo is not null && constructorInfo.GetParameters().Length != 0) ? CompileFactory(constructorInfo) : null;
             return new TypePlan
