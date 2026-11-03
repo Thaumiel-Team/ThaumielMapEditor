@@ -17,7 +17,6 @@ using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Serialization;
 using ThaumielMapEditor.Events.EventArgs.Handlers;
-using UnityEngine;
 using YamlDotNet.Serialization;
 
 namespace ThaumielMapEditor.API.Blocks.Definitions
@@ -221,6 +220,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                     LogManager.Warn($"Failed to get DoorVariant from {schematic.FileName}, DoorType: {DoorType}");
                     return;
                 }
+                
                 DoorVariant doorPrefab = UnityEngine.Object.Instantiate(door);
                 NetworkServer.UnSpawn(doorPrefab.gameObject);
 

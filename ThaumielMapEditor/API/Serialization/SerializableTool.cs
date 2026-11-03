@@ -13,7 +13,10 @@ namespace ThaumielMapEditor.API.Serialization
     public class SerializableTool
     {
         public string ToolName { get; set; } = string.Empty;
-
-        public Dictionary<string, object> Properties { get; set; } = [];
+        public Dictionary<string, object> Properties
+        {
+            get;
+            set => field = value ?? [];
+        } = [];
     }
 }

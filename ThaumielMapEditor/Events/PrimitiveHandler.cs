@@ -53,7 +53,7 @@ namespace ThaumielMapEditor.Events
             if (client is not Primitive.Client primitive)
                 return;
 
-            if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
+            if (primitive.ServerCollider == null || primitive.Schematic?.Primitive == null || (primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0)
                 return;
 
             primitive.ServerCollider.transform.localScale = new(Math.Abs(scale.x), Math.Abs(scale.y), Math.Abs(scale.z));
@@ -88,7 +88,7 @@ namespace ThaumielMapEditor.Events
             if (client is not Primitive.Client primitive)
                 return;
 
-            if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
+            if (primitive.ServerCollider == null || primitive.Schematic?.Primitive == null || (primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0)
                 return;
 
             if (primitive.Schematic.ServerSideTransforms.TryGetValue(primitive.ParentId, out var transform))
@@ -128,7 +128,7 @@ namespace ThaumielMapEditor.Events
             if (client is not Primitive.Client primitive)
                 return;
 
-            if ((primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0 || primitive.ServerCollider == null || primitive.Schematic == null || primitive.Schematic.Primitive == null)
+            if (primitive.ServerCollider == null || primitive.Schematic?.Primitive == null || (primitive.PrimitiveFlags & PrimitiveFlags.Collidable) == 0)
                 return;
 
             if (primitive.Schematic.ServerSideTransforms.TryGetValue(primitive.ParentId, out var transform))

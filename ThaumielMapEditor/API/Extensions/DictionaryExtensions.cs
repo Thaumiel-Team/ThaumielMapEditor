@@ -584,9 +584,12 @@ namespace ThaumielMapEditor.API.Extensions
             return list;
         }
 
-        public static void PopulateFrom<T>(this Dictionary<string, object> dict, T target)
+        public static void PopulateFrom<T>(this Dictionary<string, object>? dict, T target)
         {
-            PropertyInfo[] properties = GetCachedProperties(target!.GetType());
+            if (dict == null || target == null)
+                return;
+
+            PropertyInfo[] properties = GetCachedProperties(target.GetType());
 
             foreach (PropertyInfo prop in properties)
             {

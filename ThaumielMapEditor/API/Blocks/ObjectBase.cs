@@ -17,6 +17,13 @@ namespace ThaumielMapEditor.API.Blocks
     [GitBookPage("Blocks/ObjectBase")]
     public class ObjectBase
     {
+        private int parentId;
+        private Vector3 position;
+        private Quaternion rotation = Quaternion.identity;
+        private Vector3 scale = Vector3.one;
+        private bool isStatic;
+        private byte movementSmoothing;
+
         /// <summary>
         /// Gets or sets the display name of this object.
         /// </summary>
@@ -30,32 +37,56 @@ namespace ThaumielMapEditor.API.Blocks
         /// <summary>
         /// Gets or sets the id of the <see cref="SerializableObject"/> that acts as this object's parent.
         /// </summary>
-        public virtual int ParentId { get; set; }
+        public virtual int ParentId
+        {
+            get => parentId;
+            set => parentId = value;
+        }
 
         /// <summary>
         /// Gets or sets the local position of this object relative to its parent.
         /// </summary>
-        public virtual Vector3 Position { get; set; }
+        public virtual Vector3 Position
+        {
+            get => position;
+            set => position = value;
+        }
 
         /// <summary>
         /// Gets or sets the rotation of this object.
         /// </summary>
-        public virtual Quaternion Rotation { get; set; } = Quaternion.identity;
+        public virtual Quaternion Rotation
+        {
+            get => rotation;
+            set => rotation = value;
+        }
 
         /// <summary>
         /// Gets or sets the local scale of this object.
         /// </summary>
-        public virtual Vector3 Scale { get; set; } = Vector3.one;
+        public virtual Vector3 Scale
+        {
+            get => scale;
+            set => scale = value;
+        }
 
         /// <summary>
         /// Gets or sets whether this object should be treated as static.
         /// </summary>
-        public virtual bool IsStatic { get; set; }
+        public virtual bool IsStatic
+        {
+            get => isStatic;
+            set => isStatic = value;
+        }
 
         /// <summary>
         /// Gets or sets how many ticks the server waits between movement updates.
         /// </summary>
-        public virtual byte MovementSmoothing { get; set; }
+        public virtual byte MovementSmoothing
+        {
+            get => movementSmoothing;
+            set => movementSmoothing = value;
+        }
 
         /// <summary>
         /// Gets or sets the movement smoothing value.
@@ -128,12 +159,12 @@ namespace ThaumielMapEditor.API.Blocks
 
             Name = source.Name;
             ObjectId = source.ObjectId;
-            ParentId = source.ParentId;
-            Position = source.Position;
-            Rotation = source.Rotation;
-            Scale = source.Scale;
-            IsStatic = source.IsStatic;
-            MovementSmoothing = source.MovementSmoothing;
+            parentId = source.ParentId;
+            position = source.Position;
+            rotation = source.Rotation;
+            scale = source.Scale;
+            isStatic = source.IsStatic;
+            movementSmoothing = source.MovementSmoothing;
             NetId = source.NetId;
             ObjectType = source.ObjectType;
             Schematic = source.Schematic;
