@@ -1,12 +1,13 @@
 // -----------------------------------------------------------------------
 // <copyright file="BlockyRuntime.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
@@ -22,6 +23,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         public override ToolType Type => ToolType.BlockyRuntime;
 
         [YamlMember(Alias = "Payload")]
+        [BinaryProperty(Name = "Payload")]
         public BlockyPayload? Blocky { get; set; }
 
         public override void Init(ServerObject obj, SchematicData schem, Dictionary<string, object> properties)

@@ -1,14 +1,14 @@
 // -----------------------------------------------------------------------
 // <copyright file="DoorBlocks.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
 using Interactables.Interobjects.DoorUtils;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 
@@ -16,7 +16,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 {
     public static class DoorCache
     {
-        public static Dictionary<SchematicData, DoorObject> DoorNameCache = [];
+        public static Dictionary<SchematicData, Door.Server> DoorNameCache = [];
     }
 
     public class DoorGetPropertyBlock : BlockBase
@@ -38,16 +38,14 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public string Property { get; set; } = string.Empty;
 
-        public object? Door { get; set; }
-
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
-            return ResolveDoor() is DoorObject door ? GetProperty(door) : null!;
+            return ResolveTarget() is Door.Server door ? GetProperty(door) : null!;
         }
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
         {
-            if (ResolveDoor(obj) is not DoorObject door)
+            if (ResolveTarget(obj) is not Door.Server door)
                 return null!;
 
             if (string.IsNullOrEmpty(Property))
@@ -56,13 +54,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             return GetProperty(door);
         }
 
-        private DoorObject? ResolveDoor(object? fallback = null)
-        {
-            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
-            return target as DoorObject;
-        }
-
-        private object GetProperty(DoorObject door)
+        private object GetProperty(Door.Server door)
         {
             return Property switch
             {
@@ -92,11 +84,11 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Name { get; set; } = string.Empty;
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             if (!DoorCache.DoorNameCache.TryGetValue(Executor?.Schematic!, out var cache))
             {
-                foreach (DoorObject door in Executor?.Schematic.GetServerObject<DoorObject>()!)
+                foreach (Door.Server door in Executor?.Schematic.GetServerObject<Door.Server>()!)
                 {
                     if (string.Equals(Name, door.Name, StringComparison.InvariantCultureIgnoreCase))
                     {
@@ -119,9 +111,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public bool RequireAllPermissions { get; set; }
         public bool Bypass2176 { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
-            DoorObject door = new()
+            Door.Server door = new()
             {
                 DoorType = DoorType,
                 Permissions = DoorPermissionFlags,
@@ -142,7 +134,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not DoorObject door)
+            if (obj is not Door.Server door)
                 return;
 
             door.Permissions = Perms;
@@ -153,7 +145,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public override void Execute(object obj)
         {
-            if (obj is not DoorObject door)
+            if (obj is not Door.Server door)
                 return;
 
             door.IsOpen = true;
@@ -164,7 +156,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public override void Execute(object obj)
         {
-            if (obj is not DoorObject door)
+            if (obj is not Door.Server door)
                 return;
 
             door.IsOpen = false;
@@ -175,7 +167,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public override void Execute(object obj)
         {
-            if (obj is not DoorObject door)
+            if (obj is not Door.Server door)
                 return;
 
             door.IsLocked = true;
@@ -186,7 +178,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public override void Execute(object obj)
         {
-            if (obj is not DoorObject door)
+            if (obj is not Door.Server door)
                 return;
 
             door.IsLocked = false;
@@ -195,55 +187,31 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
     public class DoorIsOpenBlock : BlockBase
     {
-        public object? Door { get; set; }
+        public override object? ReturnExecute()
+            => ResolveTarget() as Door.Server is { } door && door.IsOpen;
 
-        public override object ReturnExecute()
-            => ResolveDoor()?.IsOpen ?? false;
-
-        public override object ReturnExecute(object obj)
-            => ResolveDoor(obj)?.IsOpen ?? false;
-
-        private DoorObject? ResolveDoor(object? fallback = null)
-        {
-            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
-            return target as DoorObject;
-        }
+        public override object? ReturnExecute(object obj)
+            => ResolveTarget(obj) as Door.Server is { } door && door.IsOpen;
     }
 
     public class DoorIsClosedBlock : BlockBase
     {
-        public object? Door { get; set; }
+        public override object? ReturnExecute()
+            => ResolveTarget() as Door.Server is { IsOpen: false };
 
-        public override object ReturnExecute()
-            => ResolveDoor()?.IsOpen == false;
-
-        public override object ReturnExecute(object obj)
-            => ResolveDoor(obj)?.IsOpen == false;
-
-        private DoorObject? ResolveDoor(object? fallback = null)
-        {
-            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
-            return target as DoorObject;
-        }
+        public override object? ReturnExecute(object obj)
+            => ResolveTarget(obj) as Door.Server is { IsOpen: false };
     }
 
     public class DoorIsOpeningBlock : BlockBase
     {
-        public object? Door { get; set; }
+        public override object? ReturnExecute()
+            => IsMoving(ResolveTarget() as Door.Server);
 
-        public override object ReturnExecute()
-            => IsMoving(ResolveDoor());
+        public override object? ReturnExecute(object obj)
+            => IsMoving(ResolveTarget(obj) as Door.Server);
 
-        public override object ReturnExecute(object obj)
-            => IsMoving(ResolveDoor(obj));
-
-        private DoorObject? ResolveDoor(object? fallback = null)
-        {
-            object? target = Door is BlockBase block ? block.ReturnExecute() : Door ?? fallback;
-            return target as DoorObject;
-        }
-
-        private static bool IsMoving(DoorObject? door)
+        private static bool IsMoving(Door.Server? door)
         {
             if (door?.Base == null)
                 return false;

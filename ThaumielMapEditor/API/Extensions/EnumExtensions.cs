@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="EnumExtensions.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -31,7 +31,7 @@ namespace ThaumielMapEditor.API.Extensions
             if (values.Length == 0)
                 return current;
 
-            HashSet<T>? excluded = exclude is { Length: > 0 } ? new HashSet<T>(exclude) : null;
+            HashSet<T>? excluded = exclude is { Length: > 0 } ? new(exclude) : null;
             if (excluded != null && excluded.Count >= values.Length)
                 return Array.IndexOf(values, current) >= 0 ? current : values[0];
 

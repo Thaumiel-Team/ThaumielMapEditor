@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="Convert.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using CommandSystem;
 using LabApi.Loader.Features.Paths;
 using ThaumielMapEditor.API.Attributes;
+using ThaumielMapEditor.API.Binary;
 using ThaumielMapEditor.API.Conversion;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Interfaces;
@@ -66,10 +67,9 @@ namespace ThaumielMapEditor.Commands.Admin
                         PMERRoot root = PMERLoader.Load(file);
                         root.Name = filename;
                         SerializableSchematic schematic = await PMERConverter.ConvertSchematicAsync(root);
-                        string yaml = Loader.Serializer.Serialize(schematic);
-                        string outputPath = ThaumFileManager.Dir(["Schematics", $"{schematicName}.yml"]);
+                        string outputPath = ThaumFileManager.Dir(["Schematics", $"{schematicName}.bin"]);
                         Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-                        File.WriteAllText(outputPath, yaml);
+                        BinarySerializer.SerializeToFile(outputPath, schematic);
 
                         LogManager.Info($"Conversion of '{schematicName}' completed successfully.");
                         Loader.ReloadSchematics();

@@ -18,7 +18,7 @@
     <PackageReference Include="Northwood.LabAPI" Version="1.1.6.1" Publicize="true" />
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.*" />
     <PackageReference Include="System.Text.Json" Version="10.0.1" />
-    <PackageReference Include="Costura.Fody" Version="6.0.0" PrivateAssets="all"/>
+    <PackageReference Include="Costura.Fody" Version="6.0.0" PrivateAssets="all" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NAudio.Core" Version="2.2.1" />
     <PackageReference Include="SecretLabNAudio.Core" Version="2.1.0" />
@@ -26,27 +26,27 @@
   </ItemGroup>
   <ItemGroup>
     <!--Dependencies-->
-    <Reference Include="LabApiExtensions" Publicize="true" HintPath="deps/LabApiExtensions.dll"/>
+    <Reference Include="LabApiExtensions" Publicize="true" HintPath="deps/LabApiExtensions.dll" />
 
     <!--SL References-->
-    <Reference Include="Assembly-CSharp" Publicize="true" HintPath="$(SL_REFERENCES)/Assembly-CSharp.dll"/>
-    <Reference Include="Assembly-CSharp-firstpass" Publicize="true" HintPath="$(SL_REFERENCES)/Assembly-CSharp-firstpass.dll"/>
-    <Reference Include="CommandSystem.Core" HintPath="$(SL_REFERENCES)/CommandSystem.Core.dll"/>
-    <Reference Include="Pooling" HintPath="$(SL_REFERENCES)/Pooling.dll"/>
-    <Reference Include="Mirror" Publicize="true" HintPath="$(SL_REFERENCES)/Mirror.dll"/>
-    <Reference Include="Mirror.Components" Publicize="true" HintPath="$(SL_REFERENCES)/Mirror.Components.dll"/>
-    <Reference Include="NorthwoodLib" Publicize="true" HintPath="$(SL_REFERENCES)/NorthwoodLib.dll"/>
-    <Reference Include="System.IO.Compression" HintPath="$(SL_REFERENCES)/System.IO.Compression.dll"/>
-    <Reference Include="YamlDotNet" HintPath="$(SL_REFERENCES)/YamlDotNet.dll"/>
+    <Reference Include="Assembly-CSharp" Publicize="true" HintPath="$(SL_REFERENCES)/Assembly-CSharp.dll" />
+    <Reference Include="Assembly-CSharp-firstpass" Publicize="true" HintPath="$(SL_REFERENCES)/Assembly-CSharp-firstpass.dll" />
+    <Reference Include="CommandSystem.Core" HintPath="$(SL_REFERENCES)/CommandSystem.Core.dll" />
+    <Reference Include="Pooling" HintPath="$(SL_REFERENCES)/Pooling.dll" />
+    <Reference Include="Mirror" Publicize="true" HintPath="$(SL_REFERENCES)/Mirror.dll" />
+    <Reference Include="Mirror.Components" Publicize="true" HintPath="$(SL_REFERENCES)/Mirror.Components.dll" />
+    <Reference Include="NorthwoodLib" Publicize="true" HintPath="$(SL_REFERENCES)/NorthwoodLib.dll" />
+    <Reference Include="System.IO.Compression" HintPath="$(SL_REFERENCES)/System.IO.Compression.dll" />
+    <Reference Include="YamlDotNet" HintPath="$(SL_REFERENCES)/YamlDotNet.dll" />
 
-    <Reference Include="UnityEngine" HintPath="$(SL_REFERENCES)/UnityEngine.dll"/>
-    <Reference Include="UnityEngine.AnimationModule" HintPath="$(SL_REFERENCES)/UnityEngine.AnimationModule.dll"/>
-    <Reference Include="UnityEngine.AssetBundleModule" HintPath="$(SL_REFERENCES)/UnityEngine.AssetBundleModule.dll"/>
-    <Reference Include="UnityEngine.CoreModule" HintPath="$(SL_REFERENCES)/UnityEngine.CoreModule.dll"/>
-    <Reference Include="UnityEngine.JSONSerializeModule" HintPath="$(SL_REFERENCES)/UnityEngine.JSONSerializeModule.dll"/>
-    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(SL_REFERENCES)/UnityEngine.PhysicsModule.dll"/>
-    <Reference Include="UnityEngine.UnityWebRequestModule" HintPath="$(SL_REFERENCES)/UnityEngine.UnityWebRequestModule.dll"/>
-    <Reference Include="UnityEngine.UnityWebRequestWWWModule" HintPath="$(SL_REFERENCES)/UnityEngine.UnityWebRequestWWWModule.dll"/>
+    <Reference Include="UnityEngine" HintPath="$(SL_REFERENCES)/UnityEngine.dll" />
+    <Reference Include="UnityEngine.AnimationModule" HintPath="$(SL_REFERENCES)/UnityEngine.AnimationModule.dll" />
+    <Reference Include="UnityEngine.AssetBundleModule" HintPath="$(SL_REFERENCES)/UnityEngine.AssetBundleModule.dll" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(SL_REFERENCES)/UnityEngine.CoreModule.dll" />
+    <Reference Include="UnityEngine.JSONSerializeModule" HintPath="$(SL_REFERENCES)/UnityEngine.JSONSerializeModule.dll" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(SL_REFERENCES)/UnityEngine.PhysicsModule.dll" />
+    <Reference Include="UnityEngine.UnityWebRequestModule" HintPath="$(SL_REFERENCES)/UnityEngine.UnityWebRequestModule.dll" />
+    <Reference Include="UnityEngine.UnityWebRequestWWWModule" HintPath="$(SL_REFERENCES)/UnityEngine.UnityWebRequestWWWModule.dll" />
   </ItemGroup>
 
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">

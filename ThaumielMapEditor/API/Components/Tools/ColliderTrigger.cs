@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="ColliderTrigger.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -12,11 +12,13 @@ using LabApi.Features.Wrappers;
 using Mirror;
 using SecretLabNAudio.Core;
 using SecretLabNAudio.Core.Extensions;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Components.Tools.Helpers;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
+using ThaumielMapEditor.API.Helpers.BlockParser;
 using ThaumielMapEditor.Commands;
 using UnityEngine;
 using static ThaumielMapEditor.API.Components.Tools.Helpers.RunCommand;
@@ -35,21 +37,27 @@ namespace ThaumielMapEditor.API.Components.Tools
     public class ColliderTrigger : ToolBase
     {
         [YamlMember(Alias = "Bounds")]
+        [BinaryProperty(Name = "Bounds")]
         public Vector3 Bounds { get; set; }
 
         [YamlMember(Alias = "OnEntered")]
+        [BinaryProperty(Name = "OnEntered")]
         public Classes OnEntered { get; set; } = new();
 
         [YamlMember(Alias = "OnExited")]
+        [BinaryProperty(Name = "OnExited")]
         public Classes OnExited { get; set; } = new();
 
         [YamlMember(Alias = "OnSpawned")]
+        [BinaryProperty(Name = "OnSpawned")]
         public Classes OnSpawned { get; set; } = new();
 
         [YamlMember(Alias = "OnDestroyed")]
+        [BinaryProperty(Name = "OnDestroyed")]
         public Classes OnDestroyed { get; set; } = new();
 
         [YamlMember(Alias = "Permission")]
+        [BinaryProperty(Name = "Permission")]
         public Permission Permissions { get; set; } = new();
 
 #pragma warning disable CS8618
@@ -168,7 +176,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         {
             foreach (BlockyPayload blocky in classes.Blocky)
             {
-                List<object> blocks = ArgumentsParser.Load(blocky);
+                ScriptProgram blocks = ArgumentsParser.Load(blocky);
                 Schematic?.Executor?.Execute(blocks, player, eventType);
             }
         }
@@ -185,7 +193,7 @@ namespace ThaumielMapEditor.API.Components.Tools
 
                 try
                 {
-                    Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, eventType);
+                    Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null, eventType);
                 }
                 catch (Exception ex)
                 {

@@ -1,13 +1,14 @@
 // -----------------------------------------------------------------------
 // <copyright file="PickupSettings.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
+using PickupDef = ThaumielMapEditor.API.Blocks.Definitions.Pickup;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 {
@@ -21,13 +22,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Pickup;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PickupObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PickupDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new PickupInfo();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupObject? pickup) && pickup != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupDef.Server? pickup) && pickup != null)
                 Content = $"Pickup Settings ({pickup.ItemToSpawn})";
         }
 
@@ -46,13 +47,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Pickup;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PickupObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PickupDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new PickupItemToSpawnSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupObject? pickup) && pickup != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupDef.Server? pickup) && pickup != null)
                 Base.DefaultOptionIndex = IndexOf(pickup.ItemToSpawn);
         }
 
@@ -61,7 +62,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupObject? pickup) && pickup != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupDef.Server? pickup) && pickup != null)
             {
                 pickup.ItemToSpawn = Values[ValidatedSelectedIndex];
                 PickupPreview.Refresh(pickup);
@@ -79,13 +80,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Pickup;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PickupObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PickupDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new PickupSpawnPercentageSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupObject? pickup) && pickup != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupDef.Server? pickup) && pickup != null)
                 DefaultValue = ToolGunMenu.Clamp(pickup.SpawnPercentage, 0f, 100f);
         }
 
@@ -94,7 +95,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupObject? pickup) && pickup != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupDef.Server? pickup) && pickup != null)
                 pickup.SpawnPercentage = SelectedValueFloat;
         }
     }
@@ -109,13 +110,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Pickup;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PickupObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PickupDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new PickupMaxAmountSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupObject? pickup) && pickup != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupDef.Server? pickup) && pickup != null)
                 DefaultValue = ToolGunMenu.Clamp(pickup.MaxAmount, 0f, 99f);
         }
 
@@ -124,7 +125,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupObject? pickup) && pickup != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupDef.Server? pickup) && pickup != null)
                 pickup.MaxAmount = (uint)SelectedValueInt;
         }
     }
@@ -139,13 +140,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Pickup;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PickupObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PickupDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new PickupIsInfiniteSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupObject? pickup) && pickup != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupDef.Server? pickup) && pickup != null)
                 Base.DefaultIsB = pickup.IsInfinite;
         }
 
@@ -154,7 +155,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupObject? pickup) && pickup != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PickupDef.Server? pickup) && pickup != null)
                 pickup.IsInfinite = IsOptionB;
         }
     }

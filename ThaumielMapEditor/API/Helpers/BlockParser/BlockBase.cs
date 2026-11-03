@@ -1,12 +1,11 @@
 // -----------------------------------------------------------------------
 // <copyright file="BlockBase.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System.Collections;
-using System.Reflection;
+using System.Globalization;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Data;
 
@@ -14,35 +13,27 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 {
     public abstract class BlockBase
     {
-        public BlockExecutor? Executor { get; internal set; }
+        /// <summary>
+        /// Gets the executor of the script that is currently running on this thread.
+        /// </summary>
+        public BlockExecutor? Executor => BlockExecution.Current?.Executor;
 
         /// <summary>
-        /// Assigns the executor to this block and recursively to any nested blocks exposed through its properties.
+        /// Gets or sets the explicit target object input connected to this block.
+        /// When <see langword="null"/> the block falls back to the currently active object or event player.
         /// </summary>
-        internal void SetExecutorRecursive(BlockExecutor executor)
+        public object? Target { get; set; }
+
+        internal object? ResolveTargetValue() => ResolveValue(Target);
+
+        internal object? ResolveTarget(object? fallback = null)
         {
-            Executor = executor;
+            BlockExecution? execution = BlockExecution.Current;
 
-            foreach (PropertyInfo property in GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
-            {
-                if (!property.CanRead)
-                    continue;
+            if (execution is { HasTarget: true })
+                return execution.Target ?? fallback;
 
-                object? value = property.GetValue(this);
-
-                if (value is BlockBase block)
-                {
-                    block.SetExecutorRecursive(executor);
-                }
-                else if (value is IEnumerable enumerable && value is not string)
-                {
-                    foreach (object? item in enumerable)
-                    {
-                        if (item is BlockBase inner)
-                            inner.SetExecutorRecursive(executor);
-                    }
-                }
-            }
+            return ResolveValue(Target, fallback as Player) ?? fallback;
         }
 
         public virtual void Execute()
@@ -60,88 +51,58 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         }
 
-        public virtual object ReturnExecute()
-        {
-            return null!;
-        }
+        public virtual object? ReturnExecute() => null;
 
-        public virtual object ReturnExecute(object obj)
-        {
-            return null!;
-        }
+        public virtual object? ReturnExecute(object obj) => null;
 
-        public virtual object ReturnExecute(SchematicData schematic)
-        {
-            return null!;
-        }
+        public virtual object? ReturnExecute(SchematicData schematic) => null;
 
-        /// <summary>
-        /// Resolves a value to a float. If the value is a <see cref="BlockBase"/>, its <see cref="ReturnExecute()"/> is called first.
-        /// </summary>
-        protected static float ResolveFloat(object? value, float defaultVal = 0f)
+        protected internal static float ResolveFloat(object? value, float defaultVal = 0f)
         {
             if (value is BlockBase block)
-                value = block.ReturnExecute();
+                value = ResolveValue(block);
 
-            if (value is float f)
-                return f;
-
-            if (value is double d)
-                return (float)d;
-
-            if (value is int i)
-                return i;
-
-            if (float.TryParse(value?.ToString(), out float parsed))
-                return parsed;
-
-            return defaultVal;
+            return value switch
+            {
+                float f => f,
+                double d => (float)d,
+                int i => i,
+                long l => l,
+                decimal m => (float)m,
+                string s when float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed) => parsed,
+                _ => defaultVal
+            };
         }
 
-        /// <summary>
-        /// Resolves a value to a string. If the value is a <see cref="BlockBase"/>, its <see cref="ReturnExecute()"/> is called first.
-        /// </summary>
-        protected static string ResolveString(object? value, string defaultVal = "")
+        protected internal static string ResolveString(object? value, string defaultVal = "")
         {
             if (value is BlockBase block)
-                value = block.ReturnExecute();
+                value = ResolveValue(block);
 
             return value?.ToString() ?? defaultVal;
         }
 
-        /// <summary>
-        /// Resolves a value to an int. If the value is a <see cref="BlockBase"/>, its <see cref="ReturnExecute()"/> is called first.
-        /// </summary>
-        protected static int ResolveInt(object? value, int defaultVal = 0)
+        protected internal static int ResolveInt(object? value, int defaultVal = 0)
         {
             if (value is BlockBase block)
-                value = block.ReturnExecute();
+                value = ResolveValue(block);
 
-            if (value is int i)
-                return i;
-
-            if (value is float f)
-                return (int)f;
-
-            if (value is double d)
-                return (int)d;
-
-            if (value is long l)
-                return (int)l;
-
-            if (int.TryParse(value?.ToString(), out int parsed))
-                return parsed;
-
-            return defaultVal;
+            return value switch
+            {
+                int i => i,
+                float f => (int)f,
+                double d => (int)d,
+                long l => (int)l,
+                decimal m => (int)m,
+                string s when int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) => parsed,
+                _ => defaultVal
+            };
         }
 
-        /// <summary>
-        /// Resolves a value to a bool. If the value is a <see cref="BlockBase"/>, its <see cref="ReturnExecute()"/> is called first.
-        /// </summary>
-        protected static bool ResolveBool(object? value, bool defaultVal = false)
+        protected internal static bool ResolveBool(object? value, bool defaultVal = false)
         {
             if (value is BlockBase block)
-                value = block.ReturnExecute();
+                value = ResolveValue(block);
 
             if (value is bool b)
                 return b;
@@ -152,15 +113,19 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             return defaultVal;
         }
 
-        /// <summary>
-        /// Resolves a value. If the value is a <see cref="BlockBase"/>, its <see cref="ReturnExecute()"/> is called first.
-        /// </summary>
-        protected static object? ResolveValue(object? value)
+        protected internal static object? ResolveValue(object? value, Player? player = null)
         {
-            if (value is BlockBase block)
-                return block.ReturnExecute();
+            if (value is not BlockBase block)
+                return value;
 
-            return value;
+            player ??= BlockExecution.Current?.Player;
+
+            object? result = block.ReturnExecute();
+
+            if (result == null && player != null)
+                result = block.ReturnExecute(player);
+
+            return result;
         }
     }
 }

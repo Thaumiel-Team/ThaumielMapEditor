@@ -1,13 +1,13 @@
 // -----------------------------------------------------------------------
 // <copyright file="TargetSettings.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Enums;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
@@ -22,13 +22,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Target;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<TargetDummyObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Target.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new TargetTypeSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out TargetDummyObject? target) && target != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Target.Server? target) && target != null)
                 Base.DefaultOptionIndex = IndexOf(target.Type);
         }
 
@@ -37,7 +37,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out TargetDummyObject? target) && target != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Target.Server? target) && target != null)
                 target.Type = Values[ValidatedSelectedIndex];
         }
     }

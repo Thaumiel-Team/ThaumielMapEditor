@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="PrimitiveBlocks.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -9,9 +9,10 @@ using System;
 using AdminToys;
 using LabApi.Features.Wrappers;
 using Mirror;
-using ThaumielMapEditor.API.Blocks.ClientSide;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
+using ThaumielMapEditor.API.Enums;
 using UnityEngine;
 
 namespace ThaumielMapEditor.API.Helpers.BlockParser
@@ -21,37 +22,37 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public string Name { get; set; } = string.Empty;
         public bool IsServerSide { get; set; }
 
-        public override object ReturnExecute(SchematicData schematic)
+        public override object? ReturnExecute() => ReturnExecute(Executor!.Schematic);
+
+        public override object? ReturnExecute(SchematicData schematic)
         {
+            Primitive definition = new();
+
             if (IsServerSide)
             {
-                PrimitiveObjectServer server = new();
+                Primitive.Server server = new(new ObjectBase { ObjectType = ObjectType.Primitive }, definition);
                 server.SpawnObject(schematic);
                 return server;
             }
-            else
+
+            ObjectBase state = new()
             {
-                PrimitiveObject client = new();
-                client.Name = Name;
-                client.NetId = NetworkIdentity.GetNextNetworkId();
-                client.Schematic = schematic;
+                Name = Name,
+                NetId = NetworkIdentity.GetNextNetworkId(),
+                Schematic = schematic,
+            };
 
-                if (PrefabHelper.PrimitiveObject?.netIdentity != null)
-                {
-                    client.AssetId = PrefabHelper.PrimitiveObject.netIdentity.assetId;
-                }
-                else
-                    LogManager.Warn($"Spawning Blocky primitive '{Name}' without a registered primitive prefab; clients will not see it.");
+            if (definition.ClientObject(state) is not Primitive.Client client)
+                return null;
 
-                schematic.SpawnedClientObjects.Add(client);
-                foreach (Player player in Player.ReadyList)
-                {
-                    client.SpawnForPlayer(player);
-                }
-
-                ColliderHelper.CreateCollisionMesh(client);
-                return client;
+            schematic.SpawnedClientObjects.Add(client);
+            foreach (Player player in Player.ReadyList)
+            {
+                client.SpawnForPlayer(player);
             }
+
+            ColliderHelper.CreateCollisionMesh(client);
+            return client;
         }
     }
 
@@ -64,8 +65,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            PrimitiveObject? client = obj as PrimitiveObject;
-            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            Primitive.Client? client = obj as Primitive.Client;
+            Primitive.Server? server = obj as Primitive.Server;
             if (client is null && server is null)
                 return;
 
@@ -103,8 +104,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            PrimitiveObject? client = obj as PrimitiveObject;
-            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            Primitive.Client? client = obj as Primitive.Client;
+            Primitive.Server? server = obj as Primitive.Server;
             if (client is null && server is null)
                 return;
 
@@ -123,8 +124,8 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            PrimitiveObject? client = obj as PrimitiveObject;
-            PrimitiveObjectServer? server = obj as PrimitiveObjectServer;
+            Primitive.Client? client = obj as Primitive.Client;
+            Primitive.Server? server = obj as Primitive.Server;
             if (client is null && server is null)
                 return;
 
@@ -166,6 +167,62 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                     LogManager.Warn($"Unknown state setting type: {SettingType}");
                     break;
             }
+        }
+    }
+
+    public class PrimitiveGetPropertyBlock : BlockBase
+    {
+        public string Property { get; set; } = string.Empty;
+
+        public override object? ReturnExecute()
+            => GetProperty(ResolveTarget());
+
+        public override object? ReturnExecute(object obj)
+            => GetProperty(ResolveTarget(obj));
+
+        private object GetProperty(object? obj)
+        {
+            Primitive.Client? client = obj as Primitive.Client;
+            Primitive.Server? server = obj as Primitive.Server;
+            if (client is null && server is null)
+            {
+                LogManager.Warn("obj is not a Primitive.Server or Primitive.Client.");
+                return null!;
+            }
+
+            return Property switch
+            {
+                "Rotation" => client?.Rotation ?? server!.Rotation,
+                "Scale" => client?.Scale ?? server!.Scale,
+                "Position" => client?.Position ?? server!.Position,
+                "Base" => server?.Base!,
+                "Color" => ToHex(client?.Color ?? server!.Color),
+                "PrimitiveType" => client?.PrimitiveType ?? server!.PrimitiveType,
+                "PrimitiveFlags" => client?.PrimitiveFlags ?? server!.PrimitiveFlags,
+                "NetId" => client?.NetId ?? server!.NetId,
+                "IsStatic" => client?.IsStatic ?? server!.IsStatic,
+                "MovementSmoothing" => client?.MovementSmoothing ?? server!.MovementSmoothing,
+                "ServerCollider" => HasServerCollider(client, server),
+                "Schematic" => client?.Schematic!,
+                _ => LogUnknownProperty(Property)
+            };
+        }
+
+        private static bool HasServerCollider(Primitive.Client? client, Primitive.Server? server)
+        {
+            if (client != null)
+                return client.ServerCollider != null;
+
+            return server?.Object != null && server.Object.GetComponent<Collider>() != null;
+        }
+
+        private static string ToHex(Color color)
+            => $"#{ColorUtility.ToHtmlStringRGBA(color)}";
+
+        private static object LogUnknownProperty(string property)
+        {
+            LogManager.Warn($"Unknown property '{property}'.");
+            return null!;
         }
     }
 }

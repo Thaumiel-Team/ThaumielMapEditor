@@ -1,13 +1,13 @@
 // -----------------------------------------------------------------------
 // <copyright file="WaypointSettings.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using UnityEngine;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
@@ -22,13 +22,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Waypoint;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<WaypointObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Waypoint.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new WaypointBoundsXSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WaypointObject? waypoint) && waypoint != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Waypoint.Server? waypoint) && waypoint != null)
                 DefaultValue = ToolGunMenu.Clamp(waypoint.BoundsSize.x, 0.1f, 50f);
         }
 
@@ -37,7 +37,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WaypointObject? waypoint) && waypoint != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Waypoint.Server? waypoint) && waypoint != null)
             {
                 Vector3 bounds = waypoint.BoundsSize;
                 bounds.x = SelectedValueFloat;
@@ -56,13 +56,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Waypoint;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<WaypointObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Waypoint.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new WaypointBoundsYSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WaypointObject? waypoint) && waypoint != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Waypoint.Server? waypoint) && waypoint != null)
                 DefaultValue = ToolGunMenu.Clamp(waypoint.BoundsSize.y, 0.1f, 50f);
         }
 
@@ -71,7 +71,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WaypointObject? waypoint) && waypoint != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Waypoint.Server? waypoint) && waypoint != null)
             {
                 Vector3 bounds = waypoint.BoundsSize;
                 bounds.y = SelectedValueFloat;
@@ -90,13 +90,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Waypoint;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<WaypointObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Waypoint.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new WaypointBoundsZSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WaypointObject? waypoint) && waypoint != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Waypoint.Server? waypoint) && waypoint != null)
                 DefaultValue = ToolGunMenu.Clamp(waypoint.BoundsSize.z, 0.1f, 50f);
         }
 
@@ -105,7 +105,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WaypointObject? waypoint) && waypoint != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Waypoint.Server? waypoint) && waypoint != null)
             {
                 Vector3 bounds = waypoint.BoundsSize;
                 bounds.z = SelectedValueFloat;
@@ -124,13 +124,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Waypoint;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<WaypointObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Waypoint.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new WaypointPrioritySetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WaypointObject? waypoint) && waypoint != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Waypoint.Server? waypoint) && waypoint != null)
                 DefaultValue = ToolGunMenu.Clamp(waypoint.Priority, 0f, 100f);
         }
 
@@ -139,7 +139,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WaypointObject? waypoint) && waypoint != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Waypoint.Server? waypoint) && waypoint != null)
                 waypoint.Priority = SelectedValueFloat;
         }
     }
@@ -154,13 +154,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Waypoint;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<WaypointObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Waypoint.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new WaypointVisualizeSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WaypointObject? waypoint) && waypoint != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Waypoint.Server? waypoint) && waypoint != null)
                 Base.DefaultIsB = waypoint.VisualizeBounds;
         }
 
@@ -169,7 +169,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WaypointObject? waypoint) && waypoint != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Waypoint.Server? waypoint) && waypoint != null)
                 waypoint.VisualizeBounds = IsOptionB;
         }
     }

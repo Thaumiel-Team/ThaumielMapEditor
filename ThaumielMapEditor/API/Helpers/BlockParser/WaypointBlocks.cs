@@ -1,11 +1,11 @@
 // -----------------------------------------------------------------------
 // <copyright file="WaypointBlocks.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 
 namespace ThaumielMapEditor.API.Helpers.BlockParser
@@ -14,9 +14,11 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Name { get; set; } = string.Empty;
 
-        public override object ReturnExecute(SchematicData schematic)
+        public override object? ReturnExecute() => ReturnExecute(Executor!.Schematic);
+
+        public override object? ReturnExecute(SchematicData schematic)
         {
-            WaypointObject server = new();
+            Waypoint.Server server = new();
             server.SpawnObject(schematic);
             LogManager.Debug($"Created Waypoint '{Name}'.");
             return server;
@@ -29,9 +31,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not WaypointObject server)
+            if (obj is not Waypoint.Server server)
             {
-                LogManager.Warn("obj is not a WaypointObject.");
+                LogManager.Warn("obj is not a Waypoint.Server.");
                 return;
             }
 
@@ -45,9 +47,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not WaypointObject server)
+            if (obj is not Waypoint.Server server)
             {
-                LogManager.Warn("obj is not a WaypointObject.");
+                LogManager.Warn("obj is not a Waypoint.Server.");
                 return;
             }
 
@@ -63,9 +65,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not WaypointObject server)
+            if (obj is not Waypoint.Server server)
             {
-                LogManager.Warn("obj is not a WaypointObject.");
+                LogManager.Warn("obj is not a Waypoint.Server.");
                 return;
             }
 
@@ -77,11 +79,17 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Property { get; set; } = string.Empty;
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute()
+            => GetProperty(ResolveTarget());
+
+        public override object? ReturnExecute(object obj)
+            => GetProperty(ResolveTarget(obj));
+
+        private object GetProperty(object? obj)
         {
-            if (obj is not WaypointObject server)
+            if (obj is not Waypoint.Server server)
             {
-                LogManager.Warn("obj is not a WaypointObject.");
+                LogManager.Warn("obj is not a Waypoint.Server.");
                 return null!;
             }
 
@@ -90,7 +98,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 "Position" => server.Position,
                 "Rotation" => server.Rotation,
                 "Scale" => server.Scale,
-                "Base" => server.Base,
+                "Base" => server.Base!,
                 "VisualizeBounds" => server.VisualizeBounds,
                 "Priority" => server.Priority,
                 "BoundsSize" => server.BoundsSize,

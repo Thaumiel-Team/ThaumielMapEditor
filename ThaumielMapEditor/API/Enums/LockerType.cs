@@ -1,16 +1,16 @@
 // -----------------------------------------------------------------------
 // <copyright file="LockerType.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
-using ThaumielMapEditor.API.Blocks.ServerObjects.Lockers;
+using ThaumielMapEditor.API.Blocks.Definitions;
 
 namespace ThaumielMapEditor.API.Enums
 {
     /// <summary>
-    /// Defines the types that <see cref="LockerObject"/> can use.
+    /// Defines the types that <see cref="Locker.Server"/> can use.
     /// </summary>
     [GitBookPage("Enums/LockerType")]
     public enum LockerType

@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="Config.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -21,6 +21,7 @@ namespace ThaumielMapEditor.ToolGun
             CycleBackwardKeybindId = id++;
             SelectObjectKeybindId = id++;
             UnselectObjectKeybindId = id++;
+            DeleteObjectKeybindId = id++;
             NoSelectionInfoId = id++;
             SelectionTitleInfoId = id++;
             NameSettingId = id++;
@@ -136,6 +137,7 @@ namespace ThaumielMapEditor.ToolGun
         public int CycleBackwardKeybindId { get; set; }
         public int SelectObjectKeybindId { get; set; }
         public int UnselectObjectKeybindId { get; set; }
+        public int DeleteObjectKeybindId { get; set; }
 
         public int NoSelectionInfoId { get; set; }
         public int SelectionTitleInfoId { get; set; }

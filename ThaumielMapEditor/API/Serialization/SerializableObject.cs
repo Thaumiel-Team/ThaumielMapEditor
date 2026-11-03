@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="SerializableObject.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -65,9 +65,17 @@ namespace ThaumielMapEditor.API.Serialization
         /// <summary>
         /// Gets or sets the values for the <see cref="SerializableObject"/> instance.
         /// </summary>
-        public Dictionary<string, object> Values { get; set; } = [];
+        public Dictionary<string, object> Values
+        {
+            get;
+            set => field = value ?? [];
+        } = [];
 
-        public List<SerializableTool> Tools { get; set; } = [];
+        public List<SerializableTool> Tools
+        {
+            get;
+            set => field = value ?? [];
+        } = [];
 
         public string AnimatorName { get; set; } = string.Empty;
     }

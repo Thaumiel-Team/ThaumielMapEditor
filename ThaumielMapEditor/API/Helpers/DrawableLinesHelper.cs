@@ -1,23 +1,22 @@
 // -----------------------------------------------------------------------
 // <copyright file="DrawableLinesHelper.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using DrawableLine;
 using LabApi.Features.Wrappers;
 using MEC;
-using Mirror;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ClientSide;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Enums;
 using UnityEngine;
 using static AdminToys.InvisibleInteractableToy;
+using LightDef = ThaumielMapEditor.API.Blocks.Definitions.Light;
 
 namespace ThaumielMapEditor.API.Helpers
 {
@@ -248,8 +247,6 @@ namespace ThaumielMapEditor.API.Helpers
 
         /// <summary>
         /// Stops every persistent drawing targeted at the specified <see cref="Player"/>
-        /// (e.g. on disconnect or ToolGun unequip) so the refresh loop cannot keep spamming
-        /// a stale or gone client with destroyed-transform geometry.
         /// </summary>
         public static void StopDrawsForPlayer(Player player)
         {
@@ -415,9 +412,9 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 collider = obj switch
                 {
-                    PrimitiveObjectServer prim when prim.Base != null => prim.Base._collider,
-                    InteractionObject inter when inter.Base != null => inter.Base._collider,
-                    TeleporterObject tele when tele.TeleporterHandler != null => tele.TeleporterHandler.Collider,
+                    Primitive.Server prim when prim.Base != null => prim.Base._collider,
+                    Interactable.Server inter when inter.Base != null => inter.Base._collider,
+                    Teleporter.Server tele when tele.TeleporterHandler != null => tele.TeleporterHandler.Collider,
                     _ => obj.Object?.GetComponent<Collider>(),
                 };
             }
@@ -437,13 +434,13 @@ namespace ThaumielMapEditor.API.Helpers
 
             ColliderType type = obj switch
             {
-                PrimitiveObjectServer prim => prim.PrimitiveType switch
+                Primitive.Server prim => prim.PrimitiveType switch
                 {
                     PrimitiveType.Sphere => ColliderType.Sphere,
                     PrimitiveType.Capsule or PrimitiveType.Cylinder => ColliderType.Capsule,
                     _ => ColliderType.Box,
                 },
-                InteractionObject inter => inter.Shape switch
+                Interactable.Server inter => inter.Shape switch
                 {
                     ColliderShape.Sphere => ColliderType.Sphere,
                     ColliderShape.Capsule => ColliderType.Capsule,
@@ -502,14 +499,14 @@ namespace ThaumielMapEditor.API.Helpers
 
             switch (obj)
             {
-                case WaypointObject way when IsValidSize(way.BoundsSize) && way.BoundsSize != Vector3.zero:
+                case Waypoint.Server way when IsValidSize(way.BoundsSize) && way.BoundsSize != Vector3.zero:
                     player.SendBoundsToPlayer(new Bounds(position, ClampSize(way.BoundsSize)), duration, color);
                     return;
 
-                case WaypointObject:
+                case Waypoint.Server:
                     break;
 
-                case SpeakerObject speak when speak.MaxDistance > 0f || speak.MinDistance > 0f:
+                case Speaker.Server speak when speak.MaxDistance > 0f || speak.MinDistance > 0f:
                     bool drew = false;
 
                     if (speak.MinDistance > 0f && !float.IsNaN(speak.MinDistance) && !float.IsInfinity(speak.MinDistance))
@@ -588,7 +585,7 @@ namespace ThaumielMapEditor.API.Helpers
                     }
                 }
 
-                collider ??= (obj as PrimitiveObject)?.ServerCollider;
+                collider ??= (obj as Primitive.Client)?.ServerCollider;
             }
             catch
             {
@@ -606,7 +603,7 @@ namespace ThaumielMapEditor.API.Helpers
 
             switch (obj)
             {
-                case ClientCullingParentObject culling when IsValidSize(culling.BoundsSize) && culling.BoundsSize != Vector3.zero:
+                case CullingParent.Client culling when IsValidSize(culling.BoundsSize) && culling.BoundsSize != Vector3.zero:
                     (Vector3 cullingPosition, _) = culling.ResolveWorldTransform();
                     if (!IsValidVector(cullingPosition))
                         break;
@@ -614,19 +611,19 @@ namespace ThaumielMapEditor.API.Helpers
                     player.SendBoundsToPlayer(new Bounds(cullingPosition, ClampSize(culling.BoundsSize)), duration, color);
                     break;
 
-                case PrimitiveObject prim when prim.PrimitiveType == PrimitiveType.Sphere && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) > 0f:
+                case Primitive.Client prim when prim.PrimitiveType == PrimitiveType.Sphere && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) > 0f:
                     player.SendSphereToPlayer(position, ClampRadius(Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) * 0.5f), duration, color);
                     break;
 
-                case PrimitiveObject prim when prim.PrimitiveType is PrimitiveType.Capsule or PrimitiveType.Cylinder:
+                case Primitive.Client prim when prim.PrimitiveType is PrimitiveType.Capsule or PrimitiveType.Cylinder:
                     DrawCapsuleApproximate(player, position, scale, duration, color);
                     break;
 
-                case LightObject light when light.Range > 0f && !float.IsNaN(light.Range) && !float.IsInfinity(light.Range):
+                case LightDef.Client light when light.Range > 0f && !float.IsNaN(light.Range) && !float.IsInfinity(light.Range):
                     player.SendSphereToPlayer(position, ClampRadius(light.Range), duration, color);
                     break;
 
-                case LightObject:
+                case LightDef.Client:
                     break;
 
                 default:

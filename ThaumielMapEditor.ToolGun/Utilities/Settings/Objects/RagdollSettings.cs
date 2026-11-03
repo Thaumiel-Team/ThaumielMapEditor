@@ -1,14 +1,14 @@
 // -----------------------------------------------------------------------
 // <copyright file="RagdollSettings.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using LabApi.Features.Wrappers;
 using PlayerRoles;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 {
@@ -22,13 +22,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Ragdoll;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<RagdollSpawner>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<RagdollSpawner.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new RagdollInfo();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner? ragdoll) && ragdoll != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner.Server? ragdoll) && ragdoll != null)
                 Content = $"Ragdoll Spawner ({ragdoll.RoleType}, {ragdoll.SpawnChance}%)";
         }
 
@@ -47,13 +47,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Ragdoll;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<RagdollSpawner>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<RagdollSpawner.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new RagdollRoleSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner? ragdoll) && ragdoll != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner.Server? ragdoll) && ragdoll != null)
                 Base.DefaultOptionIndex = IndexOf(ragdoll.RoleType);
         }
 
@@ -62,7 +62,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner? ragdoll) && ragdoll != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner.Server? ragdoll) && ragdoll != null)
                 ragdoll.RoleType = Values[ValidatedSelectedIndex];
         }
     }
@@ -77,13 +77,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Ragdoll;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<RagdollSpawner>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<RagdollSpawner.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new RagdollChanceSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner? ragdoll) && ragdoll != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner.Server? ragdoll) && ragdoll != null)
                 DefaultValue = ToolGunMenu.Clamp(ragdoll.SpawnChance, 0f, 100f);
         }
 
@@ -92,7 +92,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner? ragdoll) && ragdoll != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner.Server? ragdoll) && ragdoll != null)
                 ragdoll.SpawnChance = SelectedValueFloat;
         }
     }
@@ -109,13 +109,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Ragdoll;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<RagdollSpawner>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<RagdollSpawner.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new RagdollDeathReasonSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner? ragdoll) && ragdoll != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner.Server? ragdoll) && ragdoll != null)
                 Base.DefaultText = ToolGunMenu.SanitizeDisplayText(ragdoll.DeathReason, MaxReasonLength);
         }
 
@@ -124,7 +124,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner? ragdoll) && ragdoll != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner.Server? ragdoll) && ragdoll != null)
             {
                 if (InputText == ToolGunMenu.SanitizeDisplayText(ragdoll.DeathReason, MaxReasonLength))
                     return;
@@ -146,13 +146,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Ragdoll;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<RagdollSpawner>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<RagdollSpawner.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new RagdollNameSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner? ragdoll) && ragdoll != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner.Server? ragdoll) && ragdoll != null)
                 Base.DefaultText = ToolGunMenu.SanitizeDisplayText(ragdoll.DollName, MaxDollNameLength);
         }
 
@@ -161,7 +161,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner? ragdoll) && ragdoll != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out RagdollSpawner.Server? ragdoll) && ragdoll != null)
             {
                 if (InputText == ToolGunMenu.SanitizeDisplayText(ragdoll.DollName, MaxDollNameLength))
                     return;

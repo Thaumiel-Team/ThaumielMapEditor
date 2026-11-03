@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="MECBlocks.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -18,9 +18,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(Player player)
         {
-            if (Executor == null)
+            if (BlockExecution.Current is not { } execution)
             {
-                LogManager.Warn("Executor is null, cannot execute.");
+                LogManager.Warn("Wait until: no script execution is active.");
                 return;
             }
 
@@ -31,16 +31,16 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             }
 
             LogManager.Debug("Starting coroutine.");
-            Timing.RunCoroutine(WaitCoroutine(player));
+            Timing.RunCoroutine(WaitCoroutine(player, execution));
         }
 
-        private IEnumerator<float> WaitCoroutine(Player player)
+        private IEnumerator<float> WaitCoroutine(Player player, BlockExecution execution)
         {
             LogManager.Debug("Waiting for condition to become true.");
-            yield return Timing.WaitUntilTrue(EvaluateCondition);
+            yield return Timing.WaitUntilTrue(execution.Wrap(EvaluateCondition));
 
             LogManager.Debug("Condition met, executing body.");
-            Executor!.ExecuteStack(Stack!, player);
+            execution.Wrap(() => execution.Executor.ExecuteStack(Stack, player))();
         }
 
         private bool EvaluateCondition()
@@ -49,6 +49,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 return false;
 
             object? result = Condition.ReturnExecute();
+
             if (result is bool b)
                 return b;
 
@@ -65,14 +66,14 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(Player player)
         {
-            if (Executor == null)
+            if (BlockExecution.Current is not { } execution)
             {
-                LogManager.Warn($"Executor is null, cannot execute.");
+                LogManager.Warn("Wait for seconds: no script execution is active.");
                 return;
             }
 
             LogManager.Debug($"Executing MEC wait for {WaitTime} seconds.");
-            Timing.CallDelayed(Timing.WaitForSeconds(WaitTime), () => Executor!.ExecuteStack(Stack!, player));
+            Timing.CallDelayed(Timing.WaitForSeconds(WaitTime), execution.Wrap(() => execution.Executor.ExecuteStack(Stack, player)));
         }
     }
 
@@ -84,14 +85,14 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(Player player)
         {
-            if (Executor == null)
+            if (BlockExecution.Current is not { } execution)
             {
-                LogManager.Warn($"Executor is null, cannot execute.");
+                LogManager.Warn("Wait for frames: no script execution is active.");
                 return;
             }
 
             LogManager.Debug($"Executing MEC wait for {WaitTime} frames.");
-            MECHelper.WaitForFrames(WaitTime, () => Executor!.ExecuteStack(Stack!, player));
+            MECHelper.WaitForFrames(WaitTime, execution.Wrap(() => execution.Executor.ExecuteStack(Stack, player)));
         }
     }
 }

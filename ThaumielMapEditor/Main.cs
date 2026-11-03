@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="Main.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -20,6 +20,9 @@ using System;
 using System.IO;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.Events;
+using ThaumielMapEditor.API.Components.Tools;
+using ThaumielMapEditor.API.Binary;
+using ThaumielMapEditor.API.Components.Tools.Helpers;
 
 namespace ThaumielMapEditor
 {
@@ -29,7 +32,7 @@ namespace ThaumielMapEditor
         public override string Name => "Thaumiel Map Editor";
         public override string Description => ":3";
         public override string Author => "Mr. Baguetter";
-        public override Version Version { get; } = new(0, 9, 3);
+        public override Version Version { get; } = new(0, 10, 0);
         public override Version RequiredApiVersion { get; } = LabApiProperties.CurrentVersion;
         public override LoadPriority Priority { get; } = LoadPriority.Medium;
         public string HarmonyId { get; private set; } = string.Empty;
@@ -44,10 +47,13 @@ namespace ThaumielMapEditor
             Instance = this;
             
             Loader.Init();
+            BinaryTypeNames.Register(typeof(Permission), "Permission");
 
             PlayerHandler.Register();
             ServerHandler.Register();
             PrimitiveHandler.Register();
+            DoorHandler.Register();
+            CreditHelper.Init();
 
             if (string.IsNullOrEmpty(Config?.AudioPath))
             {
@@ -81,6 +87,8 @@ namespace ThaumielMapEditor
             ServerHandler.Unregister();
             PrimitiveHandler.Unregister();
             SchematicHandler.Unregister();
+            DoorHandler.Unregister();
+            AnimationRuntimeDriver.Shutdown();
 
             try
             {

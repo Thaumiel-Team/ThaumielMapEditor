@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="SerializableTool.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -13,7 +13,10 @@ namespace ThaumielMapEditor.API.Serialization
     public class SerializableTool
     {
         public string ToolName { get; set; } = string.Empty;
-
-        public Dictionary<string, object> Properties { get; set; } = [];
+        public Dictionary<string, object> Properties
+        {
+            get;
+            set => field = value ?? [];
+        } = [];
     }
 }

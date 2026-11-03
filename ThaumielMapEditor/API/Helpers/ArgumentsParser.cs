@@ -1,12 +1,12 @@
 // -----------------------------------------------------------------------
 // <copyright file="ArgumentsParser.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using Discord;
 using ThaumielMapEditor.API.Serialization;
 using ThaumielMapEditor.API.Helpers.BlockParser;
@@ -23,58 +23,129 @@ namespace ThaumielMapEditor.API.Helpers
 {
     public class ArgumentsParser
     {
-        public static ConcurrentDictionary<string, List<object>> Cache { get; set; } = [];
+        private const int CacheCapacity = 256;
+
+        private static readonly object CacheGate = new();
+        private static readonly Dictionary<string, ScriptProgram> Cache = new(StringComparer.Ordinal);
+        private static readonly LinkedList<string> CacheOrder = new();
 
         public static readonly IDeserializer Deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
 
-        public static List<object> Load(BlockyPayload payload)
+        /// <summary>
+        /// Parses or returns a cached script for <paramref name="payload"/>.
+        /// </summary>
+        /// <remarks>
+        /// The returned program is immutable and safe to execute from any schematic.
+        /// </remarks>
+        public static ScriptProgram Load(BlockyPayload payload)
         {
-            if (string.IsNullOrEmpty(payload.Code))
-                return [];
+            if (payload == null || string.IsNullOrEmpty(payload.Code))
+                return ScriptProgram.Empty;
 
-            if (Cache.Count > 500)
-                Cache.Clear();
+            string code = payload.Code;
 
-            return Cache.GetOrAdd(payload.Code, static code =>
+            lock (CacheGate)
             {
-                List<object> parsedBlocks = [];
-                List<Dictionary<string, object>> values = Deserializer.Deserialize<List<Dictionary<string, object>>>(code);
-                if (values == null)
-                    return parsedBlocks;
+                if (Cache.TryGetValue(code, out ScriptProgram? cached))
+                {
+                    CacheOrder.Remove(code);
+                    CacheOrder.AddLast(code);
+                    return cached;
+                }
+            }
 
-                foreach (Dictionary<string, object> dict in values)
+            ScriptProgram program = ParseProgram(code);
+
+            lock (CacheGate)
+            {
+                if (!Cache.ContainsKey(code))
+                {
+                    if (Cache.Count >= CacheCapacity && CacheOrder.First is { } oldest)
+                    {
+                        Cache.Remove(oldest.Value);
+                        CacheOrder.RemoveFirst();
+                    }
+
+                    Cache[code] = program;
+                    CacheOrder.AddLast(code);
+                }
+            }
+
+            return program;
+        }
+
+        /// <summary>
+        /// Drops every cached program.
+        /// The next <see cref="Load"/> call reparses from the payload.
+        /// </summary>
+        public static void ClearCache()
+        {
+            lock (CacheGate)
+            {
+                Cache.Clear();
+                CacheOrder.Clear();
+            }
+        }
+
+        private static ScriptProgram ParseProgram(string code)
+        {
+            List<Dictionary<string, object>> values;
+
+            try
+            {
+                values = Deserializer.Deserialize<List<Dictionary<string, object>>>(code);
+            }
+            catch (Exception ex)
+            {
+                LogManager.Error($"Failed to parse Blockly script: {ex.Message}");
+                return ScriptProgram.Empty;
+            }
+
+            if (values == null || values.Count == 0)
+                return ScriptProgram.Empty;
+
+            List<object> parsedBlocks = new(values.Count);
+
+            foreach (Dictionary<string, object> dict in values)
+            {
+                try
                 {
                     object? result = ParseBlock(dict);
 
                     if (result is UnknownBlock)
-                    {
-                        string? blockType = dict.TryGetValue("type", out object? t) ? t?.ToString() : null;
-
-                        if (blockType != null && blockType.StartsWith("enum_"))
-                        {
-                            result = blockType.EndsWith("_combine")
-                                ? new EnumCombineBlock
-                                {
-                                    InputA = ParseValue(dict.GetValueOrDefault("A")),
-                                    InputB = ParseValue(dict.GetValueOrDefault("B"))
-                                }
-                                : new EnumBlock
-                                {
-                                    Value = dict.GetValueOrDefault("Value")
-                                };
-                        }
-                    }
+                        result = ParseEnumFallback(dict, result);
 
                     if (result != null)
-                    {
                         parsedBlocks.Add(result);
-                    }
                 }
+                catch (Exception ex)
+                {
+                    LogManager.Error($"Failed to parse Blockly block '{dict.GetValueOrDefault("type")}': {ex.Message}");
+                }
+            }
 
-                return parsedBlocks;
-            });
+            return new ScriptProgram(parsedBlocks);
+        }
+
+        private static object? ParseEnumFallback(Dictionary<string, object> dict, object? result)
+        {
+            string? blockType = dict.TryGetValue("type", out object? t) ? t?.ToString() : null;
+
+            if (blockType == null || !blockType.StartsWith("enum_", StringComparison.Ordinal))
+                return result;
+
+            return blockType.EndsWith("_combine", StringComparison.Ordinal)
+                ? new EnumCombineBlock
+                {
+                    InputA = ParseValue(dict.GetValueOrDefault("A")),
+                    InputB = ParseValue(dict.GetValueOrDefault("B"))
+                }
+                : new EnumBlock
+                {
+                    Value = dict.GetValueOrDefault("Value")
+                };
         }
 
         private static readonly Dictionary<string, Func<Dictionary<string, object>, object?>> BlockParsers = new()
@@ -89,15 +160,15 @@ namespace ThaumielMapEditor.API.Helpers
             ["unity_vec3_zero"] = d => new UnityVec3ZeroBlock(),
             ["unity_vec3_up"] = d => new UnityVec3UpBlock(),
             ["player_list"] = d => new PlayerListBlock(),
-            ["speaker_pause"] = d => new SpeakerPauseBlock(),
-            ["speaker_unpause"] = d => new SpeakerUnpauseBlock(),
-            ["door_open"] = d => new OpenDoorBlock(),
-            ["door_close"] = d => new CloseDoorBlock(),
-            ["door_lock"] = d => new LockDoorBlock(),
-            ["door_unlock"] = d => new UnlockDoorBlock(),
-            ["door_is_open"] = d => new DoorIsOpenBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
-            ["door_is_closed"] = d => new DoorIsClosedBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
-            ["door_is_opening"] = d => new DoorIsOpeningBlock { Door = ParseValue(d.GetValueOrDefault("Door")) },
+            ["speaker_pause"] = d => new SpeakerPauseBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")) },
+            ["speaker_unpause"] = d => new SpeakerUnpauseBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")) },
+            ["door_open"] = d => new OpenDoorBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_close"] = d => new CloseDoorBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_lock"] = d => new LockDoorBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_unlock"] = d => new UnlockDoorBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_is_open"] = d => new DoorIsOpenBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_is_closed"] = d => new DoorIsClosedBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
+            ["door_is_opening"] = d => new DoorIsOpeningBlock { Target = ParseValue(d.GetValueOrDefault("Door")) },
 
             ["math_arithmetic"] = d => new MathArithmeticBlock
             {
@@ -193,8 +264,17 @@ namespace ThaumielMapEditor.API.Helpers
                 ElseStack = ParseStack(d, "ELSE")
             },
 
-            ["timing_wait_for_frames"] = d => new WaitForFrames { WaitTime = (uint)ParseFloatAny(d, 5f, "FRAMES", "WaitTime") },
-            ["timing_wait_for_seconds"] = d => new WaitForSeconds { WaitTime = ParseFloatAny(d, 5f, "SECONDS", "WaitTime") },
+            ["timing_wait_for_frames"] = d => new WaitForFrames
+            {
+                WaitTime = (uint)ParseFloatAny(d, 5f, "FRAMES", "WaitTime"),
+                Stack = ParseStack(d, "DO")
+            },
+
+            ["timing_wait_for_seconds"] = d => new WaitForSeconds
+            {
+                WaitTime = ParseFloatAny(d, 5f, "SECONDS", "WaitTime"),
+                Stack = ParseStack(d, "DO")
+            },
 
             ["timing_wait_until_true"] = d => new WaitUntilBlock
             {
@@ -233,6 +313,13 @@ namespace ThaumielMapEditor.API.Helpers
             ["trigger_exit_event"] = d => ParseEventBlock(d, EventType.OnTriggerExited, "player"),
             ["interaction_event"] = d => ParseEventBlock(d, EventType.OnInteraction, "player"),
             ["interaction_denied_event"] = d => ParseEventBlock(d, EventType.OnInteractionDenied, "player"),
+            ["door_destroyed_event"] = d => ParseEventBlock(d, EventType.OnDoorDestroyed, "door"),
+            ["door_opened_event"] = d => ParseEventBlock(d, EventType.OnDoorOpened, "door"),
+            ["door_closed_event"] = d => ParseEventBlock(d, EventType.OnDoorClosed, "door"),
+            ["door_locked_event"] = d => ParseEventBlock(d, EventType.OnDoorLocked, "door"),
+            ["door_damaged_event"] = d => ParseEventBlock(d, EventType.OnDoorDamaged, "door"),
+            ["door_unlocked_event"] = d => ParseEventBlock(d, EventType.OnDoorUnlocked, "door"),
+            ["animator_time_event"] = d => ParseEventBlock(d, EventType.OnAnimationKey, "ignore"),
 
             ["primitive_create"] = d => new PrimitiveCreateBlock
             {
@@ -246,17 +333,117 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["primitive_set_color"] = d => new PrimitiveColorBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Primitive")),
                 R = ParseFloat(d, "r", 1f),
                 G = ParseFloat(d, "g", 1f),
                 B = ParseFloat(d, "b", 1f),
                 A = ParseFloat(d, "a", 1f)
             },
 
-            ["primitive_set_type"] = d => new PrimitiveStateBlock { SettingType = "type", StringValue = GetString(d, "primitiveType") },
-            ["primitive_set_flags"] = d => new PrimitiveStateBlock { SettingType = "flags", StringValue = GetString(d, "primitiveFlags") },
-            ["get_primitive_property"] = d => new PrimitiveStateBlock { SettingType = "property", StringValue = GetString(d, "Property") },
-            ["primitive_set_static"] = d => new PrimitiveStateBlock { SettingType = "static", BoolValue = ParseBool(d, "isStatic") },
-            ["primitive_set_smoothing"] = d => new PrimitiveStateBlock { SettingType = "smoothing", ByteValue = (byte)ParseFloat(d, "movementSmoothing") },
+            ["primitive_set_type"] = d => new PrimitiveStateBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), SettingType = "type", StringValue = GetString(d, "primitiveType") },
+            ["primitive_set_flags"] = d => new PrimitiveStateBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), SettingType = "flags", StringValue = GetString(d, "primitiveFlags") },
+            ["get_primitive_property"] = d => new PrimitiveGetPropertyBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), Property = GetString(d, "Property") },
+            ["primitive_set_static"] = d => new PrimitiveStateBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), SettingType = "static", BoolValue = ParseBool(d, "isStatic") },
+            ["primitive_set_smoothing"] = d => new PrimitiveStateBlock { Target = ParseValue(d.GetValueOrDefault("Primitive")), SettingType = "smoothing", ByteValue = (byte)ParseFloat(d, "movementSmoothing") },
+
+            ["schematic_spawn"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Name,
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position"))
+            },
+
+            ["schematic_spawn_rotated"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Name,
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation"))
+            },
+
+            ["schematic_spawn_scaled"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Name,
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation")),
+                Scale = ParseValue(d.GetValueOrDefault("Scale"))
+            },
+
+            ["schematic_spawn_from_path"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Path,
+                Path = GetString(d, "path"),
+                Position = ParseValue(d.GetValueOrDefault("Position"))
+            },
+
+            ["schematic_spawn_from_path_rotated"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Path,
+                Path = GetString(d, "path"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation"))
+            },
+
+            ["schematic_spawn_from_path_scaled"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Path,
+                Path = GetString(d, "path"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation")),
+                Scale = ParseValue(d.GetValueOrDefault("Scale"))
+            },
+
+            ["schematic_spawn_from_directory"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Directory,
+                Directory = GetString(d, "directory"),
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position"))
+            },
+
+            ["schematic_spawn_from_directory_rotated"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Directory,
+                Directory = GetString(d, "directory"),
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation"))
+            },
+
+            ["schematic_spawn_from_directory_scaled"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Directory,
+                Directory = GetString(d, "directory"),
+                SchematicName = GetString(d, "schematicName"),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation")),
+                Scale = ParseValue(d.GetValueOrDefault("Scale"))
+            },
+
+            ["schematic_spawn_serialized"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Serialized,
+                SerializedSchematic = ParseValue(d.GetValueOrDefault("SerializableSchematic")),
+                Position = ParseValue(d.GetValueOrDefault("Position"))
+            },
+
+            ["schematic_spawn_serialized_rotated"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Serialized,
+                SerializedSchematic = ParseValue(d.GetValueOrDefault("SerializableSchematic")),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation"))
+            },
+
+            ["schematic_spawn_serialized_scaled"] = d => new SchematicSpawnBlock
+            {
+                Source = SchematicSpawnSource.Serialized,
+                SerializedSchematic = ParseValue(d.GetValueOrDefault("SerializableSchematic")),
+                Position = ParseValue(d.GetValueOrDefault("Position")),
+                Rotation = ParseValue(d.GetValueOrDefault("Rotation")),
+                Scale = ParseValue(d.GetValueOrDefault("Scale"))
+            },
 
             ["logger_log"] = d => new LoggingBlock
             {
@@ -277,11 +464,13 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["get_player_property"] = d => new PlayerGetPropertyBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Property = GetString(d, "Property")
             },
 
             ["set_player_gravity"] = d => new PlayerSetGravityBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 X = ParseFloat(d, "x"),
                 Y = ParseFloat(d, "y", -19.86f),
                 Z = ParseFloat(d, "z")
@@ -298,100 +487,98 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["set_player_role"] = d => new PlayerSetRoleBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Role = Enum.TryParse(GetStringAny(d, "ROLE", "New Role"), out RoleTypeId role) ? role : RoleTypeId.None,
                 KeepPosition = ParseBoolAny(d, "KEEP_POSITION", "Keep Position")
             },
 
-            ["give_player_item"] = d => new PlayerGiveItemBlock
-            {
-                Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType item) ? item : ItemType.None,
-                Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
-                DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
-            },
-
-            ["give_player_items"] = d => new PlayerGiveItemBlock
-            {
-                Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType stackedItem) ? stackedItem : ItemType.None,
-                Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
-                DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
-            },
+            ["give_player_item"] = ParsePlayerGiveItem,
+            ["give_player_items"] = ParsePlayerGiveItem,
 
             ["remove_player_item"] = d => new PlayerRemoveItemBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Item = Enum.TryParse(GetStringAny(d, "ITEM", "Removed Item"), out ItemType ri) ? ri : ItemType.None
             },
 
             ["set_player_health"] = d => new PlayerSetHealthBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 HealthType = "health",
                 Value = ParseFloatAny(d, 0f, "HEALTH", "Health")
             },
             ["set_player_max_health"] = d => new PlayerSetHealthBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 HealthType = "max_health",
                 Value = ParseFloatAny(d, 0f, "MAX_HEALTH", "Max Health")
             },
-            ["set_player_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "artificial_health", Value = ParseFloatAny(d, 0f, "ARTIFICIAL_HEALTH", "Artificial Health") },
-            ["set_player_max_artificial_health"] = d => new PlayerSetHealthBlock { HealthType = "max_artificial_health", Value = ParseFloatAny(d, 0f, "MAX_ARTIFICIAL_HEALTH", "Max Artificial Health") },
-            ["set_player_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield", Value = ParseFloatAny(d, 0f, "HUME_SHIELD", "Hume shield") },
-            ["set_player_max_hume_shield"] = d => new PlayerSetHealthBlock { HealthType = "max_hume_shield", Value = ParseFloatAny(d, 0f, "MAX_HUME_SHIELD", "Max Hume Shield") },
-            ["set_player_hume_shield_regen_rate"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_rate", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_RATE", "Hume Shield Regen Rate") },
-            ["set_player_hume_shield_regen_cooldown"] = d => new PlayerSetHealthBlock { HealthType = "hume_shield_regen_cooldown", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_COOLDOWN", "Hume Shield Regen Cooldown") },
+            ["set_player_artificial_health"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "artificial_health", Value = ParseFloatAny(d, 0f, "ARTIFICIAL_HEALTH", "Artificial Health") },
+            ["set_player_max_artificial_health"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "max_artificial_health", Value = ParseFloatAny(d, 0f, "MAX_ARTIFICIAL_HEALTH", "Max Artificial Health") },
+            ["set_player_hume_shield"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "hume_shield", Value = ParseFloatAny(d, 0f, "HUME_SHIELD", "Hume shield") },
+            ["set_player_max_hume_shield"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "max_hume_shield", Value = ParseFloatAny(d, 0f, "MAX_HUME_SHIELD", "Max Hume Shield") },
+            ["set_player_hume_shield_regen_rate"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "hume_shield_regen_rate", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_RATE", "Hume Shield Regen Rate") },
+            ["set_player_hume_shield_regen_cooldown"] = d => new PlayerSetHealthBlock { Target = ParseValue(d.GetValueOrDefault("Player")), HealthType = "hume_shield_regen_cooldown", Value = ParseFloatAny(d, 0f, "HUME_SHIELD_REGEN_COOLDOWN", "Hume Shield Regen Cooldown") },
 
-            ["set_player_group_name"] = d => new PlayerSetGroupBlock { GroupType = "name", Value = GetStringAny(d, "GROUP_NAME", "Group Name") },
-            ["set_player_group_color"] = d => new PlayerSetGroupBlock { GroupType = "color", Value = GetStringAny(d, "GROUP_COLOR", "Group Color") },
+            ["set_player_group_name"] = d => new PlayerSetGroupBlock { Target = ParseValue(d.GetValueOrDefault("Player")), GroupType = "name", Value = GetStringAny(d, "GROUP_NAME", "Group Name") },
+            ["set_player_group_color"] = d => new PlayerSetGroupBlock { Target = ParseValue(d.GetValueOrDefault("Player")), GroupType = "color", Value = GetStringAny(d, "GROUP_COLOR", "Group Color") },
 
             ["send_player_broadcast"] = d => new PlayerSendBroadcastBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Message = GetStringAny(d, "MESSAGE", "Broadcast Message"),
                 Duration = (ushort)ParseFloatAny(d, 5f, "DURATION", "Duration")
             },
 
             ["send_player_hint"] = d => new PlayerSendHintBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Message = GetStringAny(d, "MESSAGE", "Hint Message"),
                 Duration = (ushort)ParseFloatAny(d, 5f, "DURATION", "Duration")
             },
 
             ["set_player_scale"] = d => new PlayerSetScaleBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 X = ParseFloat(d, "x"),
                 Y = ParseFloat(d, "y"),
                 Z = ParseFloat(d, "z")
             },
 
             ["texttoy_create"] = d => new TextToyCreateBlock { Name = GetString(d, "name") },
-            ["texttoy_set_text"] = d => new TextToySetTextBlock { Text = GetString(d, "text") },
-            ["get_texttoy_property"] = d => new TextToyGetPropertyBlock { Property = GetString(d, "Property") },
+            ["texttoy_set_text"] = d => new TextToySetTextBlock { Target = ParseValue(d.GetValueOrDefault("TextToy")), Text = GetString(d, "text") },
+            ["get_texttoy_property"] = d => new TextToyGetPropertyBlock { Target = ParseValue(d.GetValueOrDefault("TextToy")), Property = GetString(d, "Property") },
 
             ["texttoy_set_display_size"] = d => new TextToySetDisplaySizeBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("TextToy")),
                 X = ParseFloatAny(d, 1f, "width", "x"),
                 Y = ParseFloatAny(d, 1f, "height", "y")
             },
 
             ["waypoint_create"] = d => new WaypointCreateBlock { Name = GetString(d, "name") },
-            ["get_waypoint_property"] = d => new WaypointGetPropertyBlock { Property = GetString(d, "Property") },
-            ["waypoint_set_visualize_bounds"] = d => new WaypointSetVisualizeBoundsBlock { VisualizeBounds = ParseBool(d, "visualizeBounds") },
-            ["waypoint_set_priority"] = d => new WaypointSetPriorityBlock { Priority = ParseFloat(d, "priority") },
+            ["get_waypoint_property"] = d => new WaypointGetPropertyBlock { Target = ParseValue(d.GetValueOrDefault("Waypoint")), Property = GetString(d, "Property") },
+            ["waypoint_set_visualize_bounds"] = d => new WaypointSetVisualizeBoundsBlock { Target = ParseValue(d.GetValueOrDefault("Waypoint")), VisualizeBounds = ParseBool(d, "visualizeBounds") },
+            ["waypoint_set_priority"] = d => new WaypointSetPriorityBlock { Target = ParseValue(d.GetValueOrDefault("Waypoint")), Priority = ParseFloat(d, "priority") },
 
             ["waypoint_set_bounds_size"] = d => new WaypointSetBoundsSizeBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Waypoint")),
                 X = ParseFloat(d, "x", 1f),
                 Y = ParseFloat(d, "y", 1f),
                 Z = ParseFloat(d, "z", 1f)
             },
 
             ["speaker_create"] = d => new SpeakerCreateBlock { Name = GetString(d, "name") },
-            ["get_speaker_property"] = d => new SpeakerGetPropertyBlock { Property = GetString(d, "Property"), Speaker = ParseValue(d.GetValueOrDefault("Speaker")) },
-            ["speaker_set_volume"] = d => new SpeakerSetVolumeBlock { Volume = ParseFloat(d, "volume", 100f) },
-            ["speaker_set_is_spatial"] = d => new SpeakerSetIsSpatialBlock { IsSpatial = ParseBool(d, "isSpatial") },
-            ["speaker_set_min_distance"] = d => new SpeakerSetMinDistanceBlock { MinDistance = ParseFloat(d, "minDistance", 1f) },
-            ["speaker_set_max_distance"] = d => new SpeakerSetMaxDistanceBlock { MaxDistance = ParseFloat(d, "maxDistance", 10f) },
-            ["speaker_set_loop"] = d => new SpeakerSetLoopBlock { Loop = ParseBool(d, "loop") },
-            ["speaker_set_path"] = d => new SpeakerSetPathBlock { Path = GetString(d, "path") },
+            ["get_speaker_property"] = d => new SpeakerGetPropertyBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), Property = GetString(d, "Property") },
+            ["speaker_set_volume"] = d => new SpeakerSetVolumeBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), Volume = ParseFloat(d, "volume", 100f) },
+            ["speaker_set_is_spatial"] = d => new SpeakerSetIsSpatialBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), IsSpatial = ParseBool(d, "isSpatial") },
+            ["speaker_set_min_distance"] = d => new SpeakerSetMinDistanceBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), MinDistance = ParseFloat(d, "minDistance", 1f) },
+            ["speaker_set_max_distance"] = d => new SpeakerSetMaxDistanceBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), MaxDistance = ParseFloat(d, "maxDistance", 10f) },
+            ["speaker_set_loop"] = d => new SpeakerSetLoopBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), Loop = ParseBool(d, "loop") },
+            ["speaker_set_path"] = d => new SpeakerSetPathBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), Path = GetString(d, "path") },
 
-            ["speaker_play"] = d => new SpeakerPlayBlock { FilePath = GetString(d, "filepath") },
+            ["speaker_play"] = d => new SpeakerPlayBlock { Target = ParseValue(d.GetValueOrDefault("Speaker")), FilePath = GetString(d, "filepath") },
 
             ["door_find_by_name"] = d => new FindDoorByNameBlock { Name = GetString(d, "name") },
 
@@ -407,13 +594,14 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["door_set_permissions"] = d => new SetDoorPermsBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Door")),
                 Perms = Enum.TryParse(GetString(d, "perms"), out DoorPermissionFlags perms) ? perms : default
             },
 
             ["get_door_property"] = d => new DoorGetPropertyBlock
             {
-                Property = GetString(d, "Property"),
-                Door = ParseValue(d.GetValueOrDefault("Door"))
+                Target = ParseValue(d.GetValueOrDefault("Door")),
+                Property = GetString(d, "Property")
             },
 
             ["run_method"] = d => new RunMethodBlock
@@ -432,6 +620,42 @@ namespace ThaumielMapEditor.API.Helpers
             ["play_animation"] = d => new PlayAnimationBlock
             {
                 AnimationName = GetString(d, "animationName")
+            },
+
+            ["animation_play"] = d => new AnimationPlayBlock
+            {
+                AnimationName = GetString(d, "animationName")
+            },
+
+            ["animation_play_schematic"] = d => new SchematicAnimationPlayBlock
+            {
+                Target = ParseValue(d.GetValueOrDefault("Schematic")),
+                AnimationName = GetString(d, "animationName")
+            },
+
+            ["animation_play_index"] = d => new SchematicAnimationPlayIndexBlock
+            {
+                Target = ParseValue(d.GetValueOrDefault("Schematic")),
+                AnimationName = GetString(d, "animationName"),
+                AnimatorIndex = (int)ParseFloat(d, "animatorIndex")
+            },
+
+            ["animation_pause"] = d => new AnimationPauseBlock
+            {
+                AnimationName = GetString(d, "animationName")
+            },
+
+            ["animation_pause_schematic"] = d => new SchematicAnimationPauseBlock
+            {
+                Target = ParseValue(d.GetValueOrDefault("Schematic")),
+                AnimationName = GetString(d, "animationName")
+            },
+
+            ["animation_pause_index"] = d => new SchematicAnimationPauseIndexBlock
+            {
+                Target = ParseValue(d.GetValueOrDefault("Schematic")),
+                AnimationName = GetString(d, "animationName"),
+                AnimatorIndex = (int)ParseFloat(d, "animatorIndex")
             },
 
             ["play_audio"] = d => new PlayAudioBlock
@@ -473,6 +697,7 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["give_player_effect"] = d => new PlayerGivePlayerEffectBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Effect = GetStringAny(d, "effect", "Effect"),
                 Intensity = (byte)ParseFloatAny(d, 1f, "intensity", "Intensity"),
                 Duration = ParseFloatAny(d, 5f, "duration", "Duration"),
@@ -481,6 +706,7 @@ namespace ThaumielMapEditor.API.Helpers
 
             ["remove_player_effect"] = d => new PlayerRemovePlayerEffectBlock
             {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
                 Effect = GetStringAny(d, "effect", "Effect")
             },
 
@@ -599,10 +825,10 @@ namespace ThaumielMapEditor.API.Helpers
                 Item = ParseValue(d.GetValueOrDefault("ITEM"))
             },
 
-            ["list_remove_at"] = d => new ListRemoveBlock
+            ["list_remove_at"] = d => new ListRemoveAtBlock
             {
                 List = ParseValue(d.GetValueOrDefault("LIST")),
-                Item = ParseFloat(d, "INDEX")
+                Index = ParseValue(d.GetValueOrDefault("INDEX"))
             },
 
             ["list_get"] = d => new ListGetBlock
@@ -622,12 +848,7 @@ namespace ThaumielMapEditor.API.Helpers
                 Item = ParseValue(d.GetValueOrDefault("ITEM"))
             },
 
-            ["list_clear"] = d =>
-            {
-                List<object>? list = ParseValue(d.GetValueOrDefault("LIST")) as List<object>;
-                list?.Clear();
-                return null;
-            },
+            ["list_clear"] = d => new ListClearBlock { List = ParseValue(d.GetValueOrDefault("LIST")) },
 
             ["foreach_loop"] = d => new ForeachBlock
             {
@@ -911,11 +1132,21 @@ namespace ThaumielMapEditor.API.Helpers
             return new PrimitiveVectorBlock
             {
                 TargetProperty = targetProperty,
+                Target = ParseValue(d.GetValueOrDefault("Primitive")),
                 X = ParseFloat(d, "x"),
                 Y = ParseFloat(d, "y"),
                 Z = ParseFloat(d, "z")
             };
         }
+
+        private static PlayerGiveItemBlock ParsePlayerGiveItem(Dictionary<string, object> d) =>
+            new()
+            {
+                Target = ParseValue(d.GetValueOrDefault("Player")),
+                Item = Enum.TryParse(GetStringAny(d, "ITEM", "New Item"), out ItemType item) ? item : ItemType.None,
+                Amount = (int)ParseFloatAny(d, 1f, "COUNT", "Amount"),
+                DropIfFull = ParseBoolAny(d, "DROP_IF_FULL", "Drop if full")
+            };
 
         private static List<object?> ParseStack(Dictionary<string, object> d, string key)
         {
@@ -1086,7 +1317,7 @@ namespace ThaumielMapEditor.API.Helpers
                 ulong ul => ul,
                 ushort us => us,
                 sbyte sb => sb,
-                string str when float.TryParse(str, out float result) => result,
+                string str when float.TryParse(str, NumberStyles.Float, CultureInfo.InvariantCulture, out float result) => result,
                 _ => defaultVal
             };
         }

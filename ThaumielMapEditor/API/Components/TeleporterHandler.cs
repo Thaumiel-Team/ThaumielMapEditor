@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="TeleporterHandler.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -9,7 +9,8 @@ using LabApi.Features.Wrappers;
 using LabApiExtensions.Extensions;
 using System;
 using System.Collections.Generic;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using PickupDef = ThaumielMapEditor.API.Blocks.Definitions.Pickup;
+using TeleporterDef = ThaumielMapEditor.API.Blocks.Definitions.Teleporter;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
@@ -20,9 +21,9 @@ namespace ThaumielMapEditor.API.Components
     public class TeleporterHandler : TriggerHandler
     {
         /// <summary>
-        /// Gets the <see cref="TeleporterObject"/> this handler is managing.
+        /// Gets the <see cref="TeleporterDef.Server"/> this handler is managing.
         /// </summary>
-        public TeleporterObject? Teleporter { get; private set; }
+        public TeleporterDef.Server? Teleporter { get; private set; }
 
         /// <summary>
         /// Tracks per-player cooldown expiry times.
@@ -46,7 +47,7 @@ namespace ThaumielMapEditor.API.Components
         /// </summary>
         private const float MinForcedCooldown = 1.5f;
 
-        public void Init(TeleporterObject teleporter)
+        public void Init(TeleporterDef.Server teleporter)
         {
             if (Teleporter != null)
             {
@@ -86,7 +87,7 @@ namespace ThaumielMapEditor.API.Components
                 return;
             }
 
-            TeleporterObject? target = FindTargetTeleporter();
+            TeleporterDef.Server? target = FindTargetTeleporter();
             if (target == null)
             {
                 LogManager.Warn($"Teleporter {Teleporter.Id} could not find target teleporter.");
@@ -123,7 +124,7 @@ namespace ThaumielMapEditor.API.Components
             if (!_pickupsInside.Add(pickup))
                 return;
 
-            TeleporterObject? target = FindTargetTeleporter();
+            TeleporterDef.Server? target = FindTargetTeleporter();
             if (target == null)
             {
                 LogManager.Warn($"Teleporter {Teleporter.Id} could not find target teleporter.");
@@ -157,7 +158,7 @@ namespace ThaumielMapEditor.API.Components
             if (!_projectilesInside.Add(projectile))
                 return;
 
-            TeleporterObject? target = FindTargetTeleporter();
+            TeleporterDef.Server? target = FindTargetTeleporter();
             if (target == null)
             {
                 LogManager.Warn($"Teleporter {Teleporter.Id} could not find target teleporter.");
@@ -336,7 +337,7 @@ namespace ThaumielMapEditor.API.Components
             return (Teleporter.Flags & flag) != 0;
         }
 
-        private TeleporterObject? FindTargetTeleporter()
+        private TeleporterDef.Server? FindTargetTeleporter()
         {
             if (Teleporter == null)
                 return null;
@@ -345,7 +346,7 @@ namespace ThaumielMapEditor.API.Components
                 return null;
 
             Guid targetId = Teleporter.Targets.GetRandom();
-            if (!TeleporterObject.Teleporters.TryGetValue(targetId, out TeleporterObject? target))
+            if (!TeleporterDef.Server.Teleporters.TryGetValue(targetId, out TeleporterDef.Server? target))
                 return null;
 
             return target;

@@ -1,12 +1,14 @@
 // -----------------------------------------------------------------------
 // <copyright file="TextToyBlocks.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
+using ThaumielMapEditor.API.Enums;
 using UnityEngine;
 
 namespace ThaumielMapEditor.API.Helpers.BlockParser
@@ -15,9 +17,11 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Name { get; set; } = string.Empty;
 
-        public override object ReturnExecute(SchematicData schematic)
+        public override object? ReturnExecute() => ReturnExecute(Executor!.Schematic);
+
+        public override object? ReturnExecute(SchematicData schematic)
         {
-            TextToyObject server = new();
+            TextToy.Server server = new(new ObjectBase { ObjectType = ObjectType.TextToy }, new TextToy());
             server.SpawnObject(schematic);
             LogManager.Debug($"Created TextToy '{Name}'.");
             return server;
@@ -30,9 +34,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not TextToyObject server)
+            if (obj is not TextToy.Server server)
             {
-                LogManager.Warn("obj is not a TextToyObject.");
+                LogManager.Warn("obj is not a TextToy.Server.");
                 return;
             }
 
@@ -47,9 +51,9 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
         public override void Execute(object obj)
         {
-            if (obj is not TextToyObject server)
+            if (obj is not TextToy.Server server)
             {
-                LogManager.Warn("obj is not a TextToyObject.");
+                LogManager.Warn("obj is not a TextToy.Server.");
                 return;
             }
 
@@ -61,11 +65,17 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
     {
         public string Property { get; set; } = string.Empty;
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute()
+            => GetProperty(ResolveTarget());
+
+        public override object? ReturnExecute(object obj)
+            => GetProperty(ResolveTarget(obj));
+
+        private object GetProperty(object? obj)
         {
-            if (obj is not TextToyObject server)
+            if (obj is not TextToy.Server server)
             {
-                LogManager.Warn("obj is not a TextToyObject.");
+                LogManager.Warn("obj is not a TextToy.Server.");
                 return null!;
             }
 
@@ -76,14 +86,14 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
                 "Scale" => server.Scale,
                 "Text" => server.Text,
                 "DisplaySize" => server.DisplaySize,
-                "Base" => server.Base,
+                "Base" => server.Base!,
                 _ => LogUnknownProperty(Property)
             };
         }
 
         private static object LogUnknownProperty(string property)
         {
-            LogManager.Warn($"TextToyGetPropertyBlock: Unknown property '{property}'.");
+            LogManager.Warn($"Unknown property '{property}'.");
             return null!;
         }
     }

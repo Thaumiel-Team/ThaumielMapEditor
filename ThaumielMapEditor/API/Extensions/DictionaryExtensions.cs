@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="DictionaryExtensions.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -243,12 +243,11 @@ namespace ThaumielMapEditor.API.Extensions
             if (dict != null)
             {
                 int found = 0;
-                float x = 0f, y = 0f, z = 0f, w = 0f;
 
-                if (TryGetNamedFloat(dict, out x, "x")) found++;
-                if (TryGetNamedFloat(dict, out y, "y")) found++;
-                if (TryGetNamedFloat(dict, out z, "z")) found++;
-                if (TryGetNamedFloat(dict, out w, "w")) found++;
+                if (TryGetNamedFloat(dict, out float x, "x")) found++;
+                if (TryGetNamedFloat(dict, out float y, "y")) found++;
+                if (TryGetNamedFloat(dict, out float z, "z")) found++;
+                if (TryGetNamedFloat(dict, out float w, "w")) found++;
 
                 if (found < 2)
                     return false;
@@ -585,9 +584,12 @@ namespace ThaumielMapEditor.API.Extensions
             return list;
         }
 
-        public static void PopulateFrom<T>(this Dictionary<string, object> dict, T target)
+        public static void PopulateFrom<T>(this Dictionary<string, object>? dict, T target)
         {
-            PropertyInfo[] properties = GetCachedProperties(target!.GetType());
+            if (dict == null || target == null)
+                return;
+
+            PropertyInfo[] properties = GetCachedProperties(target.GetType());
 
             foreach (PropertyInfo prop in properties)
             {

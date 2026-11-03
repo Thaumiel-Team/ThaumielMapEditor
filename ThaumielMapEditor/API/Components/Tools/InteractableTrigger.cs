@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="InteractableTrigger.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -12,12 +12,14 @@ using SecretLabNAudio.Core.Extensions;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Components.Tools.Helpers;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
+using ThaumielMapEditor.API.Helpers.BlockParser;
 using ThaumielMapEditor.API.Serialization;
 using ThaumielMapEditor.Commands;
 using ThaumielMapEditor.HarmonyPatches;
@@ -28,6 +30,7 @@ using Warhead = ThaumielMapEditor.API.Components.Tools.Helpers.Warhead;
 using YamlDotNet.Serialization;
 using DrawableLine;
 using ThaumielMapEditor.API.Extensions;
+using InteractableDef = ThaumielMapEditor.API.Blocks.Definitions.Interactable;
 
 namespace ThaumielMapEditor.API.Components.Tools
 {
@@ -35,31 +38,39 @@ namespace ThaumielMapEditor.API.Components.Tools
     public class InteractableTrigger : ToolBase
     {
         [YamlMember(Alias = "Bounds")]
+        [BinaryProperty(Name = "Bounds")]
         public Vector3 Bounds { get; set; }
 
         [YamlMember(Alias = "InteractionTime")]
+        [BinaryProperty(Name = "InteractionTime")]
         public float InteractionTime { get; set; }
 
         [YamlMember(Alias = "Shape")]
+        [BinaryProperty(Name = "Shape")]
         public ColliderShape Shape { get; set; }
 
         [YamlMember(Alias = "OnInteracted")]
+        [BinaryProperty(Name = "OnInteracted")]
         public Classes OnInteracted { get; set; } = new();
 
         [YamlMember(Alias = "OnInteractionDenied")]
+        [BinaryProperty(Name = "OnInteractionDenied")]
         public Classes OnInteractionDenied { get; set; } = new();
 
         [YamlMember(Alias = "OnSpawned")]
+        [BinaryProperty(Name = "OnSpawned")]
         public Classes OnSpawned { get; set; } = new();
 
         [YamlMember(Alias = "OnDestroyed")]
+        [BinaryProperty(Name = "OnDestroyed")]
         public Classes OnDestroyed { get; set; } = new();
 
         [YamlMember(Alias = "Permission")]
+        [BinaryProperty(Name = "Permission")]
         public Permission Permissions { get; set; } = new();
 
 #pragma warning disable CS8618
-        public InteractionObject Interactable;
+        public InteractableDef.Server Interactable;
 #pragma warning restore CS8618
 
         public override ToolType Type => ToolType.InteractableTrigger;
@@ -81,16 +92,16 @@ namespace ThaumielMapEditor.API.Components.Tools
             Interactable.SpawnObject(schem);
             Interactable.Object?.transform.SetParent(obj.Object?.transform, false);
             Interactable.Object?.transform.localPosition = Vector3.zero;
-            InteractionObject.OnInteracted += Interacted;
-            InteractionObject.OnSearched += Interacted;
+            InteractableDef.Server.OnInteracted += Interacted;
+            InteractableDef.Server.OnSearched += Interacted;
             InteractToyValidatePatch.OnDenied += Denied;
             ExecuteLifecycleBlocks(OnSpawned, EventType.OnSpawned, "spawn");
         }
 
         protected override void OnDestroy()
         {
-            InteractionObject.OnInteracted -= Interacted;
-            InteractionObject.OnSearched -= Interacted;
+            InteractableDef.Server.OnInteracted -= Interacted;
+            InteractableDef.Server.OnSearched -= Interacted;
             InteractToyValidatePatch.OnDenied -= Denied;
             if (OnInteracted.Blocky is { Count: > 0 })
             {
@@ -119,7 +130,7 @@ namespace ThaumielMapEditor.API.Components.Tools
 
                     try
                     {
-                        Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null!, EventType.OnDestroyed);
+                        Schematic?.Executor?.Execute(ArgumentsParser.Load(blocky), null, EventType.OnDestroyed);
                     }
                     catch (Exception ex)
                     {
@@ -144,7 +155,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             base.OnDestroy();
         }
 
-        private void Denied(InteractionObject obj, Player player)
+        private void Denied(InteractableDef.Server obj, Player player)
         {
             if (obj != Interactable)
                 return;
@@ -158,7 +169,7 @@ namespace ThaumielMapEditor.API.Components.Tools
             HandleBlocks(OnInteractionDenied, player, EventType.OnInteractionDenied);
         }
 
-        public void Interacted(InteractionObject obj, Player player)
+        public void Interacted(InteractableDef.Server obj, Player player)
         {
             if (obj != Interactable)
                 return;
@@ -176,7 +187,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         {
             foreach (BlockyPayload blocky in classes.Blocky)
             {
-                List<object> blocks = ArgumentsParser.Load(blocky);
+                ScriptProgram blocks = ArgumentsParser.Load(blocky);
                 Schematic?.Executor?.Execute(blocks, player, eventType);
             }
         }

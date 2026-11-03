@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="PlayerExtensions.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -16,6 +16,7 @@ using LabApiExtensions.Extensions;
 using LabApiExtensions.FakeExtension;
 using Mirror;
 using ThaumielMapEditor.API.Attributes;
+using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Struct;
 
 namespace ThaumielMapEditor.API.Extensions
@@ -120,7 +121,7 @@ namespace ThaumielMapEditor.API.Extensions
             {
                 if (!MirrorWriterExtension.Write(obj.GetType(), obj, networkWriterPooled))
                 {
-                    Logger.Error($"Not found NetworkWriter for type {obj.GetType()}");
+                    LogManager.Error($"No NetworkWriter found for type {obj.GetType()}");
                     return;
                 }
             }

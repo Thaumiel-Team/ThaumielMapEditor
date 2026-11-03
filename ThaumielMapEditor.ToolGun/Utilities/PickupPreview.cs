@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="PickupPreview.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -10,15 +10,15 @@ using System.Linq;
 using LabApi.Events.Arguments.ServerEvents;
 using LabApi.Events.Handlers;
 using LabApi.Features.Wrappers;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using PickupDef = ThaumielMapEditor.API.Blocks.Definitions.Pickup;
 
 namespace ThaumielMapEditor.ToolGun.Utilities
 {
     [GitBookPage("ToolGun/Utilities")]
     public static class PickupPreview
     {
-        private static readonly Dictionary<PickupObject, Pickup> Previews = [];
-        private static readonly Dictionary<ToolGunSettings, PickupObject> Owners = [];
+        private static readonly Dictionary<PickupDef.Server, Pickup> Previews = [];
+        private static readonly Dictionary<ToolGunSettings, PickupDef.Server> Owners = [];
         private static bool Registered;
 
         public static void Register()
@@ -46,7 +46,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
         /// Shows a preview for <paramref name="pickup"/> owned by <paramref name="settings"/>.
         /// Does nothing when the pickup already has a live object.
         /// </summary>
-        public static void Show(ToolGunSettings settings, PickupObject pickup)
+        public static void Show(ToolGunSettings settings, PickupDef.Server pickup)
         {
             if (settings == null || pickup == null)
                 return;
@@ -83,7 +83,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
         /// </summary>
         public static void Hide(ToolGunSettings settings)
         {
-            if (settings == null || !Owners.TryGetValue(settings, out PickupObject? pickup) || pickup == null)
+            if (settings == null || !Owners.TryGetValue(settings, out PickupDef.Server? pickup) || pickup == null)
                 return;
 
             Owners.Remove(settings);
@@ -97,7 +97,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
         /// <summary>
         /// Recreates the preview for <paramref name="pickup"/> (e.g. after its item type changed), or removes it when the pickup spawned a live object.
         /// </summary>
-        public static void Refresh(PickupObject pickup)
+        public static void Refresh(PickupDef.Server pickup)
         {
             if (pickup == null || !Previews.ContainsKey(pickup))
                 return;
@@ -119,7 +119,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
         /// <summary>
         /// Moves the preview for <paramref name="pickup"/> to its current transform.
         /// </summary>
-        public static void Sync(PickupObject pickup)
+        public static void Sync(PickupDef.Server pickup)
         {
             if (pickup == null || !Previews.TryGetValue(pickup, out Pickup? preview) || !IsValid(preview))
                 return;
@@ -130,7 +130,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
 
         public static void ClearAll()
         {
-            foreach (PickupObject pickup in Previews.Keys.ToArray())
+            foreach (PickupDef.Server pickup in Previews.Keys.ToArray())
                 DestroyPreview(pickup);
 
             Owners.Clear();
@@ -144,7 +144,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
             return !preview.IsDestroyed && preview.IsSpawned;
         }
 
-        private static void DestroyPreview(PickupObject pickup)
+        private static void DestroyPreview(PickupDef.Server pickup)
         {
             if (!Previews.TryGetValue(pickup, out Pickup? preview) || preview == null)
                 return;
@@ -162,7 +162,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
             if (ev.Pickup == null)
                 return;
 
-            foreach (KeyValuePair<PickupObject, Pickup> entry in Previews.ToArray())
+            foreach (KeyValuePair<PickupDef.Server, Pickup> entry in Previews.ToArray())
             {
                 if (ReferenceEquals(entry.Value, ev.Pickup))
                     Previews.Remove(entry.Key);

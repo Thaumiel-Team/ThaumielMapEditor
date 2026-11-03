@@ -1,13 +1,13 @@
 // -----------------------------------------------------------------------
 // <copyright file="SpawnPointSettings.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Enums;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
@@ -22,13 +22,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.SpawnPoint;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PlayerSpawnPoint>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PlayerSpawnPoint.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new SpawnPointInfo();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint? spawn) && spawn != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint.Server? spawn) && spawn != null)
                 Content = $"Spawn Point (Chance: {spawn.Chance}%, Roles: {spawn.AllowedRoles.Count})";
         }
 
@@ -47,13 +47,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.SpawnPoint;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PlayerSpawnPoint>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PlayerSpawnPoint.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new SpawnChanceSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint? spawn) && spawn != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint.Server? spawn) && spawn != null)
                 DefaultValue = ToolGunMenu.Clamp(spawn.Chance, 0f, 100f);
         }
 
@@ -62,7 +62,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint? spawn) && spawn != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint.Server? spawn) && spawn != null)
                 spawn.Chance = SelectedValueFloat;
         }
     }
@@ -77,13 +77,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.SpawnPoint;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PlayerSpawnPoint>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PlayerSpawnPoint.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new SpawnDisableSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint? spawn) && spawn != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint.Server? spawn) && spawn != null)
                 Base.DefaultOptionIndex = IndexOf(spawn.Disable);
         }
 
@@ -92,7 +92,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint? spawn) && spawn != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint.Server? spawn) && spawn != null)
                 spawn.Disable = Values[ValidatedSelectedIndex];
         }
     }
@@ -107,13 +107,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.SpawnPoint;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PlayerSpawnPoint>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<PlayerSpawnPoint.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new SpawnDisabledSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint? spawn) && spawn != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint.Server? spawn) && spawn != null)
                 Base.DefaultIsB = spawn.Disabled;
         }
 
@@ -122,7 +122,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint? spawn) && spawn != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out PlayerSpawnPoint.Server? spawn) && spawn != null)
                 spawn.Disabled = IsOptionB;
         }
     }

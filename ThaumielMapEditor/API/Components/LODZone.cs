@@ -1,13 +1,13 @@
 // -----------------------------------------------------------------------
 // <copyright file="LODZone.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
 using LabApi.Features.Wrappers;
-using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
@@ -51,7 +51,7 @@ namespace ThaumielMapEditor.API.Components
         {
             UpdateDictionary(player);
 
-            foreach (PrimitiveObject prim in Schematic.GetClientObject<PrimitiveObject>())
+            foreach (Primitive.Client prim in Schematic.GetClientObject<Primitive.Client>())
             {
                 if (!PrimitivestoUnload.Contains(prim.PrimitiveType))
                     continue;
@@ -68,7 +68,7 @@ namespace ThaumielMapEditor.API.Components
         {
             RemoveFromDictionary(player);
 
-            foreach (PrimitiveObject prim in Schematic.GetClientObject<PrimitiveObject>())
+            foreach (Primitive.Client prim in Schematic.GetClientObject<Primitive.Client>())
             {
                 if (!PrimitivestoUnload.Contains(prim.PrimitiveType))
                     continue;

@@ -1,0 +1,77 @@
+// -----------------------------------------------------------------------
+// <copyright file="ObjectRegistry.cs" company="Thaumiel Team">
+// Copyright (c) Thaumiel Team. All rights reserved.
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
+// </copyright>
+// -----------------------------------------------------------------------
+
+using System;
+using System.Collections.Generic;
+using ThaumielMapEditor.API.Blocks.Definitions;
+using ClutterDef = ThaumielMapEditor.API.Blocks.Definitions.Clutter;
+using ThaumielMapEditor.API.Enums;
+
+namespace ThaumielMapEditor.API.Blocks
+{
+    [GitBookPage("Blocks/ObjectRegistry")]
+    public static class ObjectRegistry
+    {
+        private static readonly Dictionary<ObjectType, Func<ObjectDefinition>> Factories = new()
+        {
+            [ObjectType.Primitive] = static () => new Primitive(),
+            [ObjectType.GameObject] = static () => new GameObject(),
+            [ObjectType.Light] = static () => new Light(),
+            [ObjectType.Capybara] = static () => new Capybara(),
+            [ObjectType.Clutter] = static () => new ClutterDef(),
+            [ObjectType.TextToy] = static () => new TextToy(),
+            [ObjectType.CullingParent] = static () => new CullingParent(),
+
+            [ObjectType.Door] = static () => new Door(),
+            [ObjectType.Workstation] = static () => new Workstation(),
+            [ObjectType.Interactable] = static () => new Interactable(),
+            [ObjectType.Pickup] = static () => new Pickup(),
+            [ObjectType.Camera] = static () => new Camera(),
+            [ObjectType.Waypoint] = static () => new Waypoint(),
+            [ObjectType.Locker] = static () => new Locker(),
+            [ObjectType.Target] = static () => new Target(),
+            [ObjectType.Teleporter] = static () => new Teleporter(),
+            [ObjectType.Speaker] = static () => new Speaker(),
+            [ObjectType.PlayerSpawnPoint] = static () => new PlayerSpawnPoint(),
+            [ObjectType.RagdollSpawner] = static () => new RagdollSpawner(),
+        };
+
+        /// <summary>
+        /// Determines whether a definition is registered for the given <paramref name="type"/>.
+        /// </summary>
+        /// <param name="type">The type to check.</param>
+        /// <returns><see langword="true"/> if a definition exists.</returns>
+        public static bool IsRegistered(ObjectType type) => Factories.ContainsKey(type);
+
+        /// <summary>
+        /// Creates a new definition for the given <paramref name="type"/>.
+        /// </summary>
+        /// <param name="type">The type to create a definition for.</param>
+        /// <returns>The new definition, or <see langword="null"/> when the type is not registered.</returns>
+        public static ObjectDefinition? Create(ObjectType type)
+            => Factories.TryGetValue(type, out Func<ObjectDefinition>? factory) ? factory() : null;
+
+        /// <summary>
+        /// Registers or replaces the definition factory for an <see cref="ObjectType"/>.
+        /// </summary>
+        /// <param name="type">The type to register.</param>
+        /// <param name="factory">The factory that creates the definition.</param>
+        public static void Register(ObjectType type, Func<ObjectDefinition> factory) =>
+            Factories[type] = factory ?? throw new ArgumentNullException(nameof(factory));
+
+        /// <summary>
+        /// Determines whether the given <paramref name="type"/> has both client and server implementations.
+        /// </summary>
+        /// <param name="type">The type to check.</param>
+        /// <returns><see langword="true"/> when both sides are supported.</returns>
+        public static bool IsDualType(ObjectType type)
+        {
+            ObjectDefinition? definition = Create(type);
+            return definition is { SupportsServer: true, SupportsClient: true };
+        }
+    }
+}

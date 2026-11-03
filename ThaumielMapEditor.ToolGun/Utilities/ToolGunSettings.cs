@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="ToolGunSettings.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -9,7 +9,6 @@ using LabApi.Features.Wrappers;
 using System;
 using System.Collections.Generic;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ClientSide;
 using ThaumielMapEditor.API.Enums;
 
 namespace ThaumielMapEditor.ToolGun.Utilities

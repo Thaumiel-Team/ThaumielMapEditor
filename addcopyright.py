@@ -5,21 +5,33 @@ NOTICE_TEMPLATE = """\
 // -----------------------------------------------------------------------
 // <copyright file="{filename}" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 """
+
+LICENSE_LINE = "// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0)."
 
 EXCLUDED_DIRS = {"obj"}
 EXCLUDED_FILES = {"AssemblyInfo.cs"}
 
 IGNORE_PATTERN = re.compile(r"\[.*PythonIgnore(Attribute)?.*\]")
 
+COPYRIGHT_FILE_PATTERN = re.compile(r'(<copyright\b[^>]*?\bfile=")([^"]*)(")', re.IGNORECASE)
+
+COPYRIGHT_LICENSE_PATTERN = re.compile(r"(?m)^// Licensed under the .*?$")
+
 def should_ignore_file(content: str) -> bool:
     return bool(IGNORE_PATTERN.search(content))
 
 def already_has_notice(content: str) -> bool:
     return "<copyright" in content
+
+def update_notice_filename(content: str, filename: str) -> str:
+    return COPYRIGHT_FILE_PATTERN.sub(lambda match: f"{match.group(1)}{filename}{match.group(3)}", content, count=1)
+
+def update_notice_license(content: str) -> str:
+    return COPYRIGHT_LICENSE_PATTERN.sub(lambda _: LICENSE_LINE, content, count=1)
 
 def add_notice(file_path: str) -> None:
     filename = os.path.basename(file_path)
@@ -32,7 +44,16 @@ def add_notice(file_path: str) -> None:
         return
 
     if already_has_notice(content):
-        print(f"[SKIPPED]  Already has notice: {file_path}")
+        updated_content = update_notice_license(update_notice_filename(content, filename))
+
+        if updated_content == content:
+            print(f"[SKIPPED]  Already has notice: {file_path}")
+            return
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(updated_content)
+
+        print(f"[UPDATED]  Notice normalized ('{filename}', LGPL-3.0): {file_path}")
         return
 
     notice = NOTICE_TEMPLATE.format(filename=filename)

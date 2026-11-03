@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="TeleporterSettings.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -28,13 +28,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Teleporter;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<TeleporterObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Teleporter.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new TeleporterInfo();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out TeleporterObject? teleporter) && teleporter != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Teleporter.Server? teleporter) && teleporter != null)
                 Content = $"Teleporter Settings ({teleporter.Id}, Targets: {teleporter.Targets.Count})";
         }
 
@@ -53,13 +53,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Teleporter;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<TeleporterObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Teleporter.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new TeleporterCooldownSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out TeleporterObject? teleporter) && teleporter != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Teleporter.Server? teleporter) && teleporter != null)
                 DefaultValue = ToolGunMenu.Clamp(teleporter.CoolDown, 0f, 120f);
         }
 
@@ -68,7 +68,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out TeleporterObject? teleporter) && teleporter != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Teleporter.Server? teleporter) && teleporter != null)
                 teleporter.CoolDown = SelectedValueFloat;
         }
     }
@@ -83,13 +83,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Teleporter;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<TeleporterObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Teleporter.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new TeleporterPerPlayerSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out TeleporterObject? teleporter) && teleporter != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Teleporter.Server? teleporter) && teleporter != null)
                 Base.DefaultIsB = teleporter.PerPlayerCooldown;
         }
 
@@ -98,7 +98,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out TeleporterObject? teleporter) && teleporter != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Teleporter.Server? teleporter) && teleporter != null)
                 teleporter.PerPlayerCooldown = IsOptionB;
         }
     }
@@ -113,13 +113,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Teleporter;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<TeleporterObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Teleporter.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new TeleporterFlagsSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out TeleporterObject? teleporter) && teleporter != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Teleporter.Server? teleporter) && teleporter != null)
                 Base.DefaultOptionIndex = IndexOf(teleporter.Flags);
         }
 
@@ -128,7 +128,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out TeleporterObject? teleporter) && teleporter != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Teleporter.Server? teleporter) && teleporter != null)
                 teleporter.Flags = Values[ValidatedSelectedIndex];
         }
     }
@@ -143,7 +143,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Teleporter;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<TeleporterObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Teleporter.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new TeleporterTargetSetting();
 
@@ -152,10 +152,10 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!ObjectSettingsHelper.TryGetServer(KnownOwner, out TeleporterObject? teleporter) || teleporter == null)
+            if (!ObjectSettingsHelper.TryGetServer(KnownOwner, out Teleporter.Server? teleporter) || teleporter == null)
                 return;
 
-            List<TeleporterObject> ordered = GetOrderedTargets(teleporter);
+            List<Teleporter.Server> ordered = GetOrderedTargets(teleporter);
             Options = ["None", .. ordered.Select(LabelOf)];
 
             Guid current = teleporter.Targets.FirstOrDefault();
@@ -171,10 +171,10 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!ObjectSettingsHelper.TryGetServer(KnownOwner, out TeleporterObject? teleporter) || teleporter == null)
+            if (!ObjectSettingsHelper.TryGetServer(KnownOwner, out Teleporter.Server? teleporter) || teleporter == null)
                 return;
 
-            List<TeleporterObject> ordered = GetOrderedTargets(teleporter);
+            List<Teleporter.Server> ordered = GetOrderedTargets(teleporter);
             int selected = ValidatedSelectedIndex;
 
             teleporter.Targets.Clear();
@@ -183,20 +183,20 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
                 teleporter.Targets.Add(ordered[selected - 1].Id);
         }
 
-        private static List<TeleporterObject> GetOrderedTargets(TeleporterObject self) =>
-            TeleporterObject.Teleporters.Values
+        private static List<Teleporter.Server> GetOrderedTargets(Teleporter.Server self) =>
+            Teleporter.Server.Teleporters.Values
                 .Where(t => t != null && t.Id != self.Id)
                 .OrderBy(LabelOf, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(t => t.Id)
                 .ToList();
 
-        private static string LabelOf(TeleporterObject teleporter)
+        private static string LabelOf(Teleporter.Server teleporter)
         {
             string name = string.IsNullOrWhiteSpace(teleporter.Name) ? teleporter.Id.ToString("N").Substring(0, 8) : teleporter.Name;
             return $"{ToolGunMenu.SanitizeDisplayText(name, 64)}-{ToolGunMenu.SanitizeDisplayText(GetSchematicName(teleporter), 64)}";
         }
 
-        private static string GetSchematicName(TeleporterObject teleporter)
+        private static string GetSchematicName(Teleporter.Server teleporter)
         {
             foreach (SchematicData schematic in Loader.SpawnedSchematics.ToArray())
             {

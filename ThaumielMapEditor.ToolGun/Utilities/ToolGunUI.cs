@@ -1,18 +1,21 @@
 // -----------------------------------------------------------------------
 // <copyright file="ToolGunUI.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using System.Text;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ClientSide;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.ToolGun.Utilities.Settings;
 using UnityEngine;
 using static ThaumielMapEditor.API.Extensions.RoomExtensions;
+using LightDef = ThaumielMapEditor.API.Blocks.Definitions.Light;
+using TextToyDef = ThaumielMapEditor.API.Blocks.Definitions.TextToy;
+using ClutterDef = ThaumielMapEditor.API.Blocks.Definitions.Clutter;
 
 namespace ThaumielMapEditor.ToolGun.Utilities
 {
@@ -122,8 +125,12 @@ namespace ThaumielMapEditor.ToolGun.Utilities
             {
                 string name = client switch
                 {
-                    PrimitiveObject prim when !string.IsNullOrEmpty(prim.Name) => ToolGunMenu.SanitizeDisplayText(prim.Name, MaxHintNameLength),
-                    CapybaraObject capy when !string.IsNullOrEmpty(capy.Name) => ToolGunMenu.SanitizeDisplayText(capy.Name, MaxHintNameLength),
+                    Primitive.Client prim when !string.IsNullOrEmpty(prim.Name) => ToolGunMenu.SanitizeDisplayText(prim.Name, MaxHintNameLength),
+                    Capybara.Client capy when !string.IsNullOrEmpty(capy.Name) => ToolGunMenu.SanitizeDisplayText(capy.Name, MaxHintNameLength),
+                    ClutterDef.Client clutter when !string.IsNullOrEmpty(clutter.Name) => ToolGunMenu.SanitizeDisplayText(clutter.Name, MaxHintNameLength),
+                    CullingParent.Client culling when !string.IsNullOrEmpty(culling.Name) => ToolGunMenu.SanitizeDisplayText(culling.Name, MaxHintNameLength),
+                    TextToyDef.Client text => $"Text_{text.ObjectId}",
+                    LightDef.Client => $"Light_{client.ObjectId}",
                     _ => $"id {client.ObjectId}",
                 };
 

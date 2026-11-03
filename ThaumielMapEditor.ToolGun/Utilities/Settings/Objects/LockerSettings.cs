@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="LockerSettings.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -9,18 +9,29 @@ using System.Linq;
 using Interactables.Interobjects.DoorUtils;
 using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
-using ThaumielMapEditor.API.Blocks.ServerObjects.Lockers;
-using TmeChamber = ThaumielMapEditor.API.Blocks.ServerObjects.Lockers.LockerChamber;
+using ThaumielMapEditor.API.Blocks.Definitions;
+using LockerDef = ThaumielMapEditor.API.Blocks.Definitions.Locker;
+using TmeChamber = ThaumielMapEditor.API.Blocks.Lockers.LockerChamber;
 using ThaumielMapEditor.API.Enums;
 using static UserSettings.ServerSpecific.SSDropdownSetting;
+using ThaumielMapEditor.API.Blocks.Lockers;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 {
     public static class LockerChamberHelper
     {
-        public static bool TryGetLocker(Player player, out LockerObject? locker) =>
+        public static bool TryGetLocker(Player player, out LockerDef.Server? locker) =>
             ObjectSettingsHelper.TryGetServer(player, out locker) && locker != null;
+
+        public static Chambers GetSelectedChamber(Player player)
+        {
+            LockerChamberSetting? selector = CustomSetting.GetPlayerSetting<LockerChamberSetting>(LockerChamberSetting.SettingId, player);
+            int index = selector != null ? selector.ValidatedSelectedIndex : 0;
+            if (index < 0)
+                return 0;
+
+            return (Chambers)index;
+        }
 
         public static int GetSelectedChamberIndex(Player player)
         {
@@ -29,7 +40,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (index < 0)
                 return 0;
 
-            if (TryGetLocker(player, out LockerObject? locker) && locker != null)
+            if (TryGetLocker(player, out LockerDef.Server? locker) && locker != null)
             {
                 int count = locker.ChamberCount;
                 if (count <= 0)
@@ -43,7 +54,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
         }
 
         public static bool CanViewChamber(Player player) =>
-            TryGetLocker(player, out LockerObject? locker) && locker != null && locker.ChamberCount > 0;
+            TryGetLocker(player, out LockerDef.Server? locker) && locker != null && locker.ChamberCount > 0;
     }
 
     public class LockerInfo : CustomTextAreaSetting
@@ -56,16 +67,16 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Locker;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<LockerObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<LockerDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new LockerInfo();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerObject? locker) && locker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerDef.Server? locker) && locker != null)
             {
                 int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-                TmeChamber? chamber = locker.GetChamber(selected);
+                TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
                 ChamberData? data = chamber?.Data.FirstOrDefault();
                 string chamberSummary = chamber == null || data == null ? $"Chamber {selected}: empty" : $"Chamber {selected}: {data.ItemType} x{data.AmountToSpawn} ({data.SpawnPercent}%, {chamber.Permissions})";
 
@@ -88,13 +99,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Locker;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<LockerObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<LockerDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new LockerTypeSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerObject? locker) && locker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerDef.Server? locker) && locker != null)
                 Base.DefaultOptionIndex = IndexOf(locker.Type);
         }
 
@@ -103,7 +114,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerObject? locker) && locker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerDef.Server? locker) && locker != null)
             {
                 LockerType value = Values[ValidatedSelectedIndex];
                 if (value == LockerType.None)
@@ -128,7 +139,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Locker;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<LockerObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<LockerDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new LockerChamberSetting();
 
@@ -137,7 +148,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerObject? locker) || locker == null)
+            if (!ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerDef.Server? locker) || locker == null)
                 return;
 
             int count = locker.ChamberCount;
@@ -198,11 +209,11 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
+            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerDef.Server? locker) || locker == null)
                 return;
 
             int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            TmeChamber? chamber = locker.GetChamber(selected);
+            TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
             if (chamber != null)
             {
                 Base.DefaultOptionIndex = IndexOf(chamber.Permissions);
@@ -221,14 +232,14 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
+            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerDef.Server? locker) || locker == null)
                 return;
 
             int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
             DoorPermissionFlags value = Values[ValidatedSelectedIndex];
 
-            TmeChamber chamber = locker.GetOrCreateChamber(selected);
-            chamber.Permissions = value;
+            TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
+            chamber?.Permissions = value;
 
             if (locker.Base?.Chambers != null && selected >= 0 && selected < locker.Base.Chambers.Length)
                 locker.Base.Chambers[selected].RequiredPermissions = value;
@@ -254,11 +265,10 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
+            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerDef.Server? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            ItemType current = locker.GetChamber(selected)?.Data.FirstOrDefault()?.ItemType ?? Values[0];
+            ItemType current = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner))?.Data.FirstOrDefault()?.ItemType ?? Values[0];
             Base.DefaultOptionIndex = IndexOf(current);
         }
 
@@ -270,15 +280,16 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
+            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerDef.Server? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
             ItemType value = Values[ValidatedSelectedIndex];
-
-            TmeChamber chamber = locker.GetOrCreateChamber(selected);
-            ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
-            entry.ItemType = value;
+            TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
+            if (chamber != null)
+            {
+                ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
+                entry.ItemType = value;
+            }
         }
 
         private static ChamberData EnsureEntry(TmeChamber chamber)
@@ -308,11 +319,10 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
+            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerDef.Server? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            float chance = locker.GetChamber(selected)?.Data.FirstOrDefault()?.SpawnPercent ?? 100f;
+            float chance = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner))?.Data.FirstOrDefault()?.SpawnPercent ?? 100f;
             DefaultValue = ToolGunMenu.Clamp(chance, 0f, 100f);
         }
 
@@ -324,13 +334,15 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
+            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerDef.Server? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            TmeChamber chamber = locker.GetOrCreateChamber(selected);
-            ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
-            entry.SpawnPercent = SelectedValueFloat;
+            TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
+            if (chamber != null)
+            {
+                ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
+                entry.SpawnPercent = SelectedValueFloat;
+            }
         }
 
         private static ChamberData EnsureEntry(TmeChamber chamber)
@@ -360,11 +372,10 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
+            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerDef.Server? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            int amount = locker.GetChamber(selected)?.Data.FirstOrDefault()?.AmountToSpawn ?? 1;
+            int amount = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner))?.Data.FirstOrDefault()?.AmountToSpawn ?? 1;
             DefaultValue = ToolGunMenu.Clamp(amount, 1f, 10f);
         }
 
@@ -376,13 +387,15 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
+            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerDef.Server? locker) || locker == null)
                 return;
 
-            int selected = LockerChamberHelper.GetSelectedChamberIndex(KnownOwner);
-            TmeChamber chamber = locker.GetOrCreateChamber(selected);
-            ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
-            entry.AmountToSpawn = SelectedValueInt < 1 ? 1 : SelectedValueInt;
+            TmeChamber? chamber = locker.GetChamber(LockerChamberHelper.GetSelectedChamber(KnownOwner));
+            if (chamber != null)
+            {
+                ChamberData entry = chamber.Data.FirstOrDefault() ?? EnsureEntry(chamber);
+                entry.AmountToSpawn = SelectedValueInt < 1 ? 1 : SelectedValueInt;
+            }
         }
 
         private static ChamberData EnsureEntry(TmeChamber chamber)
@@ -412,7 +425,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
+            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerDef.Server? locker) || locker == null)
                 return;
 
             locker.RefreshChambers();
@@ -439,7 +452,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (KnownOwner == null)
                 return;
 
-            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerObject? locker) || locker == null)
+            if (!LockerChamberHelper.TryGetLocker(KnownOwner, out LockerDef.Server? locker) || locker == null)
                 return;
 
             locker.RemoveChamber(LockerChamberHelper.GetSelectedChamberIndex(KnownOwner));
@@ -458,13 +471,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Locker;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<LockerObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<LockerDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new LockerPopulateSetting();
 
         protected override void HandleSettingUpdate()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerObject? locker) && locker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerDef.Server? locker) && locker != null)
             {
                 locker.ClearChambers();
                 locker.PopulateChambers();
@@ -482,13 +495,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Locker;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<LockerObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<LockerDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new LockerClearSetting();
 
         protected override void HandleSettingUpdate()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerObject? locker) && locker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out LockerDef.Server? locker) && locker != null)
                 locker.ClearChambers();
         }
     }

@@ -1,13 +1,13 @@
 // -----------------------------------------------------------------------
 // <copyright file="SpeakerSettings.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 {
@@ -19,7 +19,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Speaker;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<SpeakerObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Speaker.Server>(player);
     }
 
     public class SpeakerVolumeSetting : SpeakerSliderSetting
@@ -34,7 +34,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
                 DefaultValue = ToolGunMenu.Clamp(speaker.Volume, 0f, 100f);
         }
 
@@ -43,7 +43,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
                 speaker.Volume = SelectedValueFloat;
         }
     }
@@ -58,13 +58,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Speaker;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<SpeakerObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Speaker.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new SpeakerSpatialSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
                 Base.DefaultIsB = speaker.IsSpatial;
         }
 
@@ -73,7 +73,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
                 speaker.IsSpatial = IsOptionB;
         }
     }
@@ -90,7 +90,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
                 DefaultValue = ToolGunMenu.Clamp(speaker.MinDistance, 0f, 100f);
         }
 
@@ -99,7 +99,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
                 speaker.MinDistance = SelectedValueFloat;
         }
     }
@@ -116,7 +116,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
                 DefaultValue = ToolGunMenu.Clamp(speaker.MaxDistance, 0f, 100f);
         }
 
@@ -125,7 +125,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
                 speaker.MaxDistance = SelectedValueFloat;
         }
     }
@@ -140,13 +140,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Speaker;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<SpeakerObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Speaker.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new SpeakerLoopSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
                 Base.DefaultIsB = speaker.Loop;
         }
 
@@ -155,7 +155,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
                 speaker.Loop = IsOptionB;
         }
     }
@@ -172,13 +172,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Speaker;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<SpeakerObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<Speaker.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new SpeakerPathSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
                 Base.DefaultText = ToolGunMenu.SanitizeDisplayText(speaker.Path, MaxPathLength);
         }
 
@@ -187,7 +187,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out SpeakerObject? speaker) && speaker != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out Speaker.Server? speaker) && speaker != null)
             {
                 if (InputText == ToolGunMenu.SanitizeDisplayText(speaker.Path, MaxPathLength))
                     return;

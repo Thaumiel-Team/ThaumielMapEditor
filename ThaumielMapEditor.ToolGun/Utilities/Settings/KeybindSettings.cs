@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="KeybindSettings.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -118,6 +118,32 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings
                 return;
 
             ToolGunUtils.ClearSelection(KnownOwner, settings);
+        }
+    }
+
+    public class DeleteObjectKeybind : CustomKeybindSetting
+    {
+        public static int SettingId => Main.Instance.Config.DeleteObjectKeybindId;
+
+        public DeleteObjectKeybind() : base(SettingId, "Delete Object", KeyCode.Delete, false, false)
+        {
+        }
+
+        public override CustomHeader Header => ToolGunHeaders.Keybinds;
+
+        protected override bool CanView(Player player) => ToolGunMenu.IsEquipped(player) && ToolGunMenu.IsKeybindsMenu(player);
+
+        protected override CustomSetting CreateDuplicate() => new DeleteObjectKeybind();
+
+        protected override void HandleSettingUpdate()
+        {
+            if (!IsPressed || KnownOwner == null)
+                return;
+
+            if (!KnownOwner.TryGetToolGunSettings(out ToolGunSettings settings))
+                return;
+
+            ToolGunUtils.TryDeleteSelected(KnownOwner, settings);
         }
     }
 }

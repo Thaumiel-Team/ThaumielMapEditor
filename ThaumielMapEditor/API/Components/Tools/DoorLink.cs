@@ -1,13 +1,14 @@
 // -----------------------------------------------------------------------
 // <copyright file="DoorLink.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
+using ThaumielMapEditor.API.Binary.Attributes;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
@@ -22,11 +23,12 @@ namespace ThaumielMapEditor.API.Components.Tools
         
         private static readonly List<DoorLink> ActiveLinks = [];
 
-        private DoorObject? door;
+        private Door.Server? door;
         private bool lastKnownState;
         private bool _propagating;
 
         [YamlMember(Alias = "GroupId")]
+        [BinaryProperty(Name = "GroupId")]
         public string GroupId { get; set; } = string.Empty;
 
         public override ToolType Type => ToolType.Doorlink;
@@ -35,7 +37,7 @@ namespace ThaumielMapEditor.API.Components.Tools
         {
             base.Init(obj, schem, properties);
 
-            if (obj is not DoorObject doorObj)
+            if (obj is not Door.Server doorObj)
             {
                 LogManager.Warn($"DoorLink tool applied to non door object '{obj.Name}' in '{schem.FileName}'. Skipping.");
                 return;

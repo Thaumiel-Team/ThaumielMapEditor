@@ -1,0 +1,326 @@
+// -----------------------------------------------------------------------
+// <copyright file="Door.cs" company="Thaumiel Team">
+// Copyright (c) Thaumiel Team. All rights reserved.
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
+// </copyright>
+// -----------------------------------------------------------------------
+
+using Interactables.Interobjects;
+using Interactables.Interobjects.DoorUtils;
+using MapGeneration.RoomConnectors;
+using MEC;
+using Mirror;
+using System;
+using ThaumielMapEditor.API.Binary.Attributes;
+using ThaumielMapEditor.API.Data;
+using ThaumielMapEditor.API.Enums;
+using ThaumielMapEditor.API.Helpers;
+using ThaumielMapEditor.API.Serialization;
+using ThaumielMapEditor.Events.EventArgs.Handlers;
+using YamlDotNet.Serialization;
+
+namespace ThaumielMapEditor.API.Blocks.Definitions
+{
+    [GitBookPage("Blocks/Definitions/Door")]
+    public sealed class Door : ServerDefinition<Door.Server>
+    {
+        /// <inheritdoc/>
+        public override string Name => "Door";
+
+        /// <inheritdoc/>
+        public override ObjectType ObjectType => ObjectType.Door;
+
+        public sealed class Server : ServerObject
+        {
+            /// <summary>
+            /// Returns the <see cref="DoorVariant"/> prefab that corresponds to the given <see cref="DoorType"/>.
+            /// </summary>
+            /// <param name="type">The door type to look up.</param>
+            /// <returns>The matching <see cref="DoorVariant"/> prefab, or <c>null</c> if not found.</returns>
+            /// <exception cref="ArgumentOutOfRangeException">
+            /// Thrown when <paramref name="type"/> does not match any known door type.
+            /// </exception>
+            public DoorVariant? GetDoorFromType(DoorType type)
+            {
+                return type switch
+                {
+                    DoorType.Lcz => PrefabHelper.DoorLcz,
+                    DoorType.Hcz => PrefabHelper.DoorHcz,
+                    DoorType.Ez => PrefabHelper.DoorEz,
+                    DoorType.Gate => PrefabHelper.DoorGate,
+                    DoorType.BulkHead => PrefabHelper.DoorHeavyBulk,
+                    _ => throw new ArgumentOutOfRangeException(nameof(type), $"Unknown door type: {type}")
+                };
+            }
+
+            /// <summary>
+            /// Reference to the underlying game <see cref="DoorVariant"/> object.
+            /// </summary>
+            [YamlIgnore]
+            public DoorVariant? Base { get; internal set; }
+
+            /// <summary>
+            /// The visual and functional type of this door.
+            /// </summary>
+            [YamlMember(Alias = "DoorType")]
+            [BinaryProperty(Name = "DoorType")]
+            public DoorType DoorType
+            {
+                get;
+                set
+                {
+                    if (field == value)
+                        return;
+
+                    field = value;
+                    if (Base == null || Object == null)
+                        return;
+
+                    NetworkServer.Destroy(Object);
+                    SpawnObject();
+                }
+            }
+
+            /// <summary>
+            /// The keycard permission flags required to interact with this door.
+            /// </summary>
+            [YamlMember(Alias = "Permissions")]
+            [BinaryProperty(Name = "Permissions")]
+            public DoorPermissionFlags Permissions
+            {
+                get;
+                set
+                {
+                    if (field == value)
+                        return;
+
+                    Base?.RequiredPermissions = new(value, RequireAllPermissions, Bypass2176);
+                    field = value;
+                }
+            }
+
+            /// <summary>
+            /// If <see langword="true"/>, the player must hold all listed permissions rather than just one.
+            /// </summary>
+            [YamlMember(Alias = "RequireAllPermissions")]
+            [BinaryProperty(Name = "RequireAllPermissions")]
+            public bool RequireAllPermissions
+            {
+                get;
+                set
+                {
+                    if (field == value)
+                        return;
+
+                    Base?.RequiredPermissions = new(Permissions, value, Bypass2176);
+                    field = value;
+                }
+            }
+
+            /// <summary>
+            /// If <see langword="true"/>, SCP-2176 can bypass this door's permissions.
+            /// </summary>
+            [YamlMember(Alias = "Bypass2176")]
+            [BinaryProperty(Name = "Bypass2176")]
+            public bool Bypass2176
+            {
+                get;
+                set
+                {
+                    if (field == value)
+                        return;
+
+                    Base?.RequiredPermissions = new(Permissions, RequireAllPermissions, value);
+                    field = value;
+                }
+            }
+
+            /// <summary>
+            /// The maximum health of this door. Only applies to doors that extend <see cref="BreakableDoor"/>.
+            /// Ignored for non-breakable door types.
+            /// </summary>
+            [YamlMember(Alias = "MaxHealth")]
+            [BinaryProperty(Name = "MaxHealth")]
+            public float MaxHealth
+            {
+                get;
+                set
+                {
+                    if (field == value || Base == null || Base is not BreakableDoor breakable)
+                        return;
+
+                    breakable.MaxHealth = value;
+                    field = value;
+                }
+            }
+
+            /// <summary>
+            /// The current remaining health of this door. Only applies to doors that extend <see cref="BreakableDoor"/>.
+            /// Ignored for non-breakable door types.
+            /// </summary>
+            [YamlMember(Alias = "Health")]
+            [BinaryProperty(Name = "Health")]
+            public float Health
+            {
+                get;
+                set
+                {
+                    if (field == value || Base == null || Base is not BreakableDoor breakable)
+                        return;
+
+                    breakable.RemainingHealth = value;
+                    field = value;
+                }
+            }
+
+            /// <summary>
+            /// Whether the door is currently open.
+            /// </summary>
+            [YamlMember(Alias = "IsOpen")]
+            [BinaryProperty(Name = "IsOpen")]
+            public bool IsOpen
+            {
+                get;
+                set
+                {
+                    if (field == value)
+                        return;
+
+                    Base?.NetworkTargetState = value;
+                    field = value;
+                }
+            }
+
+            /// <summary>
+            /// Whether the door is locked via admin command.
+            /// </summary>
+            [YamlMember(Alias = "IsLocked")]
+            [BinaryProperty(Name = "IsLocked")]
+            public bool IsLocked
+            {
+                get;
+                set
+                {
+                    if (field == value)
+                        return;
+
+                    Base?.ServerChangeLock(DoorLockReason.SpecialDoorFeature, value);
+                    field = value;
+                }
+            }
+
+            public override ObjectType ObjectType { get; set; } = ObjectType.Door;
+
+            /// <inheritdoc/>
+            public override void SpawnObject(SchematicData schematic, SerializableObject serializable)
+            {
+                DoorVariant? door = GetDoorFromType(DoorType);
+                if (door == null)
+                {
+                    LogManager.Warn($"Failed to get DoorVariant from {schematic.FileName}, DoorType: {DoorType}");
+                    return;
+                }
+                
+                DoorVariant doorPrefab = UnityEngine.Object.Instantiate(door);
+                NetworkServer.UnSpawn(doorPrefab.gameObject);
+
+                if (doorPrefab.TryGetComponent<WallableSmallNodeRoomConnector>(out var con) && DoorType == DoorType.Hcz)
+                    con.Network_syncBitmask = 3;
+
+                if (doorPrefab.TryGetComponent(out DoorRandomInitialStateExtension doorRandomInitialStateExtension))
+                    UnityEngine.Object.Destroy(doorRandomInitialStateExtension);
+
+                Object = doorPrefab.gameObject;
+                Base = doorPrefab;
+                SetWorldTransform(schematic);
+                Base.transform.localScale = Scale;
+                ApplyProperties(doorPrefab);
+                NetworkServer.Spawn(Object);
+                NetId = doorPrefab.netId;
+                base.SpawnObject(schematic, serializable);
+            }
+
+            public void SpawnObject(SchematicData schematic)
+            {
+                DoorVariant? door = GetDoorFromType(DoorType);
+                if (door == null)
+                {
+                    LogManager.Warn($"Failed to get DoorVariant from {schematic.FileName}, DoorType: {DoorType}");
+                    return;
+                }
+
+                DoorVariant doorPrefab = UnityEngine.Object.Instantiate(door);
+                NetworkServer.UnSpawn(doorPrefab.gameObject);
+
+                if (doorPrefab.TryGetComponent<WallableSmallNodeRoomConnector>(out var con) && DoorType == DoorType.Hcz)
+                    con.Network_syncBitmask = 3;
+
+                if (doorPrefab.TryGetComponent(out DoorRandomInitialStateExtension doorRandomInitialStateExtension))
+                    UnityEngine.Object.Destroy(doorRandomInitialStateExtension);
+
+                Object = doorPrefab.gameObject;
+                Base = doorPrefab;
+                SetWorldTransform(schematic);
+                Object.transform.localScale = Scale;
+                ApplyProperties(doorPrefab);
+                NetworkServer.Spawn(Object);
+                NetId = doorPrefab.netId;
+                ObjectHandler.OnServerObjectSpawned(new(this));
+                SpawnedObjects.Add(this);
+                schematic.SpawnedServerObjects.Add(this);
+            }
+
+            private void SpawnObject()
+            {
+                DoorVariant? door = GetDoorFromType(DoorType);
+                if (door == null)
+                {
+                    LogManager.Warn($"Failed to get DoorVariant, DoorType: {DoorType}");
+                    return;
+                }
+
+                DoorVariant doorPrefab = UnityEngine.Object.Instantiate(door);
+                NetworkServer.UnSpawn(doorPrefab.gameObject);
+
+                if (doorPrefab.TryGetComponent<WallableSmallNodeRoomConnector>(out var con) && DoorType == DoorType.Hcz)
+                    con.Network_syncBitmask = 3;
+
+                if (doorPrefab.TryGetComponent(out DoorRandomInitialStateExtension doorRandomInitialStateExtension))
+                    UnityEngine.Object.Destroy(doorRandomInitialStateExtension);
+
+                Object = doorPrefab.gameObject;
+                Base = doorPrefab;
+                Base.gameObject.transform.SetPositionAndRotation(Position, Rotation);
+                Object.transform.localScale = Scale;
+                ApplyProperties(Base);
+                NetworkServer.Spawn(Object);
+                NetId = doorPrefab.netId;
+            }
+
+            /// <summary>
+            /// Applies all current property values to the given door prefab.
+            /// </summary>
+            /// <param name="door">The <see cref="DoorVariant"/> to apply properties to.</param>
+            public void ApplyProperties(DoorVariant door)
+            {
+                if (door is BreakableDoor breakable)
+                {
+                    breakable.MaxHealth = MaxHealth;
+                    breakable.RemainingHealth = Health;
+                }
+                
+                door.NetworkTargetState = IsOpen;
+                door.ServerChangeLock(DoorLockReason.SpecialDoorFeature, IsLocked);
+                door.RequiredPermissions = new(Permissions, RequireAllPermissions, Bypass2176);
+                Timing.CallDelayed(Timing.WaitForOneFrame, () =>
+                {
+                    IsOpen = !IsOpen;
+                    Timing.CallDelayed(Timing.WaitForOneFrame, () =>
+                    {
+                        IsOpen = !IsOpen;
+                    });
+                });
+            }
+        }
+    }
+}

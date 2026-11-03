@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="Parent.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -41,6 +41,8 @@ namespace ThaumielMapEditor.Commands
             Subcommands.Add(new Reload());
             Subcommands.Add(new Grab());
             Subcommands.Add(new Admin.Convert());
+            Subcommands.Add(new Admin.ConvertMap());
+            Subcommands.Add(new Admin.ConvertFile());
             Subcommands.Add(new Coroutines());
             Subcommands.Add(new Debug());
         }

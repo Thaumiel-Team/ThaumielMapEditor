@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="PhysicsBlocks.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -78,7 +78,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? O { get; set; }
         public object? D { get; set; }
 
-        public override object ReturnExecute()
+        public override object? ReturnExecute()
         {
             Vector3 origin = BlockValueResolver.ResolveVector3(O, null);
             Vector3 direction = BlockValueResolver.ResolveVector3(D, null);
@@ -88,7 +88,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
             return hit;
         }
 
-        public override object ReturnExecute(object obj)
+        public override object? ReturnExecute(object obj)
         {
             return ReturnExecute();
         }

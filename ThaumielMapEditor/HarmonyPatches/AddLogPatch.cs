@@ -1,7 +1,7 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="AddLogPatch.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -22,14 +22,15 @@ namespace ThaumielMapEditor.HarmonyPatches
         {
             try
             {
-                if (string.IsNullOrEmpty(q) || !q.Contains("[ERROR]") || !q.Contains("ThaumielMapEditor"))
+                if (string.IsNullOrEmpty(q) || !q.Contains("[ERROR]") || !q.Contains("[ThaumielMapEditor]"))
                     return;
 
                 if (!Main.Instance.Config.AutomaticErrorUpload)
                     return;
 
                 q = PatchSuffixRegex.Replace(q, string.Empty);
-                LogsUploader.SendAutoRequest($"{q.Replace("MonoMod.Utils.DynamicMethodDefinition.", "")}");
+                AutoLogRequest request = new(q.Replace("MonoMod.Utils.DynamicMethodDefinition.", ""));
+                request.SendRequest();
             }
             catch
             {

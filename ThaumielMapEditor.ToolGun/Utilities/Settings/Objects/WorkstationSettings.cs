@@ -1,13 +1,14 @@
 // -----------------------------------------------------------------------
 // <copyright file="WorkstationSettings.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
 using LabApi.Features.Wrappers;
 using SecretAPI.Features.UserSettings;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
+using WorkstationDef = ThaumielMapEditor.API.Blocks.Definitions.Workstation;
 
 namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 {
@@ -21,13 +22,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Workstation;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<WorkstationObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<WorkstationDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new WorkstationInfo();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WorkstationObject? workstation) && workstation != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WorkstationDef.Server? workstation) && workstation != null)
                 Content = $"Workstation Settings (Interactions: {(workstation.AllowInteractions ? "Allowed" : "Blocked")})";
         }
 
@@ -46,13 +47,13 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
 
         public override CustomHeader Header => ToolGunHeaders.Workstation;
 
-        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<WorkstationObject>(player);
+        protected override bool CanView(Player player) => ObjectSettingsHelper.CanViewServer<WorkstationDef.Server>(player);
 
         protected override CustomSetting CreateDuplicate() => new WorkstationAllowInteractionsSetting();
 
         protected override void PersonalizeSetting()
         {
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WorkstationObject? workstation) && workstation != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WorkstationDef.Server? workstation) && workstation != null)
                 Base.DefaultIsB = workstation.AllowInteractions;
         }
 
@@ -61,7 +62,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities.Settings.Objects
             if (LastUpdateType == SettingResponseType.Initial)
                 return;
 
-            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WorkstationObject? workstation) && workstation != null)
+            if (KnownOwner != null && ObjectSettingsHelper.TryGetServer(KnownOwner, out WorkstationDef.Server? workstation) && workstation != null)
                 workstation.AllowInteractions = IsOptionB;
         }
     }

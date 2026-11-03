@@ -1,16 +1,13 @@
 // -----------------------------------------------------------------------
 // <copyright file="BlockExecutor.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using LabApi.Features.Wrappers;
-using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ClientSide;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers.BlockParser;
@@ -20,118 +17,119 @@ namespace ThaumielMapEditor.API.Helpers
     [GitBookPage("BlockExecutor")]
     public class BlockExecutor
     {
-        public BlockExecutor(SchematicData schematic)
-        {
-            Schematic = schematic;
-            Scopes.Push([]);
-        }
+        public BlockExecutor(SchematicData schematic) => Schematic = schematic;
 
         public readonly SchematicData Schematic;
-        public Dictionary<BlockBase, List<object>> Entries = [];
-        public readonly Stack<Dictionary<string, object?>> Scopes = new();
-        public Dictionary<string, MethodBlock> Procedures { get; } = [];
 
-        private object? _currentServer;
-        private object? _currentClient;
-        private bool _isCurrentServerSide;
+        internal Dictionary<string, object?> Globals { get; } = new(StringComparer.Ordinal);
 
-        public void Execute(List<object> blocks, Player player, EventType? eventType = null)
+        /// <summary>
+        /// Runs <paramref name="program"/> against the schematic owned by this executor.
+        /// </summary>
+        /// <remarks>
+        /// A parsed program is immutable, so the same instance may safely be executed by many schematics.
+        /// </remarks>
+        public void Execute(ScriptProgram program, Player? player, EventType? eventType = null, object? eventParameter = null)
         {
-            foreach (MethodBlock method in blocks.OfType<MethodBlock>())
-            {
-                Procedures[method.Name] = method;
-            }
+            if (program == null || program.Blocks.Count == 0)
+                return;
 
-            if (eventType != null)
+            using BlockExecution execution = new BlockExecution(this, program, player).Enter();
+            Run(program, player, eventType, eventParameter);
+        }
+
+        internal void ExecuteStack(List<object?> stack, Player? player)
+        {
+            BlockExecution? execution = BlockExecution.Current;
+
+            if (execution == null)
+                return;
+
+            bool hasTarget = execution.HasTarget;
+            object? target = execution.Target;
+            execution.HasTarget = false;
+            execution.Target = null;
+
+            try
             {
-                foreach (EventBlock? eventBlock in blocks.OfType<EventBlock>().Where(b => b.EventType == eventType))
+                foreach (object? block in stack)
                 {
-                    foreach (object? block in eventBlock.Stack)
-                    {
-                        if (block == null)
-                            continue;
-
+                    if (block != null)
                         ExecuteBlock(block, player);
-                    }
+                }
+            }
+            finally
+            {
+                execution.HasTarget = hasTarget;
+                execution.Target = target;
+            }
+        }
+
+        private void Run(ScriptProgram program, Player? player, EventType? eventType, object? eventParameter)
+        {
+            if (eventType is { } type)
+            {
+                foreach (EventBlock handler in program.GetHandlers(type))
+                {
+                    handler.Execute(player!, eventParameter ?? player);
                 }
 
-                FlushCurrent();
                 return;
             }
-    
-            foreach (object block in blocks)
+
+            foreach (object block in program.Blocks)
             {
                 if (block is MethodBlock)
                     continue;
 
                 ExecuteBlock(block, player);
             }
-
-            FlushCurrent();
         }
 
-        internal void ExecuteStack(List<object> stack, Player player)
-        {
-            foreach (object? block in stack)
-            {
-                if (block == null)
-                    continue;
-
-                ExecuteBlock(block, player);
-            }
-        }
-
-        private void ExecuteBlock(object block, Player player)
+        private void ExecuteBlock(object block, Player? player)
         {
             switch (block)
             {
-                case ProcedureCallNoReturnBlock callBlock:
-                    callBlock.Executor = this;
-                    ExecuteProcedureCall(callBlock.Name, [], player);
+                case ProcedureCallNoReturnBlock call:
+                    ExecuteProcedure(call.Name, null, player);
                     break;
 
-                case ProcedureCallReturnBlock callReturnBlock:
-                    callReturnBlock.Executor = this;
-                    object? result = ExecuteProcedureCallReturn(callReturnBlock.Name, callReturnBlock.Args, player);
-                    UpdateEntries(callReturnBlock, result!);
+                case ProcedureCallReturnBlock call:
+                    ExecuteProcedure(call.Name, call.Args, player);
                     break;
 
-                case VariableBlock varBlock:
-                    varBlock.Executor = this;
-                    ExecuteSetVariable(varBlock);
+                case VariableBlock variable:
+                    SetVariable(variable.Name, BlockBase.ResolveValue(variable.Value));
                     break;
 
-                case GetVariableBlock getVariableBlock:
-                    getVariableBlock.SetExecutorRecursive(this);
-                    GetVariable(getVariableBlock);
+                case GetVariableBlock getVariable:
+                    if (!TryGetVariable(getVariable.Name, out _))
+                        LogManager.Warn($"Variable '{getVariable.Name}' not found.");
+
                     break;
 
-                case PrimitiveCreateBlock createBlock:
-                    createBlock.Executor = this;
-                    ExecuteCreate(createBlock);
+                case PrimitiveCreateBlock create:
+                    ExecutePrimitiveCreate(create);
                     break;
 
-                case TextToyCreateBlock textToyCreateBlock:
-                    textToyCreateBlock.Executor = this;
-                    ExecuteObjectCreate(textToyCreateBlock, textToyCreateBlock.Name, "TextToy");
+                case TextToyCreateBlock textToy:
+                    ExecuteObjectCreate(textToy, textToy.Name, "TextToy");
                     break;
 
-                case WaypointCreateBlock waypointCreateBlock:
-                    waypointCreateBlock.Executor = this;
-                    ExecuteObjectCreate(waypointCreateBlock, waypointCreateBlock.Name, "Waypoint");
+                case WaypointCreateBlock waypoint:
+                    ExecuteObjectCreate(waypoint, waypoint.Name, "Waypoint");
                     break;
 
-                case SpeakerCreateBlock speakerCreateBlock:
-                    speakerCreateBlock.Executor = this;
-                    ExecuteObjectCreate(speakerCreateBlock, speakerCreateBlock.Name, "Speaker");
+                case SpeakerCreateBlock speaker:
+                    ExecuteObjectCreate(speaker, speaker.Name, "Speaker");
                     break;
 
-                case BlockBase blockbase:
-                    blockbase.SetExecutorRecursive(this);
-                    blockbase.Execute();
-                    blockbase.Execute(player);
-                    ExecuteParamBlocks(blockbase);
-                    ExecuteReturns(blockbase, player);
+                case CreateDoorBlock door:
+                    ExecuteDoorCreate(door);
+                    break;
+
+                case BlockBase blockBase:
+                    Dispatch(blockBase, player);
                     break;
 
                 default:
@@ -140,9 +138,53 @@ namespace ThaumielMapEditor.API.Helpers
             }
         }
 
-        private void ExecuteProcedureCall(string name, Dictionary<string, object?> args, Player player)
+        private void Dispatch(BlockBase block, Player? player)
         {
-            if (!Procedures.TryGetValue(name, out MethodBlock? method))
+            BlockExecution execution = BlockExecution.Require();
+
+            object? target = block.Target is null ? null : block.ResolveTargetValue();
+
+            bool previousHasTarget = execution.HasTarget;
+            object? previousTarget = execution.Target;
+
+            if (block.Target != null)
+            {
+                execution.Target = target;
+                execution.HasTarget = true;
+            }
+
+            try
+            {
+                block.Execute();
+
+                if (target is Player targetPlayer)
+                {
+                    block.Execute(targetPlayer);
+                }
+                else if (target != null)
+                {
+                    block.Execute(target);
+                }
+                else
+                {
+                    block.Execute(player!);
+
+                    if (execution.PendingObject is { } created)
+                        block.Execute(created);
+                }
+            }
+            finally
+            {
+                execution.Target = previousTarget;
+                execution.HasTarget = previousHasTarget;
+            }
+        }
+
+        private void ExecuteProcedure(string name, Dictionary<string, object?>? args, Player? player)
+        {
+            BlockExecution execution = BlockExecution.Require();
+
+            if (!execution.Program.Procedures.TryGetValue(name, out MethodBlock? method))
             {
                 LogManager.Warn($"Procedure '{name}' not found.");
                 return;
@@ -150,151 +192,95 @@ namespace ThaumielMapEditor.API.Helpers
 
             PushScope();
 
-            foreach (KeyValuePair<string, object?> arg in args)
+            try
             {
-                SetVariable(arg.Key, arg.Value is BlockBase b ? b.ReturnExecute() : arg.Value);
-            }
-
-            LogManager.Debug($"Calling procedure '{name}'.");
-            foreach (object? block in method.Stack)
-            {
-                if (block != null)
-                    ExecuteBlock(block, player);
-            }
-
-            PopScope();
-        }
-
-        private object? ExecuteProcedureCallReturn(string name, Dictionary<string, object?> args, Player player)
-        {
-            if (!Procedures.TryGetValue(name, out MethodBlock? method))
-            {
-                LogManager.Warn($"Procedure '{name}' not found.");
-                return null;
-            }
-
-            PushScope();
-
-            foreach (KeyValuePair<string, object?> arg in args)
-            {
-                SetVariable(arg.Key, arg.Value is BlockBase b ? b.ReturnExecute() : arg.Value);
-            }
-
-            LogManager.Debug($"Calling procedure (return) '{name}'.");
-            foreach (object? block in method.Stack)
-            {
-                if (block != null)
-                    ExecuteBlock(block, player);
-            }
-
-            object? returnVal = method.Return is BlockBase retBlock ? retBlock.ReturnExecute() : method.Return;
-
-            PopScope();
-            return returnVal;
-        }
-
-        private void ExecuteSetVariable(VariableBlock block)
-        {
-            object? value = block.Value;
-            if (value is BlockBase b)
-                value = b.ReturnExecute();
-
-            SetVariable(block.Name, value);
-            LogManager.Debug($"Set variable '{block.Name}' = {value}");
-        }
-
-        internal void PushScope()
-        {
-            Scopes.Push([]);
-        }
-
-        internal void PopScope()
-        {
-            if (Scopes.Count > 1)
-                Scopes.Pop();
-        }
-
-        internal void SetVariable(string name, object? value)
-        {
-            Scopes.Peek()[name] = value;
-        }
-
-        internal object? GetVariable(GetVariableBlock block)
-        {
-            foreach (Dictionary<string, object?> scope in Scopes)
-            {
-                if (scope.TryGetValue(block.Name, out var val))
+                if (args != null)
                 {
-                    block.Value = val;
-                    return val;
+                    foreach (KeyValuePair<string, object?> arg in args)
+                    {
+                        SetVariable(arg.Key, BlockBase.ResolveValue(arg.Value));
+                    }
+                }
+
+                LogManager.Debug($"Calling procedure '{name}'.");
+
+                foreach (object? block in method.Stack)
+                {
+                    if (block != null)
+                        ExecuteBlock(block, player);
                 }
             }
-
-            LogManager.Warn($"Variable '{block.Name}' not found.");
-            return null;
-        }
-
-        private void ExecuteReturns(BlockBase block, object param)
-        {
-            object obj = block.ReturnExecute(param);
-            UpdateEntries(block, obj);
-        }
-
-        private void ExecuteParamBlocks(BlockBase block)
-        {
-            if (_currentServer != null)
+            finally
             {
-                block.Execute(_currentServer!);
-            }
-
-            if (_currentClient != null)
-            {
-                block.Execute(_currentClient);
+                PopScope();
             }
         }
 
-        private void ExecuteCreate(PrimitiveCreateBlock block)
+        private void ExecutePrimitiveCreate(PrimitiveCreateBlock block)
         {
-            FlushCurrent();
+            BlockExecution execution = BlockExecution.Require();
+            execution.PendingObject = null;
 
-            _isCurrentServerSide = block.IsServerSide;
-            if (_isCurrentServerSide)
-            {
-                LogManager.Debug($"Creating server side primitive '{block.Name}'.");
-                _currentServer = (PrimitiveObjectServer)block.ReturnExecute(Schematic);
-            }
-            else
-            {
-                LogManager.Debug($"Creating client side primitive '{block.Name}'.");
-                _currentClient = (PrimitiveObject)block.ReturnExecute(Schematic);
-            }
+            LogManager.Debug($"Creating {(block.IsServerSide ? "server" : "client")} side primitive '{block.Name}'.");
+            execution.PendingObject = block.ReturnExecute(Schematic);
         }
 
         private void ExecuteObjectCreate(BlockBase block, string name, string typeName)
         {
-            FlushCurrent();
+            BlockExecution execution = BlockExecution.Require();
 
             LogManager.Debug($"Creating {typeName} '{name}'.");
-            _isCurrentServerSide = true;
-            _currentServer = (ServerObject)block.ReturnExecute(Schematic);
+            execution.PendingObject = block.ReturnExecute(Schematic);
         }
 
-        private void UpdateEntries(BlockBase block, object obj)
+        private void ExecuteDoorCreate(CreateDoorBlock block)
         {
-            if (Entries.TryGetValue(block, out var list))
+            BlockExecution execution = BlockExecution.Require();
+
+            LogManager.Debug("Creating Door.");
+            execution.PendingObject = block.ReturnExecute();
+        }
+
+        internal void PushScope() =>
+            BlockExecution.Current?.Scopes.Push([]);
+
+        internal void PopScope()
+        {
+            Stack<Dictionary<string, object?>>? scopes = BlockExecution.Current?.Scopes;
+
+            if (scopes is { Count: > 0 })
+                scopes.Pop();
+        }
+
+        internal void SetVariable(string name, object? value)
+        {
+            BlockExecution? execution = BlockExecution.Current;
+
+            if (execution is { Scopes.Count: > 0 })
             {
-                list.Add(obj);
-                Entries[block] = list;
-                return;
+                execution.Scopes.Peek()[name] = value;
+            }
+            else
+                Globals[name] = value;
+        }
+
+        /// <summary>
+        /// Looks a variable up in the running script scopes first, then in the variables persisted by this executor.
+        /// </summary>
+        public bool TryGetVariable(string name, out object? value)
+        {
+            BlockExecution? execution = BlockExecution.Current;
+
+            if (execution != null)
+            {
+                foreach (Dictionary<string, object?> scope in execution.Scopes)
+                {
+                    if (scope.TryGetValue(name, out value))
+                        return true;
+                }
             }
 
-            Entries.Add(block, [obj]);
-        }
-
-        private void FlushCurrent()
-        {
-            _currentServer = null;
-            _currentClient = null;
+            return Globals.TryGetValue(name, out value);
         }
     }
 }

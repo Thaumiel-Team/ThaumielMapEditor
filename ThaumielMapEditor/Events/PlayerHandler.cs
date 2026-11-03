@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="PlayerHandler.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -9,11 +9,12 @@ using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Handlers;
 using LabApi.Features.Wrappers;
 using MEC;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ClientSide;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
+using PickupDef = ThaumielMapEditor.API.Blocks.Definitions.Pickup;
 using ThaumielMapEditor.API.Components;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Extensions;
@@ -28,7 +29,7 @@ namespace ThaumielMapEditor.Events
         public static void Register()
         {
             PlayerEvents.Joined += OnPlayerJoined;
-            PlayerEvents.Spawned += PlayerSpawnPoint.OnPlayerSpawned;
+            PlayerEvents.Spawned += PlayerSpawnPoint.Server.OnPlayerSpawned;
             PlayerEvents.PickedUpItem += OnPlayerPickedUpItem;
             ReferenceHub.OnBeforePlayerDestroyed += OnPlayerLeft;
         }
@@ -36,7 +37,7 @@ namespace ThaumielMapEditor.Events
         public static void Unregister()
         {
             PlayerEvents.Joined -= OnPlayerJoined;
-            PlayerEvents.Spawned -= PlayerSpawnPoint.OnPlayerSpawned;
+            PlayerEvents.Spawned -= PlayerSpawnPoint.Server.OnPlayerSpawned;
             PlayerEvents.PickedUpItem -= OnPlayerPickedUpItem;
             ReferenceHub.OnBeforePlayerDestroyed -= OnPlayerLeft;
         }
@@ -46,7 +47,7 @@ namespace ThaumielMapEditor.Events
             if (ev.Item == null)
                 return;
 
-            if (PickupObject.IsItem(ev.Item, out PickupObject? instance) && instance != null)
+            if (PickupDef.Server.IsItem(ev.Item, out PickupDef.Server? instance) && instance != null)
             {
                 if (instance.IsInfinite)
                     instance.SpawnPickup();

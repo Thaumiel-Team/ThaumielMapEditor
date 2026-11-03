@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="TMELogs.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -25,16 +25,8 @@ namespace ThaumielMapEditor.Commands.Console
 
         protected override bool ExecuteParent(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            LogsUploader.SendRequest(uploaded =>
-            {
-                if (uploaded == null)
-                {
-                    LogManager.LogShare("[Error]: Failed to get response from endpoint.");
-                    return;
-                }
-
-                LogManager.LogShare($"[Info]: Please share this with the developers. [Id: {uploaded.Id}] Success: {uploaded.Success}, Created: {uploaded.CreatedAt}");
-            });
+            LogUploadRequest request = new();
+            request.SendRequest();
 
             response = "Please wait for the log.";
             return true;

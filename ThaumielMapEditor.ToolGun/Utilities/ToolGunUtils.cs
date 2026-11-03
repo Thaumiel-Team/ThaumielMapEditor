@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------
 // <copyright file="ToolGunUtils.cs" company="Thaumiel Team">
 // Copyright (c) Thaumiel Team. All rights reserved.
-// Licensed under the GNU General Public License v3.0 (GPL-3.0).
+// Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -10,12 +10,14 @@ using LabApi.Features.Wrappers;
 using System;
 using System.Linq;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.ClientSide;
-using ThaumielMapEditor.API.Blocks.ServerObjects;
+using ThaumielMapEditor.API.Blocks.Definitions;
+using LabPickup = LabApi.Features.Wrappers.Pickup;
+using PickupDef = ThaumielMapEditor.API.Blocks.Definitions.Pickup;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.ToolGun.Utilities.Settings;
 using UnityEngine;
+using UnityGameObject = UnityEngine.GameObject;
 
 namespace ThaumielMapEditor.ToolGun.Utilities
 {
@@ -63,7 +65,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
             PickupPreview.Hide(settings);
             settings.SelectedServer = server;
             settings.SelectedClient = client;
-            if (server is PickupObject pickup)
+            if (server is PickupDef.Server pickup)
                 PickupPreview.Show(settings, pickup);
                 
             StartSelectionDraw(player, settings);
@@ -88,6 +90,46 @@ namespace ThaumielMapEditor.ToolGun.Utilities
             settings.SelectedServer = null;
             settings.SelectedClient = null;
             ToolGunMenu.Refresh(player);
+        }
+
+        public static bool TryDeleteSelected(Player player, ToolGunSettings settings)
+        {
+            if (settings == null)
+                return false;
+
+            ServerObject? server = settings.SelectedServer;
+            ClientObject? client = server != null ? null : settings.SelectedClient;
+
+            if (server == null && client == null)
+                return false;
+
+            SchematicData? schematic = FindSchematic(server, client);
+
+            ClearSelection(player, settings);
+
+            if (schematic == null)
+            {
+                LogManager.Warn("Failed to delete the selected object: no owning schematic was found.");
+                return false;
+            }
+
+            bool deleted = server != null ? schematic.DestroyServerObject(server) : schematic.DestroyClientObject(client!);
+
+            if (deleted && schematic.SpawnedClientObjects.Count == 0 && schematic.SpawnedServerObjects.Count == 0)
+                Loader.DestroySchematic(schematic);
+
+            return deleted;
+        }
+
+        private static SchematicData? FindSchematic(ServerObject? server, ClientObject? client)
+        {
+            if (server != null)
+                return Loader.SpawnedSchematics.FirstOrDefault(s => s.SpawnedServerObjects.Contains(server));
+
+            if (client != null)
+                return Loader.SpawnedSchematics.FirstOrDefault(s => s.SpawnedClientObjects.Contains(client));
+
+            return null;
         }
 
         private static void StartSelectionDraw(Player player, ToolGunSettings settings)
@@ -179,7 +221,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
                     if (obj == null)
                         continue;
 
-                    if (obj is PrimitiveObject prim && prim.ServerCollider != null && collider == prim.ServerCollider)
+                    if (obj is Primitive.Client prim && prim.ServerCollider != null && collider == prim.ServerCollider)
                     {
                         client = obj;
                         return true;
@@ -207,8 +249,8 @@ namespace ThaumielMapEditor.ToolGun.Utilities
             ItemPickupBase? itemBase = collider.GetComponentInParent<ItemPickupBase>();
             if (itemBase != null)
             {
-                Pickup? worldPickup = Pickup.Get(itemBase);
-                if (worldPickup != null && PickupObject.IsPickup(worldPickup, out PickupObject? pickupSpawner) && pickupSpawner != null)
+                LabPickup? worldPickup = LabPickup.Get(itemBase);
+                if (worldPickup != null && PickupDef.Server.IsPickup(worldPickup, out PickupDef.Server? pickupSpawner) && pickupSpawner != null)
                 {
                     server = pickupSpawner;
                     return true;
@@ -217,10 +259,10 @@ namespace ThaumielMapEditor.ToolGun.Utilities
 
             foreach (ServerObject obj in ServerObject.SpawnedObjects.ToArray())
             {
-                if (obj is not RagdollSpawner ragdoll)
+                if (obj is not RagdollSpawner.Server ragdoll)
                     continue;
 
-                GameObject? candidate = ragdoll.Base?.Base.gameObject;
+                UnityGameObject? candidate = ragdoll.Base?.Base.gameObject;
                 if (candidate == null)
                     continue;
 
