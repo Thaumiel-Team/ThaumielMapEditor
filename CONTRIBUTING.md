@@ -18,4 +18,4 @@ To submit a PR:
 
 ## License
 
-By submitting a contribution, you agree that your work is licensed under the project's [LICENSE](LICENSE.txt).
+By submitting a contribution, you agree that your work is licensed under the project's [LICENSE](LICENSE) (GNU Lesser General Public License v3.0).
