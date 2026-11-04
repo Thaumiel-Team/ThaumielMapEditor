@@ -97,6 +97,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
+        [GitBookPage("Blocks/Definitions/Clutter/Server")]
         public sealed class Server : ServerObject
         {
             private readonly Clutter definition;
@@ -181,6 +182,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
         }
         
+        [GitBookPage("Blocks/Definitions/Clutter/Client")]
         public sealed class Client : ClientObject
         {
             private readonly Clutter definition;

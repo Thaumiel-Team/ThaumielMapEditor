@@ -26,6 +26,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.PlayerSpawnPoint;
 
+        [GitBookPage("Blocks/Definitions/PlayerSpawnPoint/Server")]
         public sealed class Server : ServerObject
         {
             public static List<Server> Instances { get; private set; } = [];

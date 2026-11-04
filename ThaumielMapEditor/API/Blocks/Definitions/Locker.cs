@@ -34,6 +34,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Locker;
 
+        [GitBookPage("Blocks/Definitions/Locker/Server")]
         public sealed class Server : ServerObject
         {
             private static readonly ItemType[] AllItemTypes = (ItemType[])Enum.GetValues(typeof(ItemType));

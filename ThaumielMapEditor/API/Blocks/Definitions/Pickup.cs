@@ -27,6 +27,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Pickup;
 
+        [GitBookPage("Blocks/Definitions/Pickup/Server")]
         public sealed class Server : ServerObject
         {
             [YamlIgnore]

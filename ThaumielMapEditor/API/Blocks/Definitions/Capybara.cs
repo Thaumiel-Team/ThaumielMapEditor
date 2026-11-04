@@ -49,6 +49,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
+        [GitBookPage("Blocks/Definitions/Capybara/Server")]
         public sealed class Server : ServerObject
         {
             private readonly Capybara definition;
@@ -105,6 +106,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
         }
 
+        [GitBookPage("Blocks/Definitions/Capybara/Client")]
         public sealed class Client : ClientObject
         {
             private readonly Capybara definition;

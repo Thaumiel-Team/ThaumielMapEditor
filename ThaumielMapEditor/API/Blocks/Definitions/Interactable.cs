@@ -33,6 +33,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Interactable;
 
+        [GitBookPage("Blocks/Definitions/Interactable/Server")]
         public sealed class Server : ServerObject
         {
             private static readonly Dictionary<InvisibleInteractableToy, Server> InteractionCache = [];

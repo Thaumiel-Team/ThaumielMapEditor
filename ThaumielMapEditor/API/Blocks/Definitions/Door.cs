@@ -30,6 +30,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Door;
 
+        [GitBookPage("Blocks/Definitions/Door/Server")]
         public sealed class Server : ServerObject
         {
             /// <summary>

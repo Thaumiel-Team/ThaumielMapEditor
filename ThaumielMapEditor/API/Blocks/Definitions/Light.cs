@@ -100,6 +100,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
+        [GitBookPage("Blocks/Definitions/Light/Server")]
         public sealed class Server : ServerObject
         {
             private readonly Light definition;
@@ -241,6 +242,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
         }
 
+        [GitBookPage("Blocks/Definitions/Light/Client")]
         public sealed class Client : ClientObject
         {
             private readonly Light definition;

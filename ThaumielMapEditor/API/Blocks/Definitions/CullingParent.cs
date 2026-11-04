@@ -75,6 +75,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
+        [GitBookPage("Blocks/Definitions/CullingParent/Server")]
         public sealed class Server : ServerObject
         {
             private readonly CullingParent definition;
@@ -177,6 +178,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
         }
 
+        [GitBookPage("Blocks/Definitions/CullingParent/Client")]
         public sealed class Client : ClientObject
         {
             private readonly CullingParent definition;

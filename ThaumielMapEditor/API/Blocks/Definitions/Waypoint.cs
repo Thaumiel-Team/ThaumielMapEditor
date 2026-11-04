@@ -25,6 +25,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Waypoint;
 
+        [GitBookPage("Blocks/Definitions/Waypoint/Server")]
         public sealed class Server : ServerObject
         {
             /// <summary>
