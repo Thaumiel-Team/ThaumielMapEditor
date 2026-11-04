@@ -29,6 +29,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Workstation;
 
+        [GitBookPage("Blocks/Definitions/Workstation/Server")]
         public sealed class Server : ServerObject
         {
             [YamlIgnore, BinaryIgnore]

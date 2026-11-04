@@ -20,7 +20,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks
 {
-    [GitBookPage("Blocks/Client/ClientObject")]
+    [GitBookPage("Blocks/ClientObject")]
     public abstract class ClientObject : ObjectBase
     {
         public static event Action<Vector3, ClientObject>? PositionUpdated;

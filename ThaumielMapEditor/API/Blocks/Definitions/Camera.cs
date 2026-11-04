@@ -31,6 +31,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Camera;
 
+        [GitBookPage("Blocks/Definitions/Camera/Server")]
         public sealed class Server : ServerObject
         {
             /// <summary>

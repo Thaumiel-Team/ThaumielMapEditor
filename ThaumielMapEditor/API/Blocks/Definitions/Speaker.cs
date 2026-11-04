@@ -28,6 +28,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Speaker;
 
+        [GitBookPage("Blocks/Definitions/Speaker/Server")]
         public sealed class Server : ServerObject
         {
             /// <summary>

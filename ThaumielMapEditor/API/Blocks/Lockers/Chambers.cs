@@ -7,6 +7,7 @@
 
 namespace ThaumielMapEditor.API.Blocks.Lockers
 {
+    [GitBookPage("Blocks/Definitions/Locker/Chambers")]
     public enum Chambers
     {
         LargeLockerTopLeft = 0,

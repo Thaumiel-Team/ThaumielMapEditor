@@ -28,6 +28,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.Teleporter;
 
+        [GitBookPage("Blocks/Definitions/Teleporter/Server")]
         public sealed class Server : ServerObject
         {
             private static readonly Dictionary<Guid, Server> RegisteredTeleporters = [];

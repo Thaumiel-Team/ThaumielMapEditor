@@ -46,6 +46,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
+        [GitBookPage("Blocks/Definitions/GameObject/Server")]
         public new sealed class Server : Primitive.Server
         {
             /// <summary>
@@ -65,6 +66,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
         }
         
+        [GitBookPage("Blocks/Definitions/GameObject/Client")]
         public new sealed class Client : Primitive.Client
         {
             /// <summary>

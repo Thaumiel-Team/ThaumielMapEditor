@@ -70,6 +70,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
+        [GitBookPage("Blocks/Definitions/Primitive/Server")]
         public class Server : ServerObject
         {
             private readonly Primitive definition;
@@ -179,6 +180,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             private bool ApplyTransform => definition.ApplyServerTransform;
         }
 
+        [GitBookPage("Blocks/Definitions/Primitive/Client")]
         public class Client : ClientObject
         {
             private readonly Primitive definition;

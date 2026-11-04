@@ -27,6 +27,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         /// <inheritdoc/>
         public override ObjectType ObjectType => ObjectType.RagdollSpawner;
 
+        [GitBookPage("Blocks/Definitions/RagdollSpawner/Server")]
         public sealed class Server : ServerObject
         {
             [YamlIgnore]

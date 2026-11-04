@@ -56,6 +56,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             };
         }
 
+        [GitBookPage("Blocks/Definitions/TextToy/Server")]
         public sealed class Server : ServerObject
         {
             private readonly TextToy definition;
@@ -149,6 +150,7 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             }
         }
 
+        [GitBookPage("Blocks/Definitions/TextToy/Client")]
         public sealed class Client : ClientObject
         {
             private readonly TextToy definition;
