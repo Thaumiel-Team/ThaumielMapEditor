@@ -459,8 +459,22 @@ def split_top_level(text: str, sep: str) -> List[str]:
         elif c in ")]}":
             depth -= 1
         elif c == '<':
+            if i + 1 < n and text[i + 1] in '<=':
+                buf.append(text[i:i + 2])
+                i += 2
+                continue
             angle_depth += 1
         elif c == '>':
+            if i + 1 < n and text[i + 1] == '>':
+                if angle_depth >= 2:
+                    angle_depth -= 2
+                buf.append('>>')
+                i += 2
+                continue
+            if i + 1 < n and text[i + 1] == '=':
+                buf.append('>=')
+                i += 2
+                continue
             if angle_depth > 0:
                 angle_depth -= 1
         if c == sep and depth == 0 and angle_depth == 0:
