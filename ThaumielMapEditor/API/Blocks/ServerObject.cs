@@ -20,7 +20,7 @@ using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks
 {
-    [GitBookPage("Components/Tools/ServerObject")]
+    [GitBookPage("Blocks/ServerObject")]
     public class ServerObject : ObjectBase
     {
         /// <summary>
