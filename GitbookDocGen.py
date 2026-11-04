@@ -1415,6 +1415,13 @@ class SummaryNode:
         return child
 
 
+@dataclass
+class SummaryPage:
+    title: str
+    path: str = ""
+    children: "List[SummaryPage]" = field(default_factory=list)
+
+
 def split_pascal_case(name: str) -> str:
     s = re.sub(r'(?<=[a-z0-9])(?=[A-Z])', ' ', name)
     s = re.sub(r'(?<=[A-Z])(?=[A-Z][a-z])', ' ', s)
@@ -1450,11 +1457,11 @@ def build_summary_tree(all_types: List[CSharpType], friendly_titles: bool = Fals
 
 
 def merge_duplicate_titles(root: SummaryNode) -> int:
-    first_seen: Dict[str, list] = {}
     merged = 0
 
     def visit(node: SummaryNode) -> None:
         nonlocal merged
+        first_seen: Dict[str, list] = {}
         kept: List[Tuple] = []
         for entry in node.entries:
             if entry[0] == 'file':
@@ -1464,8 +1471,8 @@ def merge_duplicate_titles(root: SummaryNode) -> int:
                     first_seen[title] = entry
                     kept.append(entry)
                 else:
-                    owner[3].append((title, path))
-                    owner[3].extend(subpages)
+                    owner[3].append(SummaryPage(title=title, path=path,
+                                                children=list(subpages)))
                     merged += 1
             else:
                 _, name, child = entry
@@ -1475,6 +1482,56 @@ def merge_duplicate_titles(root: SummaryNode) -> int:
 
     visit(root)
     return merged
+
+
+def _path_stem(path: str) -> str:
+    base = path.rsplit('/', 1)[-1]
+    if base.lower().endswith('.md'):
+        base = base[:-3]
+    return base
+
+
+def _entries_to_pages(node: SummaryNode) -> "List[SummaryPage]":
+    pages: List[SummaryPage] = []
+    for entry in node.entries:
+        if entry[0] == 'file':
+            _, title, path, subpages = entry
+            pages.append(SummaryPage(title=title, path=path,
+                                     children=list(subpages)))
+            continue
+        _, name, child = entry
+        if child.index:
+            pages.append(SummaryPage(title=child.index[0], path=child.index[1],
+                                     children=_entries_to_pages(child)))
+        else:
+            pages.append(SummaryPage(title=slug_to_title(name),
+                                     children=_entries_to_pages(child)))
+    return pages
+
+
+def fold_folder_pages(node: SummaryNode) -> int:
+    folded = 0
+    for entry in node.entries:
+        if entry[0] == 'folder':
+            folded += fold_folder_pages(entry[2])
+
+    pages_by_stem: Dict[str, Tuple] = {}
+    for entry in node.entries:
+        if entry[0] == 'file':
+            pages_by_stem.setdefault(_path_stem(entry[2]).lower(), entry)
+
+    kept: List[Tuple] = []
+    for entry in node.entries:
+        if entry[0] == 'folder':
+            _, name, child = entry
+            owner = pages_by_stem.get(name.lower())
+            if owner is not None and child.index is None:
+                owner[3].extend(_entries_to_pages(child))
+                folded += 1
+                continue
+        kept.append(entry)
+    node.entries[:] = kept
+    return folded
 
 
 def prune_empty_folders(node: SummaryNode) -> bool:
@@ -1490,13 +1547,22 @@ def prune_empty_folders(node: SummaryNode) -> bool:
     return bool(node.index or node.entries)
 
 
+def render_summary_pages(pages: "List[SummaryPage]", indent: int,
+                         lines: List[str]) -> None:
+    for page in pages:
+        if page.path:
+            lines.append(f"{'  ' * indent}* [{page.title}]({page.path})")
+        else:
+            lines.append(f"{'  ' * indent}* {page.title}")
+        render_summary_pages(page.children, indent + 1, lines)
+
+
 def render_summary_children(node: SummaryNode, indent: int, lines: List[str]) -> None:
     for entry in node.entries:
         if entry[0] == 'file':
             _, title, path, subpages = entry
             lines.append(f"{'  ' * indent}* [{title}]({path})")
-            for sub_title, sub_path in subpages:
-                lines.append(f"{'  ' * (indent + 1)}* [{sub_title}]({sub_path})")
+            render_summary_pages(subpages, indent + 1, lines)
         else:
             _, name, child = entry
             if child.index:
@@ -1522,8 +1588,7 @@ def render_summary(root: SummaryNode, title: str = "Table of contents") -> str:
         if entry[0] == 'file':
             _, ftitle, fpath, fsubs = entry
             lines.append(f"* [{ftitle}]({fpath})")
-            for sub_title, sub_path in fsubs:
-                lines.append(f"  * [{sub_title}]({sub_path})")
+            render_summary_pages(fsubs, 1, lines)
             continue
 
         _, name, child = entry
@@ -1625,9 +1690,14 @@ def main(argv=None):
     if not args.no_summary:
         summary_tree = build_summary_tree(all_types, friendly_titles=args.friendly_titles)
         merged = merge_duplicate_titles(summary_tree)
-        if merged:
+        folded = fold_folder_pages(summary_tree)
+        if merged or folded:
             prune_empty_folders(summary_tree)
+        if merged:
             print(f"summary: combined {merged} duplicate page(s) as subpages.",
+                  file=sys.stderr)
+        if folded:
+            print(f"summary: nested {folded} folder(s) under their matching page.",
                   file=sys.stderr)
         summary_md = render_summary(summary_tree, title=args.summary_title)
         summary_out_path = os.path.normpath(os.path.join(args.output, args.summary_path))
