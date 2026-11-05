@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Blocks;
-using ThaumielMapEditor.API.Blocks.Definitions;
 using DoorDef = ThaumielMapEditor.API.Blocks.Definitions.Door;
 using LabPrimitive = LabApi.Features.Wrappers.PrimitiveObjectToy;
 using System;
@@ -27,6 +26,7 @@ namespace ThaumielMapEditor.API.Data
     /// <summary>
     /// Transition layer class from PMER.
     /// </summary>
+    [Obsolete("Use SchematicData instead of this.")]
     public class SchematicObject : SchematicData;
 
     [GitBookPage("Data/SchematicData")]

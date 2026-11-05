@@ -47,7 +47,7 @@ namespace ThaumielMapEditor.API.Serialization
         /// <summary>
         /// Gets or sets the room by its name for the <see cref="SerializableMap"/> instance.
         /// </summary>
-        public RoomName Room { get; set; }
+        public string Room { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the local position of the room for the <see cref="SerializableMap"/> instance.
