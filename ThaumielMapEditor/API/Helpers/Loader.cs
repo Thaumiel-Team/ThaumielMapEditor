@@ -1538,7 +1538,7 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 try
                 {
-                    if (!Enum.TryParse<ToolType>(tool.ToolName, true, out ToolType type))
+                    if (!Enum.TryParse(tool.ToolName, true, out ToolType type))
                     {
                         LogManager.Warn($"Unknown tool type '{tool.ToolName}' on object '{serializable.Name}'.");
                         continue;

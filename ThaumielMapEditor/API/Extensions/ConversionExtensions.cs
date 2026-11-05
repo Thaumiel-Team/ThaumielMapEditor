@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
 
