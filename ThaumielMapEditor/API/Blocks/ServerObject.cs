@@ -159,6 +159,19 @@ namespace ThaumielMapEditor.API.Blocks
         /// <inheritdoc/>
         protected override void RegisterForSync() => SyncManager.RegisterForSync(this);
 
+        public ToolBase? GetTool<T>() where T : ToolBase
+        {
+            foreach (ToolBase tool in Tools)
+            {
+                if (tool is not T)
+                    continue;
+
+                return tool;
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// Applies the specified schematic's transformation to the current object's world position, rotation, and scale.
         /// </summary>
