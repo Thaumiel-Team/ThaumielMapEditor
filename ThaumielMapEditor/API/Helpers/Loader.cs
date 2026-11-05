@@ -15,9 +15,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using ThaumielMapEditor.API.Animation;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Binary;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Components;
@@ -141,10 +141,7 @@ namespace ThaumielMapEditor.API.Helpers
             BundleControllerCache.Clear();
             SchematicLODZones.Clear();
 
-            lock (IdLock)
-            {
-                _nextId = 0;
-            }
+            Interlocked.Exchange(ref _nextId, -1);
 
             AnimationController.ClearAll();
             DoorLink.ClearAll();
@@ -398,8 +395,7 @@ namespace ThaumielMapEditor.API.Helpers
             return schematic;
         }
 
-        private static uint _nextId;
-        private static readonly object IdLock = new();
+        private static int _nextId = -1;
 
         /// <summary>
         /// Gets a unique id for all <see cref="SchematicData"/>
@@ -407,13 +403,14 @@ namespace ThaumielMapEditor.API.Helpers
         /// <returns><see cref="uint"/> id</returns>
         public static uint GetId()
         {
-            lock (IdLock)
+            int id;
+            do
             {
-                while (SchematicsById.ContainsKey(_nextId))
-                    _nextId++;
-
-                return _nextId++;
+                id = Interlocked.Increment(ref _nextId);
             }
+            while (SchematicsById.ContainsKey((uint)id));
+
+            return (uint)id;
         }
 
         // Hopefuly this will stop clients from crashing when spawning large schematics.

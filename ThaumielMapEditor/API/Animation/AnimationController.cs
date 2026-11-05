@@ -5,6 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
@@ -15,8 +16,7 @@ namespace ThaumielMapEditor.API.Animation
     [GitBookPage("Animation/AnimationController")]
     public class AnimationController
     {
-        internal static readonly Dictionary<SchematicData, AnimationController> Dictionary = [];
-        private static readonly object DictionaryLock = new();
+        internal static readonly ConcurrentDictionary<SchematicData, AnimationController> Dictionary = new();
 
         internal AnimationController(SchematicData schematic)
         {
@@ -30,10 +30,6 @@ namespace ThaumielMapEditor.API.Animation
             }
 
             Animators = animators;
-            lock (DictionaryLock)
-            {
-                Dictionary[schematic] = this;
-            }
         }
 
         /// <summary>
@@ -234,31 +230,13 @@ namespace ThaumielMapEditor.API.Animation
         /// </summary>
         /// <param name="schematic">The schematic to look up.</param>
         /// <returns>The existing or newly created <see cref="AnimationController"/>.</returns>
-        public static AnimationController Get(SchematicData schematic)
-        {
-            lock (DictionaryLock)
-            {
-                if (Dictionary.TryGetValue(schematic, out AnimationController? controller))
-                    return controller;
-            }
+        public static AnimationController Get(SchematicData schematic) =>
+            Dictionary.GetOrAdd(schematic, static s => new AnimationController(s));
 
-            return new AnimationController(schematic);
-        }
+        internal static void Remove(SchematicData schematic) =>
+            Dictionary.TryRemove(schematic, out _);
 
-        internal static void Remove(SchematicData schematic)
-        {
-            lock (DictionaryLock)
-            {
-                Dictionary.Remove(schematic);
-            }
-        }
-
-        internal static void ClearAll()
-        {
-            lock (DictionaryLock)
-            {
-                Dictionary.Clear();
-            }
-        }
+        internal static void ClearAll() =>
+            Dictionary.Clear();
     }
 }
