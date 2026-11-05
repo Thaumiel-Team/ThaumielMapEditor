@@ -34,7 +34,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
 
             Executor.PushScope();
             Executor.SetVariable(ParamName, parameter);
-            Executor.ExecuteStack(Stack!, player);
+            Executor.ExecuteStack(Stack, player);
             Executor.PopScope();
         }
     }

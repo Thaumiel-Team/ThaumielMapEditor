@@ -99,7 +99,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? DICT { get; set; }
 
         public override object? ReturnExecute()
-            => ResolveValue(DICT) is Dictionary<object, object> dict ? dict.Keys.ToList() : new List<object>();
+            => ResolveValue(DICT) is Dictionary<object, object> dict ? dict.Keys.ToList() : [];
     }
 
     public class DictValuesBlock : BlockBase
@@ -107,7 +107,7 @@ namespace ThaumielMapEditor.API.Helpers.BlockParser
         public object? DICT { get; set; }
 
         public override object? ReturnExecute()
-            => ResolveValue(DICT) is Dictionary<object, object> dict ? dict.Values.ToList() : new List<object>();
+            => ResolveValue(DICT) is Dictionary<object, object> dict ? dict.Values.ToList() : [];
     }
 
     public class DictClearBlock : BlockBase
