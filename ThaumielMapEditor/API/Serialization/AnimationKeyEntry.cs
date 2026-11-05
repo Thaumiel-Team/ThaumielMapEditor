@@ -6,9 +6,8 @@
 // -----------------------------------------------------------------------
 
 using System;
-using ThaumielMapEditor.API.Serialization;
 
-namespace ThaumielMapEditor.API.Data
+namespace ThaumielMapEditor.API.Serialization
 {
     [Serializable]
     public class AnimationKeyEntry
