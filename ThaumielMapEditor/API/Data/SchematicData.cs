@@ -19,6 +19,7 @@ using ThaumielMapEditor.API.Components;
 using ThaumielMapEditor.Events.EventArgs.Handlers;
 using UnityEngine;
 using ThaumielMapEditor.API.Enums;
+using ThaumielMapEditor.API.Serialization;
 using Mirror;
 
 namespace ThaumielMapEditor.API.Data
@@ -143,7 +144,7 @@ namespace ThaumielMapEditor.API.Data
         /// <summary>
         /// Gets the <see cref="UnityEngine.GameObject"/> of the base <see cref="LabPrimitive"/> of this Schematic
         /// </summary>
-        public UnityEngine.GameObject? GameObject => Primitive?.GameObject;
+        public GameObject? GameObject => Primitive?.GameObject;
 
         /// <summary>
         /// Retrieves all spawned <see cref="ClientObject"/>s of the specified type.
@@ -163,6 +164,189 @@ namespace ThaumielMapEditor.API.Data
         /// Gets all of the <see cref="SpawnedServerObjects"/> that have a <see cref="NetworkIdentity"/> as a component.
         /// </summary>
         public IReadOnlyList<NetworkIdentity> ServerNetworkIdentities => SpawnedServerObjects.Where(o => o.Object != null).Select(o => o.Object!.GetComponent<NetworkIdentity>()).ToList();
+
+        /// <summary>
+        /// Creates a new empty schematic at the given position.
+        /// </summary>
+        /// <param name="fileName">The file name of the schematic.</param>
+        /// <param name="position">The world position at which to place the schematic.</param>
+        /// <returns>The created schematic.</returns>
+        public static SchematicData Create(string fileName, Vector3 position) =>
+            Loader.CreateSchematic(fileName, position);
+
+        /// <summary>
+        /// Creates a new empty schematic at the given position and rotation.
+        /// </summary>
+        /// <param name="fileName">The file name of the schematic.</param>
+        /// <param name="position">The world position at which to place the schematic.</param>
+        /// <param name="rotation">The rotation to apply to the schematic.</param>
+        /// <returns>The created schematic.</returns>
+        public static SchematicData Create(string fileName, Vector3 position, Quaternion rotation) =>
+            Loader.CreateSchematic(fileName, position, rotation);
+
+        /// <summary>
+        /// Creates a new empty schematic at the given position, rotation, and scale.
+        /// </summary>
+        /// <param name="fileName">The file name of the schematic.</param>
+        /// <param name="position">The world position at which to place the schematic.</param>
+        /// <param name="rotation">The rotation to apply to the schematic.</param>
+        /// <param name="scale">The scale to apply to the schematic.</param>
+        /// <returns>The created schematic.</returns>
+        public static SchematicData Create(string fileName, Vector3 position, Quaternion rotation, Vector3 scale) =>
+            Loader.CreateSchematic(fileName, position, rotation, scale);
+
+        /// <summary>
+        /// Creates and spawns a new object of type <typeparamref name="T"/> in this schematic.
+        /// </summary>
+        /// <typeparam name="T">The runtime object type to create.</typeparam>
+        /// <param name="position">Optional local position of the object.</param>
+        /// <param name="rotation">Optional rotation of the object.</param>
+        /// <param name="scale">Optional scale of the object.</param>
+        /// <param name="name">Optional name of the object.</param>
+        /// <param name="parentId">Optional object id of the parent.</param>
+        /// <returns>The spawned object.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when <typeparamref name="T"/> is not a registered object type.</exception>
+        public T AddObject<T>(Vector3? position = null, Quaternion? rotation = null, Vector3? scale = null, string? name = null, int? parentId = null) where T : ObjectBase
+        {
+            ObjectType? objectType = ObjectRegistry.GetObjectType(typeof(T)) ?? throw new InvalidOperationException($"'{typeof(T).Name}' is not a registered runtime object type.");
+            ObjectDefinition? definition = ObjectRegistry.Create(objectType.Value) ?? throw new InvalidOperationException($"No definition is registered for '{objectType}'.");
+
+            SerializableObject serializable = new()
+            {
+                ObjectId = GetNextObjectId(),
+                ParentId = parentId ?? RootObjectId,
+                Name = name ?? definition.Name,
+                ObjectType = objectType.Value,
+                Position = position ?? Vector3.zero,
+                Rotation = rotation ?? Quaternion.identity,
+                Scale = scale ?? Vector3.one,
+            };
+
+            definition.Load(serializable);
+
+            ObjectBase data = new();
+            data.LoadFrom(serializable, this);
+
+            if (typeof(ServerObject).IsAssignableFrom(typeof(T)))
+            {
+                if (!definition.SupportsServer)
+                    throw new InvalidOperationException($"'{objectType}' does not support server objects.");
+
+                ServerObject? server = definition.ServerObject(data);
+                if (server is not T typedServer)
+                    throw new InvalidOperationException($"'{objectType}' did not create a '{typeof(T).Name}'.");
+
+                server.SpawnObject(this, serializable);
+
+                if (server.Object == null)
+                {
+                    LogManager.Warn($"Failed to spawn '{definition.Name}' in '{FileName}'.");
+                    return typedServer;
+                }
+
+                if (server.ParentToSpawnTransform)
+                    server.Object.transform.SetParent(ResolveServerParentTransform(serializable.ParentId), false);
+
+                server.OnSpawned(this);
+                return typedServer;
+            }
+
+            if (!typeof(ClientObject).IsAssignableFrom(typeof(T)))
+                throw new InvalidOperationException($"'{typeof(T).Name}' is not a server or client object.");
+
+            if (!definition.SupportsClient)
+                throw new InvalidOperationException($"'{objectType}' does not support client objects.");
+
+            ClientObject? client = definition.ClientObject(data);
+            if (client is not T typedClient)
+                throw new InvalidOperationException($"'{objectType}' did not create a '{typeof(T).Name}'.");
+
+            client.ParentNetId = ResolveParentNetId(serializable.ParentId);
+            client.NetId = NetworkIdentity.GetNextNetworkId();
+            client.ObjectId = serializable.ObjectId;
+            client.ParentId = serializable.ParentId;
+
+            SpawnedClientObjects.Add(client);
+            client.OnAddedToSchematic(this);
+
+            LODZone[] lodZones = Primitive?.GameObject != null ? Primitive.GameObject.GetComponents<LODZone>() : [];
+
+            foreach (Player player in Player.ReadyList.ToArray())
+            {
+                if (client.ShouldSpawnFor(player, lodZones))
+                    client.SpawnForPlayer(player);
+            }
+
+            return typedClient;
+        }
+
+        /// <summary>
+        /// Creates and spawns a new named object of type <typeparamref name="T"/> in this schematic.
+        /// </summary>
+        /// <typeparam name="T">The runtime object type to create.</typeparam>
+        /// <param name="name">The name of the object.</param>
+        /// <returns>The spawned object.</returns>
+        public T AddObject<T>(string name) where T : ObjectBase => 
+            AddObject<T>(name: name);
+
+        /// <summary>
+        /// Creates and spawns a new object of type <typeparamref name="T"/> parented to the given object.
+        /// </summary>
+        /// <typeparam name="T">The runtime object type to create.</typeparam>
+        /// <param name="parent">The object to parent the new object to.</param>
+        /// <returns>The spawned object.</returns>
+        public T AddObject<T>(ObjectBase parent) where T : ObjectBase => 
+            AddObject<T>(parentId: parent?.ObjectId ?? RootObjectId);
+
+        /// <summary>
+        /// Creates and spawns a new object of type <typeparamref name="T"/> parented to the given object id.
+        /// </summary>
+        /// <typeparam name="T">The runtime object type to create.</typeparam>
+        /// <param name="parentId">The object id of the parent.</param>
+        /// <returns>The spawned object.</returns>
+        public T AddObject<T>(int parentId) where T : ObjectBase => 
+            AddObject<T>(parentId: parentId);
+
+        private int GetNextObjectId()
+        {
+            int id = RootObjectId;
+
+            foreach (ServerObject server in SpawnedServerObjects)
+                id = Math.Max(id, server.ObjectId);
+
+            foreach (ClientObject client in SpawnedClientObjects)
+                id = Math.Max(id, client.ObjectId);
+
+            return id + 1;
+        }
+
+        private Transform? ResolveServerParentTransform(int parentId)
+        {
+            foreach (ServerObject server in SpawnedServerObjects)
+            {
+                if (server.ObjectId == parentId && server.Object != null)
+                    return server.Object.transform;
+            }
+
+            return Primitive?.Transform;
+        }
+
+        private uint ResolveParentNetId(int parentId)
+        {
+            foreach (ServerObject server in SpawnedServerObjects)
+            {
+                if (server.ObjectId == parentId && server.NetId != 0)
+                    return server.NetId;
+            }
+
+            foreach (ClientObject client in SpawnedClientObjects)
+            {
+                if (client.ObjectId == parentId && client.NetId != 0)
+                    return client.NetId;
+            }
+
+            return Primitive?.Base != null ? Primitive.Base.netId : 0;
+        }
 
         /// <summary>
         /// Syncs the <see cref="ClientObject"/> of this <see cref="SchematicData"/> with the specified <see cref="Player"/>.
@@ -194,6 +378,25 @@ namespace ThaumielMapEditor.API.Data
 
                 server.ShowForPlayer(player);
             }
+        }
+
+        /// <summary>
+        /// Destroys a spawned Object of this <see cref="SchematicData"/>.
+        /// </summary>
+        /// <param name="obj">The object to destroy.</param>
+        /// <returns><see langword="true"/> if the object belongs to this schematic and was destroyed.</returns>
+        public bool DestroyObject(ObjectBase obj)
+        {
+            if (obj == null)
+                return false;
+
+            if (SpawnedServerObjects.Contains(obj) || SpawnedClientObjects.Contains(obj))
+            {
+                DestroyObjectTree(obj.ObjectId);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

@@ -19,7 +19,6 @@ namespace ThaumielMapEditor.API.Helpers.Networking
 {
     public abstract class NetworkRequest
     {
-
         public static IEnumerable<NetworkRequest> ActiveRequests = [];
         public static IReadOnlyList<NetworkRequest> RunningRequests = ActiveRequests.Where(r => r.Handle.IsRunning).ToList().AsReadOnly();
 

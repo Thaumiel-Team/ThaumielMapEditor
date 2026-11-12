@@ -997,6 +997,62 @@ namespace ThaumielMapEditor.API.Helpers
         }
 
         /// <summary>
+        /// Creates an empty schematic at the specified position.
+        /// </summary>
+        /// <param name="fileName">The file name of the schematic.</param>
+        /// <param name="position">The world position at which to place the schematic.</param>
+        /// <returns>The created schematic.</returns>
+        public static SchematicData CreateSchematic(string fileName, Vector3 position) =>
+            CreateSchematic(fileName, position, Quaternion.identity, Vector3.one);
+
+        /// <summary>
+        /// Creates an empty schematic at the specified position and rotation.
+        /// </summary>
+        /// <param name="fileName">The file name of the schematic.</param>
+        /// <param name="position">The world position at which to place the schematic.</param>
+        /// <param name="rotation">The rotation to apply to the schematic.</param>
+        /// <returns>The created schematic.</returns>
+        public static SchematicData CreateSchematic(string fileName, Vector3 position, Quaternion rotation) =>
+            CreateSchematic(fileName, position, rotation, Vector3.one);
+
+        /// <summary>
+        /// Creates an empty schematic at the specified position, rotation, and scale.
+        /// </summary>
+        /// <param name="fileName">The file name of the schematic.</param>
+        /// <param name="position">The world position at which to place the schematic.</param>
+        /// <param name="rotation">The rotation to apply to the schematic.</param>
+        /// <param name="scale">The scale to apply to the schematic.</param>
+        /// <returns>The created schematic.</returns>
+        public static SchematicData CreateSchematic(string fileName, Vector3 position, Quaternion rotation, Vector3 scale)
+        {
+            if (scale == default)
+                scale = Vector3.one;
+
+            SchematicData schematic = new()
+            {
+                FileName = fileName,
+                Id = GetId(),
+                RootObjectId = -1,
+                Primitive = LabPrimitive.Create()
+            };
+            
+            schematic.Primitive.Type = PrimitiveType.Cube;
+            schematic.Primitive.Flags = PrimitiveFlags.None;
+            schematic.Position = position;
+            schematic.Rotation = rotation;
+            schematic.Scale = scale;
+            schematic.Room = Room.GetRoomAtPosition(position);
+            schematic.Executor = new BlockExecutor(schematic);
+
+            SchematicHandler.OnSchematicSpawned(new(schematic));
+            SchematicSpawned?.Invoke(schematic);
+            SchematicsById[schematic.Id] = schematic;
+
+            LogManager.Info($"Schematic '{fileName}' created.");
+            return schematic;
+        }
+
+        /// <summary>
         /// Indicates whether the given <see cref="ObjectType"/> meaningfully uses scale.
         /// Types that return <see langword="false"/> ignore the scale argument in <c>SpawnSingleObject</c>.
         /// </summary>

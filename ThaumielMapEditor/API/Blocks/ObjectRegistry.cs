@@ -40,6 +40,8 @@ namespace ThaumielMapEditor.API.Blocks
             [ObjectType.RagdollSpawner] = static () => new RagdollSpawner(),
         };
 
+        private static readonly Dictionary<Type, ObjectType> RuntimeTypes = BuildRuntimeTypes();
+
         /// <summary>
         /// Determines whether a definition is registered for the given <paramref name="type"/>.
         /// </summary>
@@ -60,8 +62,18 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         /// <param name="type">The type to register.</param>
         /// <param name="factory">The factory that creates the definition.</param>
-        public static void Register(ObjectType type, Func<ObjectDefinition> factory) =>
+        public static void Register(ObjectType type, Func<ObjectDefinition> factory)
+        {
             Factories[type] = factory ?? throw new ArgumentNullException(nameof(factory));
+
+            foreach (Type nested in factory().GetType().GetNestedTypes())
+            {
+                if (nested.IsAbstract || !typeof(ObjectBase).IsAssignableFrom(nested))
+                    continue;
+
+                RuntimeTypes[nested] = type;
+            }
+        }
 
         /// <summary>
         /// Determines whether the given <paramref name="type"/> has both client and server implementations.
@@ -72,6 +84,37 @@ namespace ThaumielMapEditor.API.Blocks
         {
             ObjectDefinition? definition = Create(type);
             return definition is { SupportsServer: true, SupportsClient: true };
+        }
+
+        /// <summary>
+        /// Gets the <see cref="ObjectType"/> that creates the given runtime object type.
+        /// </summary>
+        /// <param name="runtimeType">The runtime object type to look up.</param>
+        /// <returns>The matching <see cref="ObjectType"/>, or <see langword="null"/> when no definition creates it.</returns>
+        public static ObjectType? GetObjectType(Type runtimeType)
+        {
+            if (runtimeType == null)
+                throw new ArgumentNullException(nameof(runtimeType));
+
+            return RuntimeTypes.TryGetValue(runtimeType, out ObjectType type) ? type : null;
+        }
+
+        private static Dictionary<Type, ObjectType> BuildRuntimeTypes()
+        {
+            Dictionary<Type, ObjectType> types = [];
+
+            foreach (KeyValuePair<ObjectType, Func<ObjectDefinition>> factory in Factories)
+            {
+                foreach (Type nested in factory.Value().GetType().GetNestedTypes())
+                {
+                    if (nested.IsAbstract || !typeof(ObjectBase).IsAssignableFrom(nested))
+                        continue;
+
+                    types[nested] = factory.Key;
+                }
+            }
+
+            return types;
         }
     }
 }
