@@ -130,6 +130,44 @@ namespace ThaumielMapEditor.API.Blocks
         public bool IsDirty => SyncFlags != SyncFlags.None;
 
         /// <summary>
+        /// Gets a value indicating whether this object is currently spawned in its schematic.
+        /// </summary>
+        public bool IsSpawned => Schematic?.Contains(this) ?? false;
+
+        /// <summary>
+        /// Gets a value indicating whether this object is parented directly to the schematic root.
+        /// </summary>
+        public bool IsRootObject => Schematic != null && ParentId == Schematic.RootObjectId;
+
+        /// <summary>
+        /// Gets the parent of this object.
+        /// </summary>
+        /// <returns>The parent object, or <see langword="null"/> if this object is parented to the schematic root.</returns>
+        public ObjectBase? GetParent() => Schematic?.GetParent(this);
+
+        /// <summary>
+        /// Gets every object parented directly to this object.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the child objects.</returns>
+        public IEnumerable<ObjectBase> GetChildren() => Schematic?.GetChildren(this) ?? [];
+
+        /// <summary>
+        /// Gets every other object that shares this object's parent.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the sibling objects.</returns>
+        public IEnumerable<ObjectBase> GetSiblings()
+        {
+            if (Schematic == null)
+                yield break;
+
+            foreach (ObjectBase obj in Schematic.GetChildren(ParentId))
+            {
+                if (!ReferenceEquals(obj, this))
+                    yield return obj;
+            }
+        }
+
+        /// <summary>
         /// Marks the given properties as dirty and schedules this object for syncing.
         /// </summary>
         /// <param name="flags">The properties that changed.</param>
@@ -207,5 +245,36 @@ namespace ThaumielMapEditor.API.Blocks
         /// <param name="key">The key to look up.</param>
         public T GetValue<T>(string key) =>
             (Serialization ?? throw new InvalidOperationException($"'{Name}' has no serialized source.")).Values.GetConvertValue<T>(key);
+
+        /// <summary>
+        /// Tries to get a value from <see cref="SerializableObject.Values"/> and convert it to the specified type.
+        /// </summary>
+        /// <typeparam name="T">The type to convert the value to.</typeparam>
+        /// <param name="key">The key to look up.</param>
+        /// <param name="value">The converted value.</param>
+        /// <returns><see langword="true"/> if the value was found and converted.</returns>
+        public bool TryGetValue<T>(string key, out T value) => Values.TryConvertValue(key, out value);
+
+        /// <summary>
+        /// Gets a value from <see cref="SerializableObject.Values"/> or returns the given default.
+        /// </summary>
+        /// <typeparam name="T">The type to convert the value to.</typeparam>
+        /// <param name="key">The key to look up.</param>
+        /// <param name="defaultValue">The value to return when the key is missing.</param>
+        public T GetValueOrDefault<T>(string key, T defaultValue = default!) =>
+            Values.TryConvertValue(key, out T value) ? value : defaultValue;
+
+        /// <summary>
+        /// Determines whether this object has a serialized value with the given key.
+        /// </summary>
+        /// <param name="key">The key to look up.</param>
+        /// <returns><see langword="true"/> if the key exists.</returns>
+        public bool HasValue(string key) => Values.ContainsKey(key);
+
+        /// <summary>
+        /// Destroys this object from its schematic.
+        /// </summary>
+        /// <returns><see langword="true"/> if the object was destroyed.</returns>
+        public bool Destroy() => Schematic?.DestroyObject(this) ?? false;
     }
 }

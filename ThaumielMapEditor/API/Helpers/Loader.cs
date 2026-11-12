@@ -389,6 +389,35 @@ namespace ThaumielMapEditor.API.Helpers
             return null;
         }
 
+        /// <summary>
+        /// Gets every spawned <see cref="SchematicData"/> inside the given <see cref="Room"/>.
+        /// </summary>
+        /// <param name="room">The room to search.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching schematics.</returns>
+        public static IEnumerable<SchematicData> GetSchematicsInRoom(Room room)
+        {
+            foreach (SchematicData schematic in SpawnedSchematics)
+            {
+                if (schematic.Room == room)
+                    yield return schematic;
+            }
+        }
+
+        /// <summary>
+        /// Gets every spawned <see cref="SchematicData"/> within the given radius of a position.
+        /// </summary>
+        /// <param name="position">The center of the search.</param>
+        /// <param name="radius">The search radius.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching schematics.</returns>
+        public static IEnumerable<SchematicData> GetSchematicsInRadius(Vector3 position, float radius)
+        {
+            foreach (SchematicData schematic in SpawnedSchematics)
+            {
+                if (Vector3.Distance(schematic.Position, position) <= radius)
+                    yield return schematic;
+            }
+        }
+
         public static SerializableSchematic? GetSchematicByName(string name)
         {
             LoadedSchematics.TryGetValue(name, out var schematic);
@@ -1035,7 +1064,7 @@ namespace ThaumielMapEditor.API.Helpers
                 RootObjectId = -1,
                 Primitive = LabPrimitive.Create()
             };
-            
+
             schematic.Primitive.Type = PrimitiveType.Cube;
             schematic.Primitive.Flags = PrimitiveFlags.None;
             schematic.Position = position;

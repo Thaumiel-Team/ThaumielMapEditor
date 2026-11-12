@@ -166,6 +166,269 @@ namespace ThaumielMapEditor.API.Data
         public IReadOnlyList<NetworkIdentity> ServerNetworkIdentities => SpawnedServerObjects.Where(o => o.Object != null).Select(o => o.Object!.GetComponent<NetworkIdentity>()).ToList();
 
         /// <summary>
+        /// Gets the total number of spawned objects in this schematic.
+        /// </summary>
+        public int ObjectCount =>  SpawnedServerObjects.Count + SpawnedClientObjects.Count;
+
+        /// <summary>
+        /// Gets the number of spawned objects of type <typeparamref name="T"/> in this schematic.
+        /// </summary>
+        /// <typeparam name="T">The object type to count.</typeparam>
+        /// <returns>The number of matching objects.</returns>
+        public int GetObjectCount<T>() where T : ObjectBase
+        {
+            int count = 0;
+
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (obj is T)
+                    count++;
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Gets every spawned object in this schematic.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the spawned objects.</returns>
+        public IEnumerable<ObjectBase> GetObjects()
+        {
+            foreach (ServerObject server in SpawnedServerObjects)
+                yield return server;
+
+            foreach (ClientObject client in SpawnedClientObjects)
+                yield return client;
+        }
+
+        /// <summary>
+        /// Gets every spawned object of type <typeparamref name="T"/> in this schematic.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching objects.</returns>
+        public IEnumerable<T> GetObjects<T>() where T : ObjectBase
+        {
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (obj is T typed)
+                    yield return typed;
+            }
+        }
+
+        /// <summary>
+        /// Gets the first spawned object of type <typeparamref name="T"/> in this schematic.
+        /// </summary>
+        /// <typeparam name="T">The object type to find.</typeparam>
+        /// <returns>The first matching object, or <see langword="null"/> if none was found.</returns>
+        public T? GetObject<T>() where T : ObjectBase
+        {
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (obj is T typed)
+                    return typed;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the <see cref="LODZone"/> components attached to the schematic root.
+        /// </summary>
+        /// <returns>The LOD zones, or an empty array when the root has none.</returns>
+        public LODZone[] GetLODZones()
+        {
+            GameObject? root = Primitive?.GameObject;
+            return root != null ? root.GetComponents<LODZone>() : [];
+        }
+
+        /// <summary>
+        /// Gets the first spawned object with the given name.
+        /// </summary>
+        /// <param name="name">The object name to find.</param>
+        /// <returns>The first matching object, or <see langword="null"/> if none was found.</returns>
+        public ObjectBase? GetObjectByName(string name)
+        {
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (string.Equals(obj.Name, name, StringComparison.OrdinalIgnoreCase))
+                    return obj;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the first spawned object of type <typeparamref name="T"/> with the given name.
+        /// </summary>
+        /// <typeparam name="T">The object type to find.</typeparam>
+        /// <param name="name">The object name to find.</param>
+        /// <returns>The first matching object, or <see langword="null"/> if none was found.</returns>
+        public T? GetObjectByName<T>(string name) where T : ObjectBase
+        {
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (obj is T typed && string.Equals(typed.Name, name, StringComparison.OrdinalIgnoreCase))
+                    return typed;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets every spawned object with the given name.
+        /// </summary>
+        /// <param name="name">The object name to find.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching objects.</returns>
+        public IEnumerable<ObjectBase> GetObjectsByName(string name)
+        {
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (string.Equals(obj.Name, name, StringComparison.OrdinalIgnoreCase))
+                    yield return obj;
+            }
+        }
+
+        /// <summary>
+        /// Gets the spawned object with the given object id.
+        /// </summary>
+        /// <param name="objectId">The object id to find.</param>
+        /// <returns>The spawned object, or <see langword="null"/> if it was not found.</returns>
+        public ObjectBase? GetObject(int objectId)
+        {
+            foreach (ServerObject server in SpawnedServerObjects)
+            {
+                if (server.ObjectId == objectId)
+                    return server;
+            }
+
+            foreach (ClientObject client in SpawnedClientObjects)
+            {
+                if (client.ObjectId == objectId)
+                    return client;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the spawned object of type <typeparamref name="T"/> with the given object id.
+        /// </summary>
+        /// <typeparam name="T">The object type to find.</typeparam>
+        /// <param name="objectId">The object id to find.</param>
+        /// <returns>The spawned object, or <see langword="null"/> if it was not found.</returns>
+        public T? GetObject<T>(int objectId) where T : ObjectBase
+        {
+            foreach (ServerObject server in SpawnedServerObjects)
+            {
+                if (server.ObjectId == objectId && server is T typedServer)
+                    return typedServer;
+            }
+
+            foreach (ClientObject client in SpawnedClientObjects)
+            {
+                if (client.ObjectId == objectId && client is T typedClient)
+                    return typedClient;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Tries to get the spawned object of type <typeparamref name="T"/> with the given object id.
+        /// </summary>
+        /// <typeparam name="T">The object type to find.</typeparam>
+        /// <param name="objectId">The object id to find.</param>
+        /// <param name="obj">The found object, or <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the object was found.</returns>
+        public bool TryGetObject<T>(int objectId, out T? obj) where T : ObjectBase
+        {
+            obj = GetObject<T>(objectId);
+            return obj != null;
+        }
+
+        /// <summary>
+        /// Determines whether the given object belongs to this schematic.
+        /// </summary>
+        /// <param name="obj">The object to check.</param>
+        /// <returns><see langword="true"/> if the object belongs to this schematic.</returns>
+        public bool Contains(ObjectBase obj)
+        {
+            if (obj == null)
+                return false;
+
+            foreach (ServerObject server in SpawnedServerObjects)
+            {
+                if (ReferenceEquals(server, obj))
+                    return true;
+            }
+
+            foreach (ClientObject client in SpawnedClientObjects)
+            {
+                if (ReferenceEquals(client, obj))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets every spawned object that is parented directly to the schematic root.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the root objects.</returns>
+        public IEnumerable<ObjectBase> GetRootObjects()
+        {
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (obj.ParentId == RootObjectId)
+                    yield return obj;
+            }
+        }
+
+        /// <summary>
+        /// Gets every spawned object of type <typeparamref name="T"/> that is parented directly to the schematic root.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the root objects.</returns>
+        public IEnumerable<T> GetRootObjects<T>() where T : ObjectBase
+        {
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (obj.ParentId == RootObjectId && obj is T typed)
+                    yield return typed;
+            }
+        }
+
+        /// <summary>
+        /// Gets every spawned object that is parented to the given object.
+        /// </summary>
+        /// <param name="parent">The parent object.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the child objects.</returns>
+        public IEnumerable<ObjectBase> GetChildren(ObjectBase parent) =>
+            parent == null ? [] : GetChildren(parent.ObjectId);
+
+        /// <summary>
+        /// Gets every spawned object that is parented to the given object id.
+        /// </summary>
+        /// <param name="parentId">The parent object id.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the child objects.</returns>
+        public IEnumerable<ObjectBase> GetChildren(int parentId)
+        {
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (obj.ParentId == parentId)
+                    yield return obj;
+            }
+        }
+
+        /// <summary>
+        /// Gets the parent of the given object.
+        /// </summary>
+        /// <param name="child">The child object.</param>
+        /// <returns>The parent object, or <see langword="null"/> if it is parented to the schematic root.</returns>
+        public ObjectBase? GetParent(ObjectBase child) => 
+            child == null ? null : GetObject(child.ParentId);
+
+        /// <summary>
         /// Creates a new empty schematic at the given position.
         /// </summary>
         /// <param name="fileName">The file name of the schematic.</param>
@@ -269,9 +532,9 @@ namespace ThaumielMapEditor.API.Data
             SpawnedClientObjects.Add(client);
             client.OnAddedToSchematic(this);
 
-            LODZone[] lodZones = Primitive?.GameObject != null ? Primitive.GameObject.GetComponents<LODZone>() : [];
+            LODZone[] lodZones = GetLODZones();
 
-            foreach (Player player in Player.ReadyList.ToArray())
+            foreach (Player player in Player.ReadyList)
             {
                 if (client.ShouldSpawnFor(player, lodZones))
                     client.SpawnForPlayer(player);
@@ -381,22 +644,40 @@ namespace ThaumielMapEditor.API.Data
         }
 
         /// <summary>
+        /// Syncs this schematic with every ready player.
+        /// </summary>
+        public void SyncWithAllPlayers()
+        {
+            foreach (Player player in Player.ReadyList)
+                SyncWithPlayer(player);
+        }
+
+        /// <summary>
         /// Destroys a spawned Object of this <see cref="SchematicData"/>.
         /// </summary>
         /// <param name="obj">The object to destroy.</param>
         /// <returns><see langword="true"/> if the object belongs to this schematic and was destroyed.</returns>
         public bool DestroyObject(ObjectBase obj)
         {
-            if (obj == null)
+            if (!Contains(obj))
                 return false;
 
-            if (SpawnedServerObjects.Contains(obj) || SpawnedClientObjects.Contains(obj))
-            {
-                DestroyObjectTree(obj.ObjectId);
-                return true;
-            }
+            DestroyObjectTree(obj.ObjectId);
+            return true;
+        }
 
-            return false;
+        /// <summary>
+        /// Destroys the spawned object with the given object id.
+        /// </summary>
+        /// <param name="objectId">The object id to destroy.</param>
+        /// <returns><see langword="true"/> if the object belonged to this schematic and was destroyed.</returns>
+        public bool DestroyObject(int objectId)
+        {
+            if (GetObject(objectId) == null)
+                return false;
+
+            DestroyObjectTree(objectId);
+            return true;
         }
 
         /// <summary>
@@ -425,6 +706,26 @@ namespace ThaumielMapEditor.API.Data
 
             DestroyObjectTree(clientObject.ObjectId);
             return true;
+        }
+
+        /// <summary>
+        /// Destroys every spawned object in this schematic without destroying the schematic itself.
+        /// </summary>
+        public void DestroyAllObjects()
+        {
+            for (int i = SpawnedClientObjects.Count - 1; i >= 0; i--)
+                DestroyClientObjectInternal(SpawnedClientObjects[i]);
+
+            for (int i = SpawnedServerObjects.Count - 1; i >= 0; i--)
+                DestroyServerObjectInternal(SpawnedServerObjects[i]);
+
+            foreach (Transform transform in ServerSideTransforms.Values)
+            {
+                if (transform != null)
+                    UnityEngine.Object.Destroy(transform.gameObject);
+            }
+
+            ServerSideTransforms.Clear();
         }
 
         private void DestroyObjectTree(int objectId)
@@ -521,24 +822,7 @@ namespace ThaumielMapEditor.API.Data
                 catch { }
             }
 
-            foreach (ClientObject clientobj in SpawnedClientObjects.ToArray())
-            {
-                clientobj.DestroyForAllPlayers();
-                SpawnedClientObjects.Remove(clientobj);
-            }
-
-            foreach (ServerObject serverobj in SpawnedServerObjects.ToArray())
-            {
-                DestroyServerObjectInternal(serverobj);
-            }
-
-            foreach (Transform transform in ServerSideTransforms.Values)
-            {
-                if (transform != null)
-                    UnityEngine.Object.Destroy(transform.gameObject);
-            }
-
-            ServerSideTransforms.Clear();
+            DestroyAllObjects();
 
             if (Primitive != null && !Primitive.IsDestroyed && Primitive.Base != null)
                 NetworkServer.Destroy(Primitive.Base.gameObject);

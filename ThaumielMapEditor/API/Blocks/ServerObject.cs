@@ -159,6 +159,11 @@ namespace ThaumielMapEditor.API.Blocks
         /// <inheritdoc/>
         protected override void RegisterForSync() => SyncManager.RegisterForSync(this);
 
+        /// <summary>
+        /// Gets the first tool of type <typeparamref name="T"/> attached to this object.
+        /// </summary>
+        /// <typeparam name="T">The tool type to find.</typeparam>
+        /// <returns>The tool, or <see langword="null"/> if none is attached.</returns>
         public ToolBase? GetTool<T>() where T : ToolBase
         {
             foreach (ToolBase tool in Tools)
@@ -170,6 +175,45 @@ namespace ThaumielMapEditor.API.Blocks
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets every tool of type <typeparamref name="T"/> attached to this object.
+        /// </summary>
+        /// <typeparam name="T">The tool type to find.</typeparam>
+        /// <returns>The matching tools.</returns>
+        public IEnumerable<T> GetTools<T>() where T : ToolBase
+        {
+            foreach (ToolBase tool in Tools)
+            {
+                if (tool is T typed)
+                    yield return typed;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this object has a tool of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The tool type to check.</typeparam>
+        /// <returns><see langword="true"/> if the tool is attached.</returns>
+        public bool HasTool<T>() where T : ToolBase => GetTool<T>() != null;
+
+        /// <summary>
+        /// Tries to get the first tool of type <typeparamref name="T"/> attached to this object.
+        /// </summary>
+        /// <typeparam name="T">The tool type to find.</typeparam>
+        /// <param name="tool">The found tool, or <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the tool was found.</returns>
+        public bool TryGetTool<T>(out T? tool) where T : ToolBase
+        {
+            if (GetTool<T>() is T typed)
+            {
+                tool = typed;
+                return true;
+            }
+
+            tool = null;
+            return false;
         }
 
         /// <summary>
@@ -291,6 +335,24 @@ namespace ThaumielMapEditor.API.Blocks
                 return;
 
             NetworkServer.ShowForConnection(network, player.Connection);
+        }
+
+        /// <summary>
+        /// Shows this object for every ready player.
+        /// </summary>
+        public void ShowForAllPlayers()
+        {
+            foreach (Player player in Player.ReadyList)
+                ShowForPlayer(player);
+        }
+
+        /// <summary>
+        /// Hides this object for every ready player.
+        /// </summary>
+        public void HideForAllPlayers()
+        {
+            foreach (Player player in Player.ReadyList)
+                HideForPlayer(player);
         }
     }
 }

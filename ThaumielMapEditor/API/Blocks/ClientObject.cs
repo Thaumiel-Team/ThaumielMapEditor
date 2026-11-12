@@ -425,6 +425,38 @@ namespace ThaumielMapEditor.API.Blocks
         }
 
         /// <summary>
+        /// Spawns this object for every ready player that should see it.
+        /// </summary>
+        public void SpawnForAllPlayers()
+        {
+            LODZone[] zones = Schematic != null ? Schematic.GetLODZones() : [];
+
+            foreach (Player player in Player.ReadyList)
+            {
+                if (ShouldSpawnFor(player, zones))
+                    SpawnForPlayer(player);
+            }
+        }
+
+        /// <summary>
+        /// Hides this object for every ready player.
+        /// </summary>
+        public void HideForAllPlayers()
+        {
+            foreach (Player player in Player.ReadyList)
+                HideForPlayer(player);
+        }
+
+        /// <summary>
+        /// Shows this object for every ready player.
+        /// </summary>
+        public void ShowForAllPlayers()
+        {
+            foreach (Player player in Player.ReadyList)
+                ShowForPlayer(player);
+        }
+
+        /// <summary>
         /// Despawns this object for the specified player.
         /// </summary>
         /// <param name="player">The player to despawn the object for.</param>
@@ -475,6 +507,15 @@ namespace ThaumielMapEditor.API.Blocks
             }
 
             SendDeltaUpdate(player, SyncFlags);
+        }
+
+        /// <summary>
+        /// Syncs pending changes for every player this object is spawned for.
+        /// </summary>
+        public void SyncForAllPlayers()
+        {
+            foreach (Player player in SpawnedPlayers)
+                SyncForPlayer(player);
         }
 
         /// <summary>
