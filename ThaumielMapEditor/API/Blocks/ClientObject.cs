@@ -171,6 +171,14 @@ namespace ThaumielMapEditor.API.Blocks
         /// <inheritdoc/>
         protected override void RegisterForSync() => SyncManager.RegisterForSync(this);
 
+        /// <inheritdoc/>
+        protected override bool CanSync => Spawned;
+
+        /// <summary>
+        /// Gets a value indicating whether the delta payload of this object is identical for every player.
+        /// </summary>
+        protected virtual bool SharesDeltaPayload => true;
+
         /// <summary>
         /// Called after this object has been added to a <see cref="SchematicData"/> and before it is spawned for players.
         /// </summary>
@@ -525,14 +533,111 @@ namespace ThaumielMapEditor.API.Blocks
         /// <param name="flags">The changes to include in the message.</param>
         public virtual void SendDeltaUpdate(Player player, SyncFlags flags)
         {
-            if (player.IsHost)
+            if (!IsReadyTarget(player))
                 return;
 
-            if (player.Connection == null || !player.Connection.isReady)
+            if (!TryBuildDelta(flags, out NetworkWriterPooled? writer, out ArraySegment<byte> payload, out bool sendParentRpc))
                 return;
 
-            if (flags.HasFlagFast(SyncFlags.Parent))
-                player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, ParentNetId);
+            try
+            {
+                SendPreparedDelta(player, payload, sendParentRpc);
+            }
+            finally
+            {
+                writer?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Sends one prepared delta payload to every given player.
+        /// </summary>
+        /// <param name="flags">The changes to include in the payload.</param>
+        /// <param name="players">The players to sync to.</param>
+        /// <param name="count">The amount of valid entries in <paramref name="players"/>.</param>
+        /// <param name="needsRetry">Whether at least one player could not receive the update.</param>
+        /// <returns><see langword="true"/> when the batch was handled, otherwise the caller must send per player.</returns>
+        internal bool TrySendBatchedDelta(SyncFlags flags, Player[] players, int count, out bool needsRetry)
+        {
+            needsRetry = false;
+
+            if (!SharesDeltaPayload)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    Player player = players[i];
+
+                    if (!IsReadyTarget(player))
+                    {
+                        needsRetry = true;
+                        continue;
+                    }
+
+                    try
+                    {
+                        SendDeltaUpdate(player, flags);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"Failed to sync object {NetId} to {player.DisplayName}: {ex.Message}");
+                        needsRetry = true;
+                    }
+                }
+
+                return true;
+            }
+
+            if (!TryBuildDelta(flags, out NetworkWriterPooled? writer, out ArraySegment<byte> payload, out bool sendParentRpc))
+                return false;
+
+            try
+            {
+                using NetworkWriterPooled envelopeWriter = NetworkWriterPool.Get();
+                NetworkMessages.Pack(new EntityStateMessage { netId = NetId, payload = payload }, envelopeWriter);
+                ArraySegment<byte> message = envelopeWriter.ToArraySegment();
+
+                for (int i = 0; i < count; i++)
+                {
+                    Player player = players[i];
+
+                    if (!IsReadyTarget(player))
+                    {
+                        needsRetry = true;
+                        continue;
+                    }
+
+                    try
+                    {
+                        SendPackedDelta(player, message, sendParentRpc);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"Failed to sync object {NetId} to {player.DisplayName}: {ex.Message}");
+                        needsRetry = true;
+                    }
+                }
+            }
+            finally
+            {
+                writer?.Dispose();
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Builds the entity state payload for the given <paramref name="flags"/>.
+        /// </summary>
+        /// <param name="flags">The changes to include in the payload.</param>
+        /// <param name="writer">The writer that owns the payload.</param>
+        /// <param name="payload">The written payload.</param>
+        /// <param name="sendParentRpc">Whether the parent RPC must be sent before the entity state message.</param>
+        /// <returns><see langword="true"/> when a payload was built.</returns>
+        protected bool TryBuildDelta(SyncFlags flags, out NetworkWriterPooled? writer, out ArraySegment<byte> payload, out bool sendParentRpc)
+        {
+            writer = null;
+            payload = default;
+            sendParentRpc = flags.HasFlagFast(SyncFlags.Parent);
 
             ulong baseMask = 0UL;
             if (flags.HasFlagFast(SyncFlags.Position))
@@ -552,44 +657,86 @@ namespace ThaumielMapEditor.API.Blocks
 
             ulong combinedMask = baseMask | GetDerivedDirtyBits(flags);
             if (combinedMask == 0UL)
-                return;
+                return false;
 
-            using NetworkWriterPooled writer = NetworkWriterPool.Get();
+            NetworkWriterPooled buffer = NetworkWriterPool.Get();
 
-            writer.WriteByte(1);
+            try
+            {
+                writer = buffer;
 
-            int sizePos = writer.Position;
-            writer.WriteByte(0);
-            int dataStart = writer.Position;
+                buffer.WriteByte(1);
 
-            writer.WriteULong(0UL);
+                int sizePos = buffer.Position;
+                buffer.WriteByte(0);
+                int dataStart = buffer.Position;
 
-            writer.WriteULong(combinedMask);
-            if (flags.HasFlagFast(SyncFlags.Position))
-                writer.WriteVector3(Position);
+                buffer.WriteULong(0UL);
 
-            if (flags.HasFlagFast(SyncFlags.Rotation))
-                writer.WriteQuaternion(Rotation);
+                buffer.WriteULong(combinedMask);
+                if (flags.HasFlagFast(SyncFlags.Position))
+                    buffer.WriteVector3(Position);
 
-            if (flags.HasFlagFast(SyncFlags.Scale))
-                writer.WriteVector3(Scale);
+                if (flags.HasFlagFast(SyncFlags.Rotation))
+                    buffer.WriteQuaternion(Rotation);
 
-            if (flags.HasFlagFast(SyncFlags.MovementSmoothing))
-                writer.WriteByte(MovementSmoothing);
+                if (flags.HasFlagFast(SyncFlags.Scale))
+                    buffer.WriteVector3(Scale);
 
-            if (flags.HasFlagFast(SyncFlags.IsStatic))
-                writer.WriteBool(IsStatic);
+                if (flags.HasFlagFast(SyncFlags.MovementSmoothing))
+                    buffer.WriteByte(MovementSmoothing);
 
-            writer.WriteULong(combinedMask);
-            WriteDerivedSyncVars(writer, flags);
+                if (flags.HasFlagFast(SyncFlags.IsStatic))
+                    buffer.WriteBool(IsStatic);
 
-            int dataEnd = writer.Position;
-            writer.Position = sizePos;
-            writer.WriteByte((byte)(dataEnd - dataStart));
-            writer.Position = dataEnd;
+                buffer.WriteULong(combinedMask);
+                WriteDerivedSyncVars(buffer, flags);
 
-            player.Connection.Send(new EntityStateMessage { netId = NetId, payload = writer.ToArraySegment() });
+                int dataEnd = buffer.Position;
+                buffer.Position = sizePos;
+                buffer.WriteByte((byte)(dataEnd - dataStart));
+                buffer.Position = dataEnd;
+
+                payload = buffer.ToArraySegment();
+                return true;
+            }
+            catch
+            {
+                writer = null;
+                buffer.Dispose();
+                throw;
+            }
         }
+
+        /// <summary>
+        /// Sends a prepared entity state payload to the specified player.
+        /// </summary>
+        /// <param name="player">The player to send the message to.</param>
+        /// <param name="payload">The prepared payload.</param>
+        /// <param name="sendParentRpc">Whether the parent RPC must be sent first.</param>
+        protected void SendPreparedDelta(Player player, ArraySegment<byte> payload, bool sendParentRpc)
+        {
+            using NetworkWriterPooled writer = NetworkWriterPool.Get();
+            NetworkMessages.Pack(new EntityStateMessage { netId = NetId, payload = payload }, writer);
+            SendPackedDelta(player, writer.ToArraySegment(), sendParentRpc);
+        }
+
+        /// <summary>
+        /// Sends an already packed entity state message to the specified player.
+        /// </summary>
+        /// <param name="player">The player to send the message to.</param>
+        /// <param name="message">The packed message.</param>
+        /// <param name="sendParentRpc">Whether the parent RPC must be sent first.</param>
+        protected void SendPackedDelta(Player player, ArraySegment<byte> message, bool sendParentRpc)
+        {
+            if (sendParentRpc)
+                player.SendFakeRPC(NetId, typeof(AdminToyBase), nameof(AdminToyBase.RpcChangeParent), 0, ParentNetId);
+
+            player.Connection.Send(message);
+        }
+
+        private static bool IsReadyTarget(Player player) =>
+            player != null && !player.IsHost && !player.IsDestroyed && player.Connection != null && player.Connection.isReady;
 
         /// <summary>
         /// Gets the derived dirty bits for the given <paramref name="flags"/>.

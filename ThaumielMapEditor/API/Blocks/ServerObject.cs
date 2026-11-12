@@ -5,6 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using AdminToys;
 using LabApi.Features.Wrappers;
 using MapGeneration.Distributors;
 using Mirror;
@@ -48,10 +49,66 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         public IEnumerable<ToolBase> Tools { get; internal set; } = [];
 
+        private GameObject? gameObject;
+        private NetworkIdentity? networkIdentity;
+        private AdminToyBase? toy;
+        private StructurePositionSync? positionSync;
+        private bool componentsResolved;
+
         /// <summary>
         /// Gets or sets the associated game object instance.
         /// </summary>
-        public virtual GameObject? Object { get; internal set; }
+        public virtual GameObject? Object
+        {
+            get => gameObject;
+            internal set
+            {
+                if (gameObject == value)
+                    return;
+
+                gameObject = value;
+                networkIdentity = null;
+                toy = null;
+                positionSync = null;
+                componentsResolved = false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="Mirror.NetworkIdentity"/> of <see cref="Object"/>.
+        /// </summary>
+        internal NetworkIdentity? NetworkIdentity
+        {
+            get
+            {
+                ResolveComponents();
+                return networkIdentity;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="AdminToyBase"/> of <see cref="Object"/>.
+        /// </summary>
+        internal AdminToyBase? Toy
+        {
+            get
+            {
+                ResolveComponents();
+                return toy;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="StructurePositionSync"/> of <see cref="Object"/>.
+        /// </summary>
+        internal StructurePositionSync? PositionSync
+        {
+            get
+            {
+                ResolveComponents();
+                return positionSync;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this object should be parented to the transform of the <see cref="SerializableObject.ParentId"/> after it has been spawned.
@@ -63,9 +120,19 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         public virtual uint SpawnResult => NetId;
 
-        private AdminToy? adminToy;
+        /// <inheritdoc/>
+        protected override bool CanSync => gameObject != null;
 
-        private StructurePositionSync? positionSync;
+        private void ResolveComponents()
+        {
+            if (componentsResolved || gameObject == null)
+                return;
+
+            componentsResolved = true;
+            gameObject.TryGetComponent(out networkIdentity);
+            gameObject.TryGetComponent(out toy);
+            gameObject.TryGetComponent(out positionSync);
+        }
 
         /// <summary>
         /// Gets or sets the position of the object.
@@ -82,10 +149,9 @@ namespace ThaumielMapEditor.API.Blocks
                 if (Object != null)
                 {
                     Object.transform.position = value;
+                    PositionSync?.Network_position = base.Position;
                     MarkSyncNeeded(SyncFlags.Position);
                 }
-
-                positionSync?.Network_position = base.Position;
             }
         }
 
@@ -124,10 +190,9 @@ namespace ThaumielMapEditor.API.Blocks
                 if (Object != null)
                 {
                     Object.transform.rotation = value;
+                    PositionSync?.Network_rotationY = (sbyte)Mathf.RoundToInt(base.Rotation.eulerAngles.y / 5.625f);
                     MarkSyncNeeded(SyncFlags.Rotation);
                 }
-
-                positionSync?.Network_rotationY = (sbyte)Mathf.RoundToInt(base.Rotation.eulerAngles.y / 5.625f);
             }
         }
 
@@ -144,14 +209,9 @@ namespace ThaumielMapEditor.API.Blocks
 
                 base.MovementSmoothing = value;
 
-                if (Object == null)
+                if (Toy == null)
                     return;
 
-                adminToy ??= Object.GetComponent<AdminToy>();
-                if (adminToy == null)
-                    return;
-
-                adminToy.MovementSmoothing = value;
                 MarkSyncNeeded(SyncFlags.MovementSmoothing);
             }
         }
@@ -268,8 +328,6 @@ namespace ThaumielMapEditor.API.Blocks
 
             if (respawn)
                 NetworkServer.UnSpawn(Object);
-
-            positionSync ??= Object.GetComponent<StructurePositionSync>();
 
             SetWorldTransform(schematic);
 

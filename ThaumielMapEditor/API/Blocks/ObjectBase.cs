@@ -130,6 +130,16 @@ namespace ThaumielMapEditor.API.Blocks
         public bool IsDirty => SyncFlags != SyncFlags.None;
 
         /// <summary>
+        /// Gets a value indicating whether this object can currently accept sync changes.
+        /// </summary>
+        protected virtual bool CanSync => true;
+
+        /// <summary>
+        /// Tracks whether this object is already queued inside the <see cref="SyncManager"/>.
+        /// </summary>
+        internal int PendingSync;
+
+        /// <summary>
         /// Gets a value indicating whether this object is currently spawned in its schematic.
         /// </summary>
         public bool IsSpawned => Schematic?.Contains(this) ?? false;
@@ -173,6 +183,9 @@ namespace ThaumielMapEditor.API.Blocks
         /// <param name="flags">The properties that changed.</param>
         protected void MarkSyncNeeded(SyncFlags flags)
         {
+            if (!CanSync)
+                return;
+
             SyncFlags |= flags;
             RegisterForSync();
         }
@@ -185,6 +198,8 @@ namespace ThaumielMapEditor.API.Blocks
         }
 
         internal void ClearDirtyFlags() => SyncFlags = SyncFlags.None;
+
+        internal void ClearDirtyFlags(SyncFlags synced) => SyncFlags &= ~synced;
 
         /// <summary>
         /// Copies every shared value from <paramref name="source"/> without running property side effects.

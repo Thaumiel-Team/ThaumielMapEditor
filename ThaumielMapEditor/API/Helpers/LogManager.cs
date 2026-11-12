@@ -69,7 +69,7 @@ namespace ThaumielMapEditor.API.Helpers
 
         public static void Debug(string message)
         {
-            if (Main.Instance.Config is not { Debug: true })
+            if (!Main.Instance.Config.Debug)
                 return;
 
             string formattedMessage = FormatLogMessage(message);

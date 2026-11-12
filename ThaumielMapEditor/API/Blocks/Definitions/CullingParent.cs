@@ -214,6 +214,9 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
             public override ObjectType ObjectType => ObjectType.CullingParent;
 
             /// <inheritdoc/>
+            protected override bool SharesDeltaPayload => false;
+
+            /// <inheritdoc/>
             public override void SpawnForPlayer(Player player)
             {
                 if (player == null || player.IsDestroyed || player.IsHost || player.IsDummy)
