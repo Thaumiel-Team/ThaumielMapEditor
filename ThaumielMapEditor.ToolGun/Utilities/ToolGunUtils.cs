@@ -113,7 +113,7 @@ namespace ThaumielMapEditor.ToolGun.Utilities
                 return false;
             }
 
-            bool deleted = sch
+            bool deleted = server != null ? schematic.DestroyServerObject(server) : schematic.DestroyClientObject(client!);
 
             if (deleted && schematic.SpawnedClientObjects.Count == 0 && schematic.SpawnedServerObjects.Count == 0)
                 Loader.DestroySchematic(schematic);
