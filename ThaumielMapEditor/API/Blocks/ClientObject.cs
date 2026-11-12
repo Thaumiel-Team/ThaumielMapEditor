@@ -38,6 +38,11 @@ namespace ThaumielMapEditor.API.Blocks
         public bool Spawned => !SpawnedPlayers.IsEmpty();
 
         /// <summary>
+        /// Gets the number of players this object has been spawned for.
+        /// </summary>
+        public int SpawnedPlayerCount => SpawnedPlayers.Count;
+
+        /// <summary>
         /// Gets or sets the parent object id.
         /// </summary>
         public override int ParentId

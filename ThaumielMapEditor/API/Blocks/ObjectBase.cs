@@ -137,7 +137,7 @@ namespace ThaumielMapEditor.API.Blocks
         /// <summary>
         /// Tracks whether this object is already queued inside the <see cref="SyncManager"/>.
         /// </summary>
-        internal int PendingSync;
+        public bool PendingSync { get; internal set; }
 
         /// <summary>
         /// Gets a value indicating whether this object is currently spawned in its schematic.
@@ -148,6 +148,22 @@ namespace ThaumielMapEditor.API.Blocks
         /// Gets a value indicating whether this object is parented directly to the schematic root.
         /// </summary>
         public bool IsRootObject => Schematic != null && ParentId == Schematic.RootObjectId;
+
+        /// <summary>
+        /// Gets the depth of this object in its schematic hierarchy.
+        /// </summary>
+        public int Depth
+        {
+            get
+            {
+                int depth = 0;
+
+                foreach (ObjectBase ancestor in GetAncestors())
+                    depth++;
+
+                return depth;
+            }
+        }
 
         /// <summary>
         /// Gets the parent of this object.
@@ -176,6 +192,69 @@ namespace ThaumielMapEditor.API.Blocks
                     yield return obj;
             }
         }
+
+        /// <summary>
+        /// Gets the first object above this object.
+        /// </summary>
+        /// <returns>The topmost object, or this object when it has no parent.</returns>
+        public ObjectBase GetRoot()
+        {
+            ObjectBase root = this;
+
+            foreach (ObjectBase ancestor in GetAncestors())
+                root = ancestor;
+
+            return root;
+        }
+
+        /// <summary>
+        /// Gets every object above this object in the hierarchy.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the ancestor objects.</returns>
+        public IEnumerable<ObjectBase> GetAncestors() =>
+            Schematic?.GetAncestors(this) ?? [];
+
+        /// <summary>
+        /// Gets every object below this object in the hierarchy.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the descendant objects.</returns>
+        public IEnumerable<ObjectBase> GetDescendants() =>
+            Schematic?.GetDescendants(this) ?? [];
+
+        /// <summary>
+        /// Gets every descendant of type <typeparamref name="T"/> below this object.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching descendants.</returns>
+        public IEnumerable<T> GetDescendants<T>() where T : ObjectBase =>
+            Schematic?.GetDescendants<T>(this) ?? [];
+
+        /// <summary>
+        /// Determines whether this object is below the given object in the hierarchy.
+        /// </summary>
+        /// <param name="ancestor">The possible ancestor.</param>
+        /// <returns><see langword="true"/> if this object is a descendant.</returns>
+        public bool IsDescendantOf(ObjectBase ancestor)
+        {
+            if (ancestor == null)
+                return false;
+
+            foreach (ObjectBase parent in GetAncestors())
+            {
+                if (ReferenceEquals(parent, ancestor))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether this object is above the given object in the hierarchy.
+        /// </summary>
+        /// <param name="descendant">The possible descendant.</param>
+        /// <returns><see langword="true"/> if this object is an ancestor.</returns>
+        public bool IsAncestorOf(ObjectBase descendant) =>
+            descendant != null && descendant.IsDescendantOf(this);
 
         /// <summary>
         /// Marks the given properties as dirty and schedules this object for syncing.

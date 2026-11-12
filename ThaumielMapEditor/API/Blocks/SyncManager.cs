@@ -44,10 +44,10 @@ namespace ThaumielMapEditor.API.Blocks
             if (obj == null)
                 return;
 
-            if (obj.PendingSync != 0)
+            if (obj.PendingSync)
                 return;
 
-            obj.PendingSync = 1;
+            obj.PendingSync = true;
             PendingClientSyncs.Enqueue(obj);
             ScheduleSync();
         }
@@ -60,10 +60,10 @@ namespace ThaumielMapEditor.API.Blocks
             if (obj == null)
                 return;
 
-            if (obj.PendingSync != 0)
+            if (obj.PendingSync)
                 return;
 
-            obj.PendingSync = 1;
+            obj.PendingSync = true;
             PendingServerSyncs.Enqueue(obj);
             ScheduleSync();
         }
@@ -116,7 +116,7 @@ namespace ThaumielMapEditor.API.Blocks
             while (PendingClientSyncs.Count > 0)
             {
                 ClientObject? obj = PendingClientSyncs.Dequeue();
-                obj?.PendingSync = 0;
+                obj?.PendingSync = false;
             }
         }
 
@@ -128,7 +128,7 @@ namespace ThaumielMapEditor.API.Blocks
             while (PendingServerSyncs.Count > 0)
             {
                 ServerObject? obj = PendingServerSyncs.Dequeue();
-                obj?.PendingSync = 0;
+                obj?.PendingSync = false;
             }
 
             ServerRetryCounts.Clear();
@@ -139,7 +139,7 @@ namespace ThaumielMapEditor.API.Blocks
             if (obj == null)
                 return;
 
-            obj.PendingSync = 0;
+            obj.PendingSync = false;
         }
 
         internal static void RemoveFromPending(ServerObject obj)
@@ -147,7 +147,7 @@ namespace ThaumielMapEditor.API.Blocks
             if (obj == null)
                 return;
 
-            obj.PendingSync = 0;
+            obj.PendingSync = false;
             ServerRetryCounts.Remove(obj);
         }
 
@@ -183,7 +183,7 @@ namespace ThaumielMapEditor.API.Blocks
                 if (obj == null)
                     continue;
 
-                obj.PendingSync = 0;
+                obj.PendingSync = false;
                 batch.Add(obj);
             }
 
@@ -263,7 +263,7 @@ namespace ThaumielMapEditor.API.Blocks
                 if (obj == null)
                     continue;
 
-                obj.PendingSync = 0;
+                obj.PendingSync = false;
                 batch.Add(obj);
             }
 

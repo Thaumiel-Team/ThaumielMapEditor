@@ -171,6 +171,11 @@ namespace ThaumielMapEditor.API.Data
         public int ObjectCount =>  SpawnedServerObjects.Count + SpawnedClientObjects.Count;
 
         /// <summary>
+        /// Gets a value indicating whether this schematic is registered as spawned.
+        /// </summary>
+        public bool IsSpawned => Loader.SchematicsById.TryGetValue(Id, out SchematicData? schematic) && ReferenceEquals(schematic, this);
+
+        /// <summary>
         /// Gets the number of spawned objects of type <typeparamref name="T"/> in this schematic.
         /// </summary>
         /// <typeparam name="T">The object type to count.</typeparam>
@@ -239,6 +244,37 @@ namespace ThaumielMapEditor.API.Data
         {
             GameObject? root = Primitive?.GameObject;
             return root != null ? root.GetComponents<LODZone>() : [];
+        }
+
+        /// <summary>
+        /// Converts a local position to a world position.
+        /// </summary>
+        /// <param name="localPosition">The local position.</param>
+        /// <returns>The world position.</returns>
+        public Vector3 WorldPosition(Vector3 localPosition)
+        {
+            Transform? transform = Primitive?.Transform;
+            return transform != null ? transform.TransformPoint(localPosition) : Position + (Rotation * Vector3.Scale(localPosition, Scale));
+        }
+
+        /// <summary>
+        /// Converts a world position to a local position.
+        /// </summary>
+        /// <param name="worldPosition">The world position.</param>
+        /// <returns>The local position.</returns>
+        public Vector3 LocalPosition(Vector3 worldPosition)
+        {
+            Transform? transform = Primitive?.Transform;
+            if (transform != null)
+                return transform.InverseTransformPoint(worldPosition);
+
+            Vector3 local = Quaternion.Inverse(Rotation) * (worldPosition - Position);
+
+            return new Vector3(
+                Scale.x != 0f ? local.x / Scale.x : local.x,
+                Scale.y != 0f ? local.y / Scale.y : local.y,
+                Scale.z != 0f ? local.z / Scale.z : local.z
+            );
         }
 
         /// <summary>
@@ -429,6 +465,80 @@ namespace ThaumielMapEditor.API.Data
             child == null ? null : GetObject(child.ParentId);
 
         /// <summary>
+        /// Gets every object below the given object in the hierarchy.
+        /// </summary>
+        /// <param name="parent">The parent object.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the descendant objects.</returns>
+        public IEnumerable<ObjectBase> GetDescendants(ObjectBase parent) =>
+            parent == null ? [] : GetDescendants(parent.ObjectId);
+
+        /// <summary>
+        /// Gets every object below the given object id in the hierarchy.
+        /// </summary>
+        /// <param name="parentId">The parent object id.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the descendant objects.</returns>
+        public IEnumerable<ObjectBase> GetDescendants(int parentId)
+        {
+            HashSet<int> visited = [parentId];
+
+            foreach (ObjectBase descendant in EnumerateDescendants(parentId, visited))
+                yield return descendant;
+        }
+
+        /// <summary>
+        /// Gets every descendant of type <typeparamref name="T"/> below the given object.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <param name="parent">The parent object.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching descendants.</returns>
+        public IEnumerable<T> GetDescendants<T>(ObjectBase parent) where T : ObjectBase =>
+            parent == null ? [] : GetDescendants<T>(parent.ObjectId);
+
+        /// <summary>
+        /// Gets every descendant of type <typeparamref name="T"/> below the given object id.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <param name="parentId">The parent object id.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching descendants.</returns>
+        public IEnumerable<T> GetDescendants<T>(int parentId) where T : ObjectBase
+        {
+            foreach (ObjectBase obj in GetDescendants(parentId))
+            {
+                if (obj is T typed)
+                    yield return typed;
+            }
+        }
+
+        /// <summary>
+        /// Gets every object above the given object in the hierarchy.
+        /// </summary>
+        /// <param name="child">The child object.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the ancestor objects.</returns>
+        public IEnumerable<ObjectBase> GetAncestors(ObjectBase child) =>
+            child == null ? [] : GetAncestors(child.ObjectId);
+
+        /// <summary>
+        /// Gets every object above the given object id in the hierarchy.
+        /// </summary>
+        /// <param name="objectId">The object id to start from.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the ancestor objects.</returns>
+        public IEnumerable<ObjectBase> GetAncestors(int objectId)
+        {
+            ObjectBase? child = GetObject(objectId);
+            if (child == null)
+                yield break;
+
+            HashSet<int> visited = [objectId];
+            ObjectBase? parent = GetParent(child);
+
+            while (parent != null && visited.Add(parent.ObjectId))
+            {
+                yield return parent;
+                parent = GetParent(parent);
+            }
+        }
+
+        /// <summary>
         /// Creates a new empty schematic at the given position.
         /// </summary>
         /// <param name="fileName">The file name of the schematic.</param>
@@ -570,7 +680,11 @@ namespace ThaumielMapEditor.API.Data
         public T AddObject<T>(int parentId) where T : ObjectBase => 
             AddObject<T>(parentId: parentId);
 
-        private int GetNextObjectId()
+        /// <summary>
+        /// Gets the next free object id for this schematic.
+        /// </summary>
+        /// <returns>The next free object id.</returns>
+        public int GetNextObjectId()
         {
             int id = RootObjectId;
 
@@ -581,6 +695,20 @@ namespace ThaumielMapEditor.API.Data
                 id = Math.Max(id, client.ObjectId);
 
             return id + 1;
+        }
+
+        private IEnumerable<ObjectBase> EnumerateDescendants(int parentId, HashSet<int> visited)
+        {
+            foreach (ObjectBase child in GetChildren(parentId))
+            {
+                if (!visited.Add(child.ObjectId))
+                    continue;
+
+                yield return child;
+
+                foreach (ObjectBase descendant in EnumerateDescendants(child.ObjectId, visited))
+                    yield return descendant;
+            }
         }
 
         private Transform? ResolveServerParentTransform(int parentId)

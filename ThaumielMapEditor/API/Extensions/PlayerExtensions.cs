@@ -15,7 +15,6 @@ using LabApi.Features.Wrappers;
 using LabApiExtensions.Extensions;
 using LabApiExtensions.FakeExtension;
 using Mirror;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Struct;
 

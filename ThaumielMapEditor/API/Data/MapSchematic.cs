@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using YamlDotNet.Serialization;
+using ThaumielMapEditor.API.Helpers;
 
 namespace ThaumielMapEditor.API.Data
 {
@@ -24,5 +25,28 @@ namespace ThaumielMapEditor.API.Data
 
         [YamlIgnore]
         public uint SchematicId { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the schematic of this entry is currently spawned.
+        /// </summary>
+        /// 
+        public bool IsSpawned => GetSchematic() != null;
+
+        /// <summary>
+        /// Gets the spawned schematic for this entry.
+        /// </summary>
+        /// <returns>The schematic, or <see langword="null"/> if it is not spawned.</returns>
+        public SchematicData? GetSchematic() => Loader.GetSchematicById(SchematicId);
+
+        /// <summary>
+        /// Tries to get the spawned schematic for this entry.
+        /// </summary>
+        /// <param name="schematic">The spawned schematic, or <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the schematic was found.</returns>
+        public bool TryGetSchematic(out SchematicData? schematic)
+        {
+            schematic = GetSchematic();
+            return schematic != null;
+        }
     }
 }

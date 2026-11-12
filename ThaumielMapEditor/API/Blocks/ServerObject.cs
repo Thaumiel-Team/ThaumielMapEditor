@@ -77,7 +77,7 @@ namespace ThaumielMapEditor.API.Blocks
         /// <summary>
         /// Gets the <see cref="Mirror.NetworkIdentity"/> of <see cref="Object"/>.
         /// </summary>
-        internal NetworkIdentity? NetworkIdentity
+        public NetworkIdentity? NetworkIdentity
         {
             get
             {
@@ -89,7 +89,7 @@ namespace ThaumielMapEditor.API.Blocks
         /// <summary>
         /// Gets the <see cref="AdminToyBase"/> of <see cref="Object"/>.
         /// </summary>
-        internal AdminToyBase? Toy
+        public AdminToyBase? Toy
         {
             get
             {
@@ -101,7 +101,7 @@ namespace ThaumielMapEditor.API.Blocks
         /// <summary>
         /// Gets the <see cref="StructurePositionSync"/> of <see cref="Object"/>.
         /// </summary>
-        internal StructurePositionSync? PositionSync
+        public StructurePositionSync? PositionSync
         {
             get
             {
@@ -282,7 +282,7 @@ namespace ThaumielMapEditor.API.Blocks
         /// <param name="schematic">The schematic data to apply.</param>
         public void SetWorldTransform(SchematicData schematic)
         {
-            Position = schematic.Primitive?.Transform.TransformPoint(Position) ?? schematic.Position + (schematic.Rotation * Vector3.Scale(Position, schematic.Scale));
+            Position = schematic.WorldPosition(Position);
             if (schematic.Rotation.eulerAngles != default)
                 Rotation = schematic.Rotation * Rotation;
 
