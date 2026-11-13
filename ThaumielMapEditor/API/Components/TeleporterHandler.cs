@@ -9,7 +9,6 @@ using LabApi.Features.Wrappers;
 using LabApiExtensions.Extensions;
 using System;
 using System.Collections.Generic;
-using PickupDef = ThaumielMapEditor.API.Blocks.Definitions.Pickup;
 using TeleporterDef = ThaumielMapEditor.API.Blocks.Definitions.Teleporter;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;

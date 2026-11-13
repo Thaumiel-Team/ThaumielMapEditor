@@ -25,7 +25,6 @@ namespace ThaumielMapEditor.Events
 {
     internal class PlayerHandler
     {
-
         public static void Register()
         {
             PlayerEvents.Joined += OnPlayerJoined;

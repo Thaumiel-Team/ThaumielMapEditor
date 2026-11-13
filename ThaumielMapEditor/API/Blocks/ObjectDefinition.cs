@@ -50,10 +50,8 @@ namespace ThaumielMapEditor.API.Blocks
         /// Reads the serialized values of <paramref name="serializable"/> into this definition.
         /// </summary>
         /// <param name="serializable">The serialized object to read from.</param>
-        public virtual void Load(SerializableObject serializable)
-        {
+        public virtual void Load(SerializableObject serializable) =>
             serializable.Values.PopulateFrom(this);
-        }
 
         /// <summary>
         /// Creates the server runtime object for this definition.

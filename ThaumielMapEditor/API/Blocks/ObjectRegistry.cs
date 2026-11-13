@@ -25,7 +25,6 @@ namespace ThaumielMapEditor.API.Blocks
             [ObjectType.Clutter] = static () => new ClutterDef(),
             [ObjectType.TextToy] = static () => new TextToy(),
             [ObjectType.CullingParent] = static () => new CullingParent(),
-
             [ObjectType.Door] = static () => new Door(),
             [ObjectType.Workstation] = static () => new Workstation(),
             [ObjectType.Interactable] = static () => new Interactable(),

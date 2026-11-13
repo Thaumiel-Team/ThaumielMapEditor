@@ -7,7 +7,6 @@
 
 using System.Collections.Generic;
 using System.ComponentModel;
-using ThaumielMapEditor.API.Attributes;
 
 namespace ThaumielMapEditor
 {
