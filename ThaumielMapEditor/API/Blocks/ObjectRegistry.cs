@@ -50,12 +50,41 @@ namespace ThaumielMapEditor.API.Blocks
         public static bool IsRegistered(ObjectType type) => Factories.ContainsKey(type);
 
         /// <summary>
+        /// Gets every <see cref="ObjectType"/> that has a registered definition.
+        /// </summary>
+        public static IEnumerable<ObjectType> RegisteredTypes => Factories.Keys;
+
+        /// <summary>
         /// Creates a new definition for the given <paramref name="type"/>.
         /// </summary>
         /// <param name="type">The type to create a definition for.</param>
         /// <returns>The new definition, or <see langword="null"/> when the type is not registered.</returns>
         public static ObjectDefinition? Create(ObjectType type)
             => Factories.TryGetValue(type, out Func<ObjectDefinition>? factory) ? factory() : null;
+
+        /// <summary>
+        /// Creates a new definition for every registered <see cref="ObjectType"/>.
+        /// </summary>
+        /// <returns>The created definitions.</returns>
+        public static IEnumerable<ObjectDefinition> CreateAll()
+        {
+            foreach (Func<ObjectDefinition> factory in Factories.Values)
+                yield return factory();
+        }
+
+        /// <summary>
+        /// Gets the display name of the given <paramref name="type"/>.
+        /// </summary>
+        /// <param name="type">The type to look up.</param>
+        /// <returns>The definition name, or the enum name when the type is not registered.</returns>
+        public static string GetName(ObjectType type) => Create(type)?.Name ?? type.ToString();
+
+        /// <summary>
+        /// Gets the <see cref="ObjectType"/> of the given runtime object type.
+        /// </summary>
+        /// <typeparam name="T">The runtime object type to look up.</typeparam>
+        /// <returns>The matching <see cref="ObjectType"/>, or <see langword="null"/> when no definition creates it.</returns>
+        public static ObjectType? GetObjectType<T>() where T : ObjectBase => GetObjectType(typeof(T));
 
         /// <summary>
         /// Registers or replaces the definition factory for an <see cref="ObjectType"/>.
@@ -97,6 +126,49 @@ namespace ThaumielMapEditor.API.Blocks
                 throw new ArgumentNullException(nameof(runtimeType));
 
             return RuntimeTypes.TryGetValue(runtimeType, out ObjectType type) ? type : null;
+        }
+
+        /// <summary>
+        /// Tries to get the <see cref="ObjectType"/> that creates the given runtime object type.
+        /// </summary>
+        /// <param name="runtimeType">The runtime object type to look up.</param>
+        /// <param name="type">The matching <see cref="ObjectType"/>.</param>
+        /// <returns><see langword="true"/> when a definition creates the runtime type.</returns>
+        public static bool TryGetObjectType(Type runtimeType, out ObjectType type)
+        {
+            if (runtimeType == null)
+                throw new ArgumentNullException(nameof(runtimeType));
+
+            return RuntimeTypes.TryGetValue(runtimeType, out type);
+        }
+
+        /// <summary>
+        /// Gets the runtime type that creates the server side object of the given <paramref name="type"/>.
+        /// </summary>
+        /// <param name="type">The object type to look up.</param>
+        /// <returns>The server object type, or <see langword="null"/> when no definition creates it.</returns>
+        public static Type? GetServerType(ObjectType type) => GetRuntimeType(type, typeof(ServerObject));
+
+        /// <summary>
+        /// Gets the runtime type that creates the client side object of the given <paramref name="type"/>.
+        /// </summary>
+        /// <param name="type">The object type to look up.</param>
+        /// <returns>The client object type, or <see langword="null"/> when no definition creates it.</returns>
+        public static Type? GetClientType(ObjectType type) => GetRuntimeType(type, typeof(ClientObject));
+
+        private static Type? GetRuntimeType(ObjectType type, Type baseType)
+        {
+            ObjectDefinition? definition = Create(type);
+            if (definition == null)
+                return null;
+
+            foreach (Type nested in definition.GetType().GetNestedTypes())
+            {
+                if (!nested.IsAbstract && baseType.IsAssignableFrom(nested))
+                    return nested;
+            }
+
+            return null;
         }
 
         private static Dictionary<Type, ObjectType> BuildRuntimeTypes()

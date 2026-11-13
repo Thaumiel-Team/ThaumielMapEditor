@@ -147,6 +147,11 @@ namespace ThaumielMapEditor.API.Data
         public GameObject? GameObject => Primitive?.GameObject;
 
         /// <summary>
+        /// Gets the <see cref="UnityEngine.Transform"/> of the base <see cref="LabPrimitive"/> of this Schematic.
+        /// </summary>
+        public Transform? Transform => Primitive?.Transform;
+
+        /// <summary>
         /// Retrieves all spawned <see cref="ClientObject"/>s of the specified type.
         /// </summary>
         /// <typeparam name="T">The type of <see cref="ClientObject"/> to filter.</typeparam>
@@ -161,6 +166,26 @@ namespace ThaumielMapEditor.API.Data
         public IEnumerable<T> GetServerObject<T>() where T : ServerObject => SpawnedServerObjects.OfType<T>();
 
         /// <summary>
+        /// Retrieves every spawned <see cref="ServerObject"/> of this schematic.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the spawned server objects.</returns>
+        public IEnumerable<ServerObject> GetServerObjects()
+        {
+            foreach (ServerObject server in SpawnedServerObjects)
+                yield return server;
+        }
+
+        /// <summary>
+        /// Retrieves every spawned <see cref="ClientObject"/> of this schematic.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the spawned client objects.</returns>
+        public IEnumerable<ClientObject> GetClientObjects()
+        {
+            foreach (ClientObject client in SpawnedClientObjects)
+                yield return client;
+        }
+
+        /// <summary>
         /// Gets all of the <see cref="SpawnedServerObjects"/> that have a <see cref="NetworkIdentity"/> as a component.
         /// </summary>
         public IReadOnlyList<NetworkIdentity> ServerNetworkIdentities => SpawnedServerObjects.Where(o => o.Object != null).Select(o => o.Object!.GetComponent<NetworkIdentity>()).ToList();
@@ -169,6 +194,16 @@ namespace ThaumielMapEditor.API.Data
         /// Gets the total number of spawned objects in this schematic.
         /// </summary>
         public int ObjectCount =>  SpawnedServerObjects.Count + SpawnedClientObjects.Count;
+
+        /// <summary>
+        /// Gets the number of spawned <see cref="ServerObject"/> instances in this schematic.
+        /// </summary>
+        public int ServerObjectCount => SpawnedServerObjects.Count;
+
+        /// <summary>
+        /// Gets the number of spawned <see cref="ClientObject"/> instances in this schematic.
+        /// </summary>
+        public int ClientObjectCount => SpawnedClientObjects.Count;
 
         /// <summary>
         /// Gets a value indicating whether this schematic is registered as spawned.
@@ -187,6 +222,24 @@ namespace ThaumielMapEditor.API.Data
             foreach (ObjectBase obj in GetObjects())
             {
                 if (obj is T)
+                    count++;
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Gets the number of spawned objects of the given <see cref="ObjectType"/> in this schematic.
+        /// </summary>
+        /// <param name="objectType">The object type to count.</param>
+        /// <returns>The number of matching objects.</returns>
+        public int GetObjectCount(ObjectType objectType)
+        {
+            int count = 0;
+
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (obj.ObjectType == objectType)
                     count++;
             }
 
@@ -217,6 +270,20 @@ namespace ThaumielMapEditor.API.Data
             {
                 if (obj is T typed)
                     yield return typed;
+            }
+        }
+
+        /// <summary>
+        /// Gets every spawned object of the given <see cref="ObjectType"/> in this schematic.
+        /// </summary>
+        /// <param name="objectType">The object type to return.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching objects.</returns>
+        public IEnumerable<ObjectBase> GetObjects(ObjectType objectType)
+        {
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (obj.ObjectType == objectType)
+                    yield return obj;
             }
         }
 
@@ -311,6 +378,31 @@ namespace ThaumielMapEditor.API.Data
         }
 
         /// <summary>
+        /// Tries to get the first spawned object with the given name.
+        /// </summary>
+        /// <param name="name">The object name to find.</param>
+        /// <param name="obj">The found object, or <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the object was found.</returns>
+        public bool TryGetObjectByName(string name, out ObjectBase? obj)
+        {
+            obj = GetObjectByName(name);
+            return obj != null;
+        }
+
+        /// <summary>
+        /// Tries to get the first spawned object of type <typeparamref name="T"/> with the given name.
+        /// </summary>
+        /// <typeparam name="T">The object type to find.</typeparam>
+        /// <param name="name">The object name to find.</param>
+        /// <param name="obj">The found object, or <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the object was found.</returns>
+        public bool TryGetObjectByName<T>(string name, out T? obj) where T : ObjectBase
+        {
+            obj = GetObjectByName<T>(name);
+            return obj != null;
+        }
+
+        /// <summary>
         /// Gets every spawned object with the given name.
         /// </summary>
         /// <param name="name">The object name to find.</param>
@@ -321,6 +413,21 @@ namespace ThaumielMapEditor.API.Data
             {
                 if (string.Equals(obj.Name, name, StringComparison.OrdinalIgnoreCase))
                     yield return obj;
+            }
+        }
+
+        /// <summary>
+        /// Gets every spawned object of type <typeparamref name="T"/> with the given name.
+        /// </summary>
+        /// <typeparam name="T">The object type to find.</typeparam>
+        /// <param name="name">The object name to find.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching objects.</returns>
+        public IEnumerable<T> GetObjectsByName<T>(string name) where T : ObjectBase
+        {
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (obj is T typed && string.Equals(typed.Name, name, StringComparison.OrdinalIgnoreCase))
+                    yield return typed;
             }
         }
 
@@ -341,6 +448,69 @@ namespace ThaumielMapEditor.API.Data
             {
                 if (client.ObjectId == objectId)
                     return client;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Tries to get the spawned object with the given object id.
+        /// </summary>
+        /// <param name="objectId">The object id to find.</param>
+        /// <param name="obj">The found object, or <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the object was found.</returns>
+        public bool TryGetObject(int objectId, out ObjectBase? obj)
+        {
+            obj = GetObject(objectId);
+            return obj != null;
+        }
+
+        /// <summary>
+        /// Gets the spawned object with the given netId.
+        /// </summary>
+        /// <param name="netId">The netId to find.</param>
+        /// <returns>The spawned object, or <see langword="null"/> if it was not found.</returns>
+        public ObjectBase? GetObjectByNetId(uint netId)
+        {
+            if (netId == 0)
+                return null;
+
+            foreach (ServerObject server in SpawnedServerObjects)
+            {
+                if (server.NetId == netId)
+                    return server;
+            }
+
+            foreach (ClientObject client in SpawnedClientObjects)
+            {
+                if (client.NetId == netId)
+                    return client;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the spawned object of type <typeparamref name="T"/> with the given netId.
+        /// </summary>
+        /// <typeparam name="T">The object type to find.</typeparam>
+        /// <param name="netId">The netId to find.</param>
+        /// <returns>The spawned object, or <see langword="null"/> if it was not found.</returns>
+        public T? GetObjectByNetId<T>(uint netId) where T : ObjectBase
+        {
+            if (netId == 0)
+                return null;
+
+            foreach (ServerObject server in SpawnedServerObjects)
+            {
+                if (server.NetId == netId && server is T typedServer)
+                    return typedServer;
+            }
+
+            foreach (ClientObject client in SpawnedClientObjects)
+            {
+                if (client.NetId == netId && client is T typedClient)
+                    return typedClient;
             }
 
             return null;
@@ -457,6 +627,30 @@ namespace ThaumielMapEditor.API.Data
         }
 
         /// <summary>
+        /// Gets every spawned object of type <typeparamref name="T"/> that is parented to the given object.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <param name="parent">The parent object.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching child objects.</returns>
+        public IEnumerable<T> GetChildren<T>(ObjectBase parent) where T : ObjectBase =>
+            parent == null ? [] : GetChildren<T>(parent.ObjectId);
+
+        /// <summary>
+        /// Gets every spawned object of type <typeparamref name="T"/> that is parented to the given object id.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <param name="parentId">The parent object id.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching child objects.</returns>
+        public IEnumerable<T> GetChildren<T>(int parentId) where T : ObjectBase
+        {
+            foreach (ObjectBase obj in GetChildren(parentId))
+            {
+                if (obj is T typed)
+                    yield return typed;
+            }
+        }
+
+        /// <summary>
         /// Gets the parent of the given object.
         /// </summary>
         /// <param name="child">The child object.</param>
@@ -539,6 +733,30 @@ namespace ThaumielMapEditor.API.Data
         }
 
         /// <summary>
+        /// Gets every ancestor of type <typeparamref name="T"/> above the given object.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <param name="child">The child object.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching ancestor objects.</returns>
+        public IEnumerable<T> GetAncestors<T>(ObjectBase child) where T : ObjectBase =>
+            child == null ? [] : GetAncestors<T>(child.ObjectId);
+
+        /// <summary>
+        /// Gets every ancestor of type <typeparamref name="T"/> above the given object id.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <param name="objectId">The object id to start from.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching ancestor objects.</returns>
+        public IEnumerable<T> GetAncestors<T>(int objectId) where T : ObjectBase
+        {
+            foreach (ObjectBase obj in GetAncestors(objectId))
+            {
+                if (obj is T typed)
+                    yield return typed;
+            }
+        }
+
+        /// <summary>
         /// Creates a new empty schematic at the given position.
         /// </summary>
         /// <param name="fileName">The file name of the schematic.</param>
@@ -569,27 +787,33 @@ namespace ThaumielMapEditor.API.Data
             Loader.CreateSchematic(fileName, position, rotation, scale);
 
         /// <summary>
-        /// Creates and spawns a new object of type <typeparamref name="T"/> in this schematic.
+        /// Creates and spawns a new object of the given <see cref="ObjectType"/> in this schematic.
         /// </summary>
-        /// <typeparam name="T">The runtime object type to create.</typeparam>
+        /// <param name="objectType">The object type to create.</param>
+        /// <param name="serverSide">Whether to create the server side variant.</param>
         /// <param name="position">Optional local position of the object.</param>
         /// <param name="rotation">Optional rotation of the object.</param>
         /// <param name="scale">Optional scale of the object.</param>
         /// <param name="name">Optional name of the object.</param>
         /// <param name="parentId">Optional object id of the parent.</param>
         /// <returns>The spawned object.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when <typeparamref name="T"/> is not a registered object type.</exception>
-        public T AddObject<T>(Vector3? position = null, Quaternion? rotation = null, Vector3? scale = null, string? name = null, int? parentId = null) where T : ObjectBase
+        /// <exception cref="InvalidOperationException">Thrown when no definition is registered for <paramref name="objectType"/>.</exception>
+        public ObjectBase AddObject(ObjectType objectType, bool serverSide = false, Vector3? position = null, Quaternion? rotation = null, Vector3? scale = null, string? name = null, int? parentId = null)
         {
-            ObjectType? objectType = ObjectRegistry.GetObjectType(typeof(T)) ?? throw new InvalidOperationException($"'{typeof(T).Name}' is not a registered runtime object type.");
-            ObjectDefinition? definition = ObjectRegistry.Create(objectType.Value) ?? throw new InvalidOperationException($"No definition is registered for '{objectType}'.");
+            ObjectDefinition definition = ObjectRegistry.Create(objectType) ?? throw new InvalidOperationException($"No definition is registered for '{objectType}'.");
+
+            if (serverSide && !definition.SupportsServer)
+                throw new InvalidOperationException($"'{objectType}' does not support server objects.");
+
+            if (!serverSide && !definition.SupportsClient)
+                throw new InvalidOperationException($"'{objectType}' does not support client objects.");
 
             SerializableObject serializable = new()
             {
                 ObjectId = GetNextObjectId(),
                 ParentId = parentId ?? RootObjectId,
                 Name = name ?? definition.Name,
-                ObjectType = objectType.Value,
+                ObjectType = objectType,
                 Position = position ?? Vector3.zero,
                 Rotation = rotation ?? Quaternion.identity,
                 Scale = scale ?? Vector3.one,
@@ -600,39 +824,26 @@ namespace ThaumielMapEditor.API.Data
             ObjectBase data = new();
             data.LoadFrom(serializable, this);
 
-            if (typeof(ServerObject).IsAssignableFrom(typeof(T)))
+            if (serverSide)
             {
-                if (!definition.SupportsServer)
-                    throw new InvalidOperationException($"'{objectType}' does not support server objects.");
-
-                ServerObject? server = definition.ServerObject(data);
-                if (server is not T typedServer)
-                    throw new InvalidOperationException($"'{objectType}' did not create a '{typeof(T).Name}'.");
+                ServerObject server = definition.ServerObject(data) ?? throw new InvalidOperationException($"'{objectType}' did not create a server object.");
 
                 server.SpawnObject(this, serializable);
 
                 if (server.Object == null)
                 {
                     LogManager.Warn($"Failed to spawn '{definition.Name}' in '{FileName}'.");
-                    return typedServer;
+                    return server;
                 }
 
                 if (server.ParentToSpawnTransform)
                     server.Object.transform.SetParent(ResolveServerParentTransform(serializable.ParentId), false);
 
                 server.OnSpawned(this);
-                return typedServer;
+                return server;
             }
 
-            if (!typeof(ClientObject).IsAssignableFrom(typeof(T)))
-                throw new InvalidOperationException($"'{typeof(T).Name}' is not a server or client object.");
-
-            if (!definition.SupportsClient)
-                throw new InvalidOperationException($"'{objectType}' does not support client objects.");
-
-            ClientObject? client = definition.ClientObject(data);
-            if (client is not T typedClient)
-                throw new InvalidOperationException($"'{objectType}' did not create a '{typeof(T).Name}'.");
+            ClientObject client = definition.ClientObject(data) ?? throw new InvalidOperationException($"'{objectType}' did not create a client object.");
 
             client.ParentNetId = ResolveParentNetId(serializable.ParentId);
             client.NetId = NetworkIdentity.GetNextNetworkId();
@@ -650,7 +861,31 @@ namespace ThaumielMapEditor.API.Data
                     client.SpawnForPlayer(player);
             }
 
-            return typedClient;
+            return client;
+        }
+
+        /// <summary>
+        /// Creates and spawns a new object of type <typeparamref name="T"/> in this schematic.
+        /// </summary>
+        /// <typeparam name="T">The runtime object type to create.</typeparam>
+        /// <param name="position">Optional local position of the object.</param>
+        /// <param name="rotation">Optional rotation of the object.</param>
+        /// <param name="scale">Optional scale of the object.</param>
+        /// <param name="name">Optional name of the object.</param>
+        /// <param name="parentId">Optional object id of the parent.</param>
+        /// <returns>The spawned object.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when <typeparamref name="T"/> is not a registered object type.</exception>
+        public T AddObject<T>(Vector3? position = null, Quaternion? rotation = null, Vector3? scale = null, string? name = null, int? parentId = null) where T : ObjectBase
+        {
+            ObjectType objectType = ObjectRegistry.GetObjectType(typeof(T)) ?? throw new InvalidOperationException($"'{typeof(T).Name}' is not a registered runtime object type.");
+            bool serverSide = typeof(ServerObject).IsAssignableFrom(typeof(T));
+
+            if (!serverSide && !typeof(ClientObject).IsAssignableFrom(typeof(T)))
+                throw new InvalidOperationException($"'{typeof(T).Name}' is not a server or client object.");
+
+            ObjectBase obj = AddObject(objectType, serverSide, position, rotation, scale, name, parentId);
+
+            return obj is T typed ? typed : throw new InvalidOperationException($"'{objectType}' did not create a '{typeof(T).Name}'.");
         }
 
         /// <summary>
@@ -834,6 +1069,29 @@ namespace ThaumielMapEditor.API.Data
 
             DestroyObjectTree(clientObject.ObjectId);
             return true;
+        }
+
+        /// <summary>
+        /// Destroys every spawned object of type <typeparamref name="T"/> in this schematic.
+        /// </summary>
+        /// <typeparam name="T">The object type to destroy.</typeparam>
+        /// <returns>The number of objects that were destroyed.</returns>
+        public int DestroyObjects<T>() where T : ObjectBase
+        {
+            List<ObjectBase> matches = [];
+
+            foreach (ObjectBase obj in GetObjects<T>())
+                matches.Add(obj);
+
+            int destroyed = 0;
+
+            foreach (ObjectBase obj in matches)
+            {
+                if (DestroyObject(obj))
+                    destroyed++;
+            }
+
+            return destroyed;
         }
 
         /// <summary>

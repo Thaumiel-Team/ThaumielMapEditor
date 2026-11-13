@@ -35,6 +35,18 @@ namespace ThaumielMapEditor.API.Blocks
         public virtual bool SupportsClient => true;
 
         /// <summary>
+        /// Gets a value indicating whether this definition can create both a server and a client object.
+        /// </summary>
+        public bool SupportsBoth => SupportsServer && SupportsClient;
+
+        /// <summary>
+        /// Determines whether this definition can create an object for the given side.
+        /// </summary>
+        /// <param name="serverSide">Whether the server side variant is requested.</param>
+        /// <returns><see langword="true"/> if the side is supported.</returns>
+        public bool CanCreate(bool serverSide) => serverSide ? SupportsServer : SupportsClient;
+
+        /// <summary>
         /// Reads the serialized values of <paramref name="serializable"/> into this definition.
         /// </summary>
         /// <param name="serializable">The serialized object to read from.</param>

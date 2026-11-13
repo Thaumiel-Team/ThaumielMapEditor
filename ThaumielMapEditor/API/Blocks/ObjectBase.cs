@@ -150,6 +150,51 @@ namespace ThaumielMapEditor.API.Blocks
         public bool IsRootObject => Schematic != null && ParentId == Schematic.RootObjectId;
 
         /// <summary>
+        /// Gets the number of objects parented directly to this object.
+        /// </summary>
+        public int ChildCount
+        {
+            get
+            {
+                int count = 0;
+
+                foreach (ObjectBase _ in GetChildren())
+                    count++;
+
+                return count;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this object has any direct children.
+        /// </summary>
+        public bool HasChildren => ChildCount > 0;
+
+        /// <summary>
+        /// Gets a value indicating whether this object has no direct children.
+        /// </summary>
+        public bool IsLeaf => !HasChildren;
+
+        /// <summary>
+        /// Gets the path from the topmost ancestor to this object.
+        /// </summary>
+        public string HierarchyPath
+        {
+            get
+            {
+                List<string> names = [];
+
+                foreach (ObjectBase ancestor in GetAncestors())
+                    names.Add(ancestor.Name);
+
+                names.Reverse();
+                names.Add(Name);
+
+                return string.Join("/", names);
+            }
+        }
+
+        /// <summary>
         /// Gets the depth of this object in its schematic hierarchy.
         /// </summary>
         public int Depth
@@ -178,6 +223,53 @@ namespace ThaumielMapEditor.API.Blocks
         public IEnumerable<ObjectBase> GetChildren() => Schematic?.GetChildren(this) ?? [];
 
         /// <summary>
+        /// Gets every object of type <typeparamref name="T"/> parented directly to this object.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching child objects.</returns>
+        public IEnumerable<T> GetChildren<T>() where T : ObjectBase
+        {
+            foreach (ObjectBase child in GetChildren())
+            {
+                if (child is T typed)
+                    yield return typed;
+            }
+        }
+
+        /// <summary>
+        /// Tries to get the parent of this object.
+        /// </summary>
+        /// <param name="parent">The parent object, or <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if this object has a parent.</returns>
+        public bool TryGetParent(out ObjectBase? parent)
+        {
+            parent = GetParent();
+            return parent != null;
+        }
+
+        /// <summary>
+        /// Gets the index of this object among its siblings.
+        /// </summary>
+        /// <returns>The zero based index, or minus one when the object is not spawned.</returns>
+        public int GetSiblingIndex()
+        {
+            if (Schematic == null)
+                return -1;
+
+            int index = 0;
+
+            foreach (ObjectBase sibling in Schematic.GetChildren(ParentId))
+            {
+                if (ReferenceEquals(sibling, this))
+                    return index;
+
+                index++;
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// Gets every other object that shares this object's parent.
         /// </summary>
         /// <returns>An <see cref="IEnumerable{T}"/> containing the sibling objects.</returns>
@@ -190,6 +282,20 @@ namespace ThaumielMapEditor.API.Blocks
             {
                 if (!ReferenceEquals(obj, this))
                     yield return obj;
+            }
+        }
+
+        /// <summary>
+        /// Gets every other object of type <typeparamref name="T"/> that shares this object's parent.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching sibling objects.</returns>
+        public IEnumerable<T> GetSiblings<T>() where T : ObjectBase
+        {
+            foreach (ObjectBase sibling in GetSiblings())
+            {
+                if (sibling is T typed)
+                    yield return typed;
             }
         }
 
@@ -213,6 +319,20 @@ namespace ThaumielMapEditor.API.Blocks
         /// <returns>An <see cref="IEnumerable{T}"/> containing the ancestor objects.</returns>
         public IEnumerable<ObjectBase> GetAncestors() =>
             Schematic?.GetAncestors(this) ?? [];
+
+        /// <summary>
+        /// Gets every ancestor of type <typeparamref name="T"/> above this object.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching ancestor objects.</returns>
+        public IEnumerable<T> GetAncestors<T>() where T : ObjectBase
+        {
+            foreach (ObjectBase ancestor in GetAncestors())
+            {
+                if (ancestor is T typed)
+                    yield return typed;
+            }
+        }
 
         /// <summary>
         /// Gets every object below this object in the hierarchy.
@@ -364,6 +484,28 @@ namespace ThaumielMapEditor.API.Blocks
         /// <param name="key">The key to look up.</param>
         /// <returns><see langword="true"/> if the key exists.</returns>
         public bool HasValue(string key) => Values.ContainsKey(key);
+
+        /// <summary>
+        /// Stores a value in this object's <see cref="Serialization"/>.
+        /// </summary>
+        /// <param name="key">The key to store the value under.</param>
+        /// <param name="value">The value to store.</param>
+        /// <returns><see langword="true"/> if the value was stored.</returns>
+        public bool SetValue(string key, object value)
+        {
+            if (Serialization == null)
+                return false;
+
+            Serialization.Values[key] = value;
+            return true;
+        }
+
+        /// <summary>
+        /// Removes a value from this object's <see cref="Serialization"/>.
+        /// </summary>
+        /// <param name="key">The key to remove.</param>
+        /// <returns><see langword="true"/> if the value was removed.</returns>
+        public bool RemoveValue(string key) => Serialization?.Values.Remove(key) ?? false;
 
         /// <summary>
         /// Destroys this object from its schematic.
