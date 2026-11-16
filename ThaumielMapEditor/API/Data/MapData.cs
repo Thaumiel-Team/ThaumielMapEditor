@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using LabApi.Features.Wrappers;
 using ThaumielMapEditor.API.Blocks;
+using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
 
 namespace ThaumielMapEditor.API.Data
@@ -63,6 +64,38 @@ namespace ThaumielMapEditor.API.Data
         }
 
         /// <summary>
+        /// Gets the total number of spawned <see cref="ServerObject"/> instances in this map.
+        /// </summary>
+        public int ServerObjectCount
+        {
+            get
+            {
+                int count = 0;
+
+                foreach (SchematicData schematic in GetSchematics())
+                    count += schematic.ServerObjectCount;
+
+                return count;
+            }
+        }
+
+        /// <summary>
+        /// Gets the total number of spawned <see cref="ClientObject"/> instances in this map.
+        /// </summary>
+        public int ClientObjectCount
+        {
+            get
+            {
+                int count = 0;
+
+                foreach (SchematicData schematic in GetSchematics())
+                    count += schematic.ClientObjectCount;
+
+                return count;
+            }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether this map is registered as spawned.
         /// </summary>
         public bool IsSpawned => Loader.MapsById.TryGetValue(Id, out MapData? map) && ReferenceEquals(map, this);
@@ -86,6 +119,18 @@ namespace ThaumielMapEditor.API.Data
         /// <param name="schematicId">The schematic id to find.</param>
         /// <returns>The schematic, or <see langword="null"/> if it was not found.</returns>
         public SchematicData? GetSchematic(uint schematicId) => Loader.GetSchematicById(schematicId);
+
+        /// <summary>
+        /// Tries to get a spawned schematic by its id.
+        /// </summary>
+        /// <param name="schematicId">The schematic id to find.</param>
+        /// <param name="schematic">The schematic, or <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the schematic was found.</returns>
+        public bool TryGetSchematic(uint schematicId, out SchematicData? schematic)
+        {
+            schematic = GetSchematic(schematicId);
+            return schematic != null;
+        }
 
         /// <summary>
         /// Gets the first spawned schematic with the given file name.
@@ -158,6 +203,32 @@ namespace ThaumielMapEditor.API.Data
         }
 
         /// <summary>
+        /// Gets every spawned <see cref="ServerObject"/> in this map.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the spawned server objects.</returns>
+        public IEnumerable<ServerObject> GetServerObjects()
+        {
+            foreach (SchematicData schematic in GetSchematics())
+            {
+                foreach (ServerObject server in schematic.GetServerObjects())
+                    yield return server;
+            }
+        }
+
+        /// <summary>
+        /// Gets every spawned <see cref="ClientObject"/> in this map.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the spawned client objects.</returns>
+        public IEnumerable<ClientObject> GetClientObjects()
+        {
+            foreach (SchematicData schematic in GetSchematics())
+            {
+                foreach (ClientObject client in schematic.GetClientObjects())
+                    yield return client;
+            }
+        }
+
+        /// <summary>
         /// Gets the first spawned object of type <typeparamref name="T"/> in this map.
         /// </summary>
         /// <typeparam name="T">The object type to find.</typeparam>
@@ -217,6 +288,51 @@ namespace ThaumielMapEditor.API.Data
         {
             obj = GetObject<T>(objectId);
             return obj != null;
+        }
+
+        /// <summary>
+        /// Tries to get the spawned object with the given object id.
+        /// </summary>
+        /// <param name="objectId">The object id to find.</param>
+        /// <param name="obj">The found object, or <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the object was found.</returns>
+        public bool TryGetObject(int objectId, out ObjectBase? obj)
+        {
+            obj = GetObject(objectId);
+            return obj != null;
+        }
+
+        /// <summary>
+        /// Gets the spawned object with the given netId.
+        /// </summary>
+        /// <param name="netId">The netId to find.</param>
+        /// <returns>The spawned object, or <see langword="null"/> if it was not found.</returns>
+        public ObjectBase? GetObjectByNetId(uint netId)
+        {
+            foreach (SchematicData schematic in GetSchematics())
+            {
+                if (schematic.GetObjectByNetId(netId) is ObjectBase obj)
+                    return obj;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the spawned object of type <typeparamref name="T"/> with the given netId.
+        /// </summary>
+        /// <typeparam name="T">The object type to find.</typeparam>
+        /// <param name="netId">The netId to find.</param>
+        /// <returns>The spawned object, or <see langword="null"/> if it was not found.</returns>
+        public T? GetObjectByNetId<T>(uint netId) where T : ObjectBase
+        {
+            foreach (SchematicData schematic in GetSchematics())
+            {
+                if (schematic.GetObjectByNetId<T>(netId) is T obj)
+                    return obj;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -293,6 +409,24 @@ namespace ThaumielMapEditor.API.Data
             foreach (ObjectBase obj in GetObjects())
             {
                 if (obj is T)
+                    count++;
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Gets the number of spawned objects of the given <see cref="ObjectType"/> in this map.
+        /// </summary>
+        /// <param name="objectType">The object type to count.</param>
+        /// <returns>The number of matching objects.</returns>
+        public int GetObjectCount(ObjectType objectType)
+        {
+            int count = 0;
+
+            foreach (ObjectBase obj in GetObjects())
+            {
+                if (obj.ObjectType == objectType)
                     count++;
             }
 

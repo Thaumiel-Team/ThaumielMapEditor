@@ -9,7 +9,6 @@ using System;
 using System.Linq;
 using CommandSystem;
 using DrawableLine;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Blocks.Definitions;
 using ThaumielMapEditor.API.Components.Tools;

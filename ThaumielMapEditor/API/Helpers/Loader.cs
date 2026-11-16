@@ -1806,6 +1806,5 @@ namespace ThaumielMapEditor.API.Helpers
             catch { }
             return map;
         }
-
     }
 }
