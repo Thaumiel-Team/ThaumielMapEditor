@@ -17,7 +17,6 @@ namespace ThaumielMapEditor.Events
 {
     internal class PrimitiveHandler
     {
-
         public static void Register()
         {
             ClientObject.ScaleUpdated += OnScaleUpdated;
