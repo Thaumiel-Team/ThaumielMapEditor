@@ -5,6 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using Discord;
@@ -25,9 +26,8 @@ namespace ThaumielMapEditor.API.Helpers
     {
         private const int CacheCapacity = 256;
 
-        private static readonly object CacheGate = new();
-        private static readonly Dictionary<string, ScriptProgram> Cache = new(StringComparer.Ordinal);
-        private static readonly LinkedList<string> CacheOrder = new();
+        private static readonly ConcurrentDictionary<string, ScriptProgram> Cache = new(StringComparer.Ordinal);
+        private static readonly ConcurrentQueue<string> CacheOrder = new();
 
         public static readonly IDeserializer Deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
@@ -46,31 +46,19 @@ namespace ThaumielMapEditor.API.Helpers
 
             string code = payload.Code;
 
-            lock (CacheGate)
-            {
-                if (Cache.TryGetValue(code, out ScriptProgram? cached))
-                {
-                    CacheOrder.Remove(code);
-                    CacheOrder.AddLast(code);
-                    return cached;
-                }
-            }
+            if (Cache.TryGetValue(code, out ScriptProgram? cached))
+                return cached;
 
             ScriptProgram program = ParseProgram(code);
 
-            lock (CacheGate)
+            if (Cache.TryAdd(code, program))
             {
-                if (!Cache.ContainsKey(code))
-                {
-                    if (Cache.Count >= CacheCapacity && CacheOrder.First is { } oldest)
-                    {
-                        Cache.Remove(oldest.Value);
-                        CacheOrder.RemoveFirst();
-                    }
-
-                    Cache[code] = program;
-                    CacheOrder.AddLast(code);
-                }
+                CacheOrder.Enqueue(code);
+                TrimCache();
+            }
+            else if (Cache.TryGetValue(code, out cached))
+            {
+                program = cached;
             }
 
             return program;
@@ -82,11 +70,17 @@ namespace ThaumielMapEditor.API.Helpers
         /// </summary>
         public static void ClearCache()
         {
-            lock (CacheGate)
+            Cache.Clear();
+
+            while (CacheOrder.TryDequeue(out _))
             {
-                Cache.Clear();
-                CacheOrder.Clear();
             }
+        }
+
+        private static void TrimCache()
+        {
+            while (Cache.Count > CacheCapacity && CacheOrder.TryDequeue(out string? oldest))
+                Cache.TryRemove(oldest, out _);
         }
 
         private static ScriptProgram ParseProgram(string code)

@@ -10,6 +10,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using ThaumielMapEditor.API.Helpers;
 
 namespace ThaumielMapEditor.API.Binary
@@ -20,7 +21,6 @@ namespace ThaumielMapEditor.API.Binary
         private static readonly ConcurrentDictionary<string, Type> Registered = new(StringComparer.Ordinal);
         private static readonly ConcurrentDictionary<string, Type?> ResolveCache = new(StringComparer.Ordinal);
         private static Dictionary<string, List<Type>>? _index;
-        private static readonly object IndexLock = new();
 
         public static void Register(Type type, string alias)
         {
@@ -133,14 +133,7 @@ namespace ThaumielMapEditor.API.Binary
             if (Registered.TryGetValue(key, out Type? reg))
                 return reg;
 
-            Dictionary<string, List<Type>>? index = _index;
-            if (index is null)
-            {
-                lock (IndexLock)
-                {
-                    index = _index ??= BuildIndex();
-                }
-            }
+            Dictionary<string, List<Type>> index = GetIndex();
 
             if (!index.TryGetValue(key, out var list))
                 return null;
@@ -149,6 +142,17 @@ namespace ThaumielMapEditor.API.Binary
                 LogManager.Warn($"Ambiguous binary type name '{key}'. Use BinaryTypeNames.Register.");
 
             return list[0];
+        }
+
+        private static Dictionary<string, List<Type>> GetIndex()
+        {
+            Dictionary<string, List<Type>>? index = Volatile.Read(ref _index);
+            if (index != null)
+                return index;
+
+            Dictionary<string, List<Type>> built = BuildIndex();
+            Dictionary<string, List<Type>>? existing = Interlocked.CompareExchange(ref _index, built, null);
+            return existing ?? built;
         }
 
         private static Dictionary<string, List<Type>> BuildIndex()

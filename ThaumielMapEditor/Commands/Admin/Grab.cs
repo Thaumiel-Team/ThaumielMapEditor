@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using CommandSystem;
 using LabApi.Features.Wrappers;
 using MEC;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Helpers;
@@ -36,16 +35,13 @@ namespace ThaumielMapEditor.Commands.Admin
                 return false;
             }
 
-            lock (GrabPlayers)
+            if (GrabPlayers.ContainsKey(player))
             {
-                if (GrabPlayers.ContainsKey(player))
-                {
-                    Timing.KillCoroutines(GrabPlayers[player]);
-                    GrabPlayers.Remove(player);
+                Timing.KillCoroutines(GrabPlayers[player]);
+                GrabPlayers.Remove(player);
 
-                    response = $"Ungrabbed";
-                    return true;
-                }
+                response = $"Ungrabbed";
+                return true;
             }
 
             if (arguments.Count == 0 || !uint.TryParse(arguments.At(0), out var id))
@@ -60,36 +56,26 @@ namespace ThaumielMapEditor.Commands.Admin
                 return false;
             }
 
-            lock (GrabPlayers)
+            if (GrabPlayers.ContainsKey(player))
             {
-                if (GrabPlayers.ContainsKey(player))
-                {
-                    response = "Already grabbing a schematic.";
-                    return false;
-                }
-
-                GrabPlayers.Add(player, Timing.RunCoroutine(GrabCoroutine(player, schematic)));
+                response = "Already grabbing a schematic.";
+                return false;
             }
+
+            GrabPlayers.Add(player, Timing.RunCoroutine(GrabCoroutine(player, schematic)));
 
             response = $"Grabbed schematic with ID: {id}";
             return true;
         }
 
 	    private static readonly Dictionary<Player, CoroutineHandle> GrabPlayers = [];
-        private static readonly object GrabLock = new();
 
         public static void ReleasePlayer(Player player)
         {
-            lock (GrabLock)
+            if (GrabPlayers.TryGetValue(player, out CoroutineHandle handle))
             {
-                lock (GrabPlayers)
-                {
-                    if (GrabPlayers.TryGetValue(player, out CoroutineHandle handle))
-                    {
-                        Timing.KillCoroutines(handle);
-                        GrabPlayers.Remove(player);
-                    }
-                }
+                Timing.KillCoroutines(handle);
+                GrabPlayers.Remove(player);
             }
         }
 
@@ -128,10 +114,7 @@ namespace ThaumielMapEditor.Commands.Admin
                 SyncManager.FlushServer();
             }
 
-    		lock (GrabPlayers)
-            {
-                GrabPlayers.Remove(player);
-            }
+    		GrabPlayers.Remove(player);
         }
     }
 }

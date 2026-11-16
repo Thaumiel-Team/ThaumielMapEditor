@@ -32,7 +32,6 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
         [GitBookPage("Blocks/Definitions/Workstation/Server")]
         public sealed class Server : ServerObject
         {
-            [YamlIgnore, BinaryIgnore]
             public static Dictionary<WorkstationController, Server> WorkstationCache = [];
 
             /// <summary>

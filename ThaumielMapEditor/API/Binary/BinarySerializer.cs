@@ -44,6 +44,13 @@ namespace ThaumielMapEditor.API.Binary
             public Action<object, object?>? Setter { get; init; }
         }
 
+        private sealed class KeyValuePairAccessor
+        {
+            public required Func<object, object?> Key { get; init; }
+
+            public required Func<object, object?> Value { get; init; }
+        }
+
         private sealed class TypePlan
         {
             public required MemberAccessor[] Members { get; init; }
@@ -94,6 +101,8 @@ namespace ThaumielMapEditor.API.Binary
         private static readonly ConcurrentDictionary<Type, DictionaryShape> DictionaryShapeCache = new();
 
         private static readonly ConcurrentDictionary<Type, EnumerableShape> EnumerableShapeCache = new();
+
+        private static readonly ConcurrentDictionary<Type, KeyValuePairAccessor> KeyValuePairAccessorCache = new();
 
         public static byte[] Serialize<T>(T? value)
         {
@@ -455,8 +464,9 @@ namespace ThaumielMapEditor.API.Binary
                         Type type = item2.GetType();
                         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(KeyValuePair<, >))
                         {
-                            object? obj = type.GetProperty("Key")?.GetValue(item2);
-                            object? value3 = type.GetProperty("Value")?.GetValue(item2);
+                            KeyValuePairAccessor accessor = GetKeyValuePairAccessor(type);
+                            object? obj = accessor.Key(item2);
+                            object? value3 = accessor.Value(item2);
                             if (obj == null)
                             {
                                 LogManager.Warn("Null dictionary key.");
@@ -955,15 +965,25 @@ namespace ThaumielMapEditor.API.Binary
         private static Type? ResolveType(string name) => 
             BinaryTypeNames.Resolve(name);
 
+        private static KeyValuePairAccessor GetKeyValuePairAccessor(Type type) =>
+            KeyValuePairAccessorCache.GetOrAdd(type, static t =>
+            {
+                PropertyInfo key = t.GetProperty("Key")!;
+                PropertyInfo value = t.GetProperty("Value")!;
+                return new KeyValuePairAccessor
+                {
+                    Key = CompileGetter(t, key) ?? new Func<object, object?>(key.GetValue),
+                    Value = CompileGetter(t, value) ?? new Func<object, object?>(value.GetValue)
+                };
+            });
+
         private static Func<object, object?>? CompileGetter(Type declaring, PropertyInfo prop)
         {
-            if (declaring.IsValueType)
-                return null;
-
             try
             {
                 ParameterExpression parameterExpression = Expression.Parameter(typeof(object), "obj");
-                Expression body = Expression.Convert(Expression.Property(Expression.Convert(parameterExpression, declaring), prop), typeof(object));
+                Expression instance = declaring.IsValueType ? Expression.Unbox(parameterExpression, declaring) : Expression.Convert(parameterExpression, declaring);
+                Expression body = Expression.Convert(Expression.Property(instance, prop), typeof(object));
                 return Expression.Lambda<Func<object, object>>(body, [parameterExpression]).Compile();
             }
             catch
@@ -974,13 +994,11 @@ namespace ThaumielMapEditor.API.Binary
 
         private static Func<object, object?>? CompileGetter(Type declaring, FieldInfo field)
         {
-            if (declaring.IsValueType)
-                return null;
-
             try
             {
                 ParameterExpression parameterExpression = Expression.Parameter(typeof(object), "obj");
-                Expression body = Expression.Convert(Expression.Field(Expression.Convert(parameterExpression, declaring), field), typeof(object));
+                Expression instance = declaring.IsValueType ? Expression.Unbox(parameterExpression, declaring) : Expression.Convert(parameterExpression, declaring);
+                Expression body = Expression.Convert(Expression.Field(instance, field), typeof(object));
                 return Expression.Lambda<Func<object, object>>(body, [parameterExpression]).Compile();
             }
             catch
@@ -991,15 +1009,17 @@ namespace ThaumielMapEditor.API.Binary
 
         private static Action<object, object?>? CompileArgCall(Type declaring, MethodInfo method)
         {
-            if (declaring.IsValueType || method.GetParameters().Length != 1)
+            ParameterInfo[] parameters = method.GetParameters();
+            if (parameters.Length != 1)
                 return null;
 
             try
             {
                 ParameterExpression parameterExpression = Expression.Parameter(typeof(object), "obj");
-                ParameterExpression parameterExpression2 = Expression.Parameter(typeof(object), "val");
-                Expression body = Expression.Call(Expression.Convert(parameterExpression, declaring), method, Expression.Convert(parameterExpression2, method.GetParameters()[0].ParameterType));
-                return Expression.Lambda<Action<object, object?>>(body, [parameterExpression, parameterExpression2]).Compile();
+                ParameterExpression valueExpression = Expression.Parameter(typeof(object), "val");
+                Expression instance = declaring.IsValueType ? Expression.Unbox(parameterExpression, declaring) : Expression.Convert(parameterExpression, declaring);
+                Expression body = Expression.Call(instance, method, Expression.Convert(valueExpression, parameters[0].ParameterType));
+                return Expression.Lambda<Action<object, object?>>(body, [parameterExpression, valueExpression]).Compile();
             }
             catch
             {
@@ -1009,15 +1029,16 @@ namespace ThaumielMapEditor.API.Binary
 
         private static Action<object, object?>? CompileSetter(Type declaring, FieldInfo field)
         {
-            if (declaring.IsValueType || field.IsInitOnly)
+            if (field.IsInitOnly)
                 return null;
 
             try
             {
                 ParameterExpression parameterExpression = Expression.Parameter(typeof(object), "obj");
-                ParameterExpression parameterExpression2 = Expression.Parameter(typeof(object), "val");
-                Expression body = Expression.Assign(Expression.Field(Expression.Convert(parameterExpression, declaring), field), Expression.Convert(parameterExpression2, field.FieldType));
-                return Expression.Lambda<Action<object, object?>>(body, [parameterExpression, parameterExpression2]).Compile();
+                ParameterExpression valueExpression = Expression.Parameter(typeof(object), "val");
+                Expression instance = declaring.IsValueType ? Expression.Unbox(parameterExpression, declaring) : Expression.Convert(parameterExpression, declaring);
+                Expression body = Expression.Assign(Expression.Field(instance, field), Expression.Convert(valueExpression, field.FieldType));
+                return Expression.Lambda<Action<object, object?>>(body, [parameterExpression, valueExpression]).Compile();
             }
             catch
             {

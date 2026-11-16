@@ -12,7 +12,6 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Helpers;
 using UnityEngine;
 using YamlDotNet.Serialization;

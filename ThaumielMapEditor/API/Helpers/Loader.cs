@@ -15,9 +15,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using ThaumielMapEditor.API.Animation;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Binary;
 using ThaumielMapEditor.API.Blocks;
 using ThaumielMapEditor.API.Components;
@@ -141,10 +141,7 @@ namespace ThaumielMapEditor.API.Helpers
             BundleControllerCache.Clear();
             SchematicLODZones.Clear();
 
-            lock (IdLock)
-            {
-                _nextId = 0;
-            }
+            Interlocked.Exchange(ref _nextId, -1);
 
             AnimationController.ClearAll();
             DoorLink.ClearAll();
@@ -206,8 +203,8 @@ namespace ThaumielMapEditor.API.Helpers
             return extension.Equals(".yml", StringComparison.OrdinalIgnoreCase) || extension.Equals(".yaml", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool IsBinaryFile(string path)
-            => Path.GetExtension(path).Equals(".bin", StringComparison.OrdinalIgnoreCase);
+        private static bool IsBinaryFile(string path) =>
+            Path.GetExtension(path).Equals(".bin", StringComparison.OrdinalIgnoreCase);
 
         private static IEnumerable<string> GetPreferredFiles(string directory)
         {
@@ -392,14 +389,42 @@ namespace ThaumielMapEditor.API.Helpers
             return null;
         }
 
+        /// <summary>
+        /// Gets every spawned <see cref="SchematicData"/> inside the given <see cref="Room"/>.
+        /// </summary>
+        /// <param name="room">The room to search.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching schematics.</returns>
+        public static IEnumerable<SchematicData> GetSchematicsInRoom(Room room)
+        {
+            foreach (SchematicData schematic in SpawnedSchematics)
+            {
+                if (schematic.Room == room)
+                    yield return schematic;
+            }
+        }
+
+        /// <summary>
+        /// Gets every spawned <see cref="SchematicData"/> within the given radius of a position.
+        /// </summary>
+        /// <param name="position">The center of the search.</param>
+        /// <param name="radius">The search radius.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching schematics.</returns>
+        public static IEnumerable<SchematicData> GetSchematicsInRadius(Vector3 position, float radius)
+        {
+            foreach (SchematicData schematic in SpawnedSchematics)
+            {
+                if (Vector3.Distance(schematic.Position, position) <= radius)
+                    yield return schematic;
+            }
+        }
+
         public static SerializableSchematic? GetSchematicByName(string name)
         {
             LoadedSchematics.TryGetValue(name, out var schematic);
             return schematic;
         }
 
-        private static uint _nextId;
-        private static readonly object IdLock = new();
+        private static int _nextId = -1;
 
         /// <summary>
         /// Gets a unique id for all <see cref="SchematicData"/>
@@ -407,13 +432,14 @@ namespace ThaumielMapEditor.API.Helpers
         /// <returns><see cref="uint"/> id</returns>
         public static uint GetId()
         {
-            lock (IdLock)
+            int id;
+            do
             {
-                while (SchematicsById.ContainsKey(_nextId))
-                    _nextId++;
-
-                return _nextId++;
+                id = Interlocked.Increment(ref _nextId);
             }
+            while (SchematicsById.ContainsKey((uint)id));
+
+            return (uint)id;
         }
 
         // Hopefuly this will stop clients from crashing when spawning large schematics.
@@ -456,171 +482,169 @@ namespace ThaumielMapEditor.API.Helpers
 
                     await Task.WhenAny(lodTcs.Task, Task.Delay(5000));
 
-                void CacheObject(SerializableObject obj, Dictionary<int, List<SerializableObject>> parentDict, bool serverside = false)
-                {
-                    if (objectsById.ContainsKey(obj.ObjectId))
-                        return;
-
-                    objectsById.Add(obj.ObjectId, (obj, serverside));
-
-                    if (!parentDict.TryGetValue(obj.ParentId, out var list))
+                    void CacheObject(SerializableObject obj, Dictionary<int, List<SerializableObject>> parentDict, bool serverside = false)
                     {
-                        list = [];
-                        parentDict.Add(obj.ParentId, list);
+                        if (objectsById.ContainsKey(obj.ObjectId))
+                            return;
+
+                        objectsById.Add(obj.ObjectId, (obj, serverside));
+
+                        if (!parentDict.TryGetValue(obj.ParentId, out var list))
+                        {
+                            list = [];
+                            parentDict.Add(obj.ParentId, list);
+                        }
+
+                        list.Add(obj);
                     }
 
-                    list.Add(obj);
-                }
-
-                foreach (SerializableObject obj in schematic.ServerSideObjects)
-                {
-                    CacheObject(obj, serverObjectsByParent, true);
-                }
-
-                foreach (SerializableObject obj in schematic.Objects)
-                {
-                    CacheObject(obj, objectsByParent);
-                }
-
-                Queue<(int id, uint parentNetId)> spawnQueue = new();
-                HashSet<int> visited = [];
-                spawnQueue.Enqueue((schematic.RootObjectId, rootNetId));
-
-                while (spawnQueue.Count > 0)
-                {
-                    List<(int id, uint parentNetId)> currentBatch = [];
-                    while (spawnQueue.Count > 0 && currentBatch.Count < 50)
+                    foreach (SerializableObject obj in schematic.ServerSideObjects)
                     {
-                        (int currentId, uint parentNetId) = spawnQueue.Dequeue();
-                        if (visited.Add(currentId))
+                        CacheObject(obj, serverObjectsByParent, true);
+                    }
+
+                    foreach (SerializableObject obj in schematic.Objects)
+                    {
+                        CacheObject(obj, objectsByParent);
+                    }
+
+                    Queue<(int id, uint parentNetId)> spawnQueue = new();
+                    HashSet<int> visited = [];
+                    spawnQueue.Enqueue((schematic.RootObjectId, rootNetId));
+
+                    while (spawnQueue.Count > 0)
+                    {
+                        List<(int id, uint parentNetId)> currentBatch = [];
+                        while (spawnQueue.Count > 0 && currentBatch.Count < 50)
                         {
-                            currentBatch.Add((currentId, parentNetId));
+                            (int currentId, uint parentNetId) = spawnQueue.Dequeue();
+                            if (visited.Add(currentId))
+                                currentBatch.Add((currentId, parentNetId));
+                        }
+
+                        if (currentBatch.Count == 0)
+                            continue;
+
+                        List<(int id, uint spawnedNetId)> batchResults = [];
+                        TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                        try
+                        {
+                            MainThreadDispatcher.Dispatch(() =>
+                            {
+                                try
+                                {
+                                    foreach ((int currentId, uint parentNetId) in currentBatch)
+                                    {
+                                        uint currentNetId = parentNetId;
+
+                                        try
+                                        {
+                                            if (objectsById.TryGetValue(currentId, out var obj))
+                                            {
+                                                currentNetId = SpawnSerializableObject(obj.Item1, schematicData, parentNetId, lodZones, serverside: obj.Item2);
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            LogManager.Error($"Exception spawning object id {currentId} in '{schematic.FileName}': {ex}");
+                                        }
+
+                                        batchResults.Add((currentId, currentNetId));
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    LogManager.Error($"Exception during object spawning batch: {ex}");
+                                }
+                                finally
+                                {
+                                    tcs.TrySetResult(true);
+                                }
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            LogManager.Error($"Failed to dispatch spawn batch for '{schematic.FileName}': {ex.Message}");
+                            tcs.TrySetResult(true);
+                        }
+
+                        await Task.WhenAny(tcs.Task, Task.Delay(30000));
+
+                        foreach ((int currentId, uint currentNetId) in batchResults)
+                        {
+                            if (objectsByParent.TryGetValue(currentId, out var children))
+                            {
+                                foreach (SerializableObject child in children)
+                                {
+                                    spawnQueue.Enqueue((child.ObjectId, currentNetId));
+                                }
+                            }
+
+                            if (serverObjectsByParent.TryGetValue(currentId, out var serverChildren))
+                            {
+                                foreach (SerializableObject child in serverChildren)
+                                {
+                                    spawnQueue.Enqueue((child.ObjectId, currentNetId));
+                                }
+                            }
                         }
                     }
 
-                    if (currentBatch.Count == 0)
-                        continue;
-
-                    List<(int id, uint spawnedNetId)> batchResults = [];
-                    TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
+                    TaskCompletionSource<bool> completionTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
                     try
                     {
                         MainThreadDispatcher.Dispatch(() =>
                         {
                             try
                             {
-                                foreach ((int currentId, uint parentNetId) in currentBatch)
-                                {
-                                    uint currentNetId = parentNetId;
+                                schematicData.Executor = new(schematicData);
+                                Dictionary<int, ServerObject> serverObjectsById = schematicData.SpawnedServerObjects.ToDictionary(o => o.ObjectId);
+                                ApplyAnimatorsAndTools(schematic, schematicData, serverObjectsById);
 
+                                SchematicHandler.OnSchematicSpawned(new(schematicData));
+                                SchematicSpawned?.Invoke(schematicData);
+                                LogManager.Info($"Schematic '{schematic.FileName}' fully spawned.");
+                                SchematicsById[schematicData.Id] = schematicData;
+
+                                foreach (Player player in Player.ReadyList.ToArray())
+                                {
+                                    if (player == null || player.IsDestroyed || player.IsHost || player.IsDummy)
+                                        continue;
+                                    
+                                    schematicData.SyncWithPlayer(player);
+                                }
+
+                                if (Main.Instance.Config.SchematicAnimationPlayOnLoad.TryGetValue(schematicData.FileName, out var animationname))
+                                {
                                     try
                                     {
-                                        if (objectsById.TryGetValue(currentId, out var obj))
-                                        {
-                                            currentNetId = SpawnSerializableObject(obj.Item1, schematicData, parentNetId, lodZones, serverside: obj.Item2);
-                                        }
+                                        schematicData.AnimationController.Play(animationname);
                                     }
                                     catch (Exception ex)
                                     {
-                                        LogManager.Error($"Exception spawning object id {currentId} in '{schematic.FileName}': {ex}");
+                                        LogManager.Warn($"Failed to play onload animation '{animationname}': {ex.Message}");
                                     }
-
-                                    batchResults.Add((currentId, currentNetId));
                                 }
                             }
                             catch (Exception ex)
                             {
-                                LogManager.Error($"Exception during object spawning batch: {ex}");
+                                LogManager.Error($"Exception completing schematic spawn: {ex}");
+                                SchematicsById[schematicData.Id] = schematicData;
                             }
                             finally
                             {
-                                tcs.TrySetResult(true);
+                                completionTcs.TrySetResult(true);
                             }
                         });
                     }
                     catch (Exception ex)
                     {
-                        LogManager.Error($"Failed to dispatch spawn batch for '{schematic.FileName}': {ex.Message}");
-                        tcs.TrySetResult(true);
+                        LogManager.Error($"Failed to dispatch spawn completion for '{schematic.FileName}': {ex.Message}");
+                        completionTcs.TrySetResult(true);
                     }
 
-                    await Task.WhenAny(tcs.Task, Task.Delay(30000));
-
-                    foreach ((int currentId, uint currentNetId) in batchResults)
-                    {
-                        if (objectsByParent.TryGetValue(currentId, out var children))
-                        {
-                            foreach (SerializableObject child in children)
-                            {
-                                spawnQueue.Enqueue((child.ObjectId, currentNetId));
-                            }
-                        }
-
-                        if (serverObjectsByParent.TryGetValue(currentId, out var serverChildren))
-                        {
-                            foreach (SerializableObject child in serverChildren)
-                            {
-                                spawnQueue.Enqueue((child.ObjectId, currentNetId));
-                            }
-                        }
-                    }
-                }
-
-                TaskCompletionSource<bool> completionTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                try
-                {
-                    MainThreadDispatcher.Dispatch(() =>
-                    {
-                        try
-                        {
-                            schematicData.Executor = new(schematicData);
-                            Dictionary<int, ServerObject> serverObjectsById = schematicData.SpawnedServerObjects.ToDictionary(o => o.ObjectId);
-                            ApplyAnimatorsAndTools(schematic, schematicData, serverObjectsById);
-
-                            SchematicHandler.OnSchematicSpawned(new(schematicData));
-                            SchematicSpawned?.Invoke(schematicData);
-                            LogManager.Info($"Schematic '{schematic.FileName}' fully spawned.");
-                            SchematicsById[schematicData.Id] = schematicData;
-
-                            foreach (Player player in Player.ReadyList.ToArray())
-                            {
-                                if (player == null || player.IsDestroyed || player.IsHost || player.IsDummy)
-                                    continue;
-                                
-                                schematicData.SyncWithPlayer(player);
-                            }
-
-                            if (Main.Instance.Config.SchematicAnimationPlayOnLoad.TryGetValue(schematicData.FileName, out var animationname))
-                            {
-                                try
-                                {
-                                    schematicData.AnimationController.Play(animationname);
-                                }
-                                catch (Exception ex)
-                                {
-                                    LogManager.Warn($"Failed to play onload animation '{animationname}': {ex.Message}");
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LogManager.Error($"Exception completing schematic spawn: {ex}");
-                            SchematicsById[schematicData.Id] = schematicData;
-                        }
-                        finally
-                        {
-                            completionTcs.TrySetResult(true);
-                        }
-                    });
-                }
-                catch (Exception ex)
-                {
-                    LogManager.Error($"Failed to dispatch spawn completion for '{schematic.FileName}': {ex.Message}");
-                    completionTcs.TrySetResult(true);
-                }
-
-                await Task.WhenAny(completionTcs.Task, Task.Delay(30000));
+                    await Task.WhenAny(completionTcs.Task, Task.Delay(30000));
                 });
             }
             catch (Exception ex)
@@ -633,11 +657,27 @@ namespace ThaumielMapEditor.API.Helpers
         /// Spawns a map
         /// </summary>
         /// <param name="map">The serialized map to spawn</param>
-        /// <returns><see cref="MapData"/></returns>
+        /// <returns>The spawned map instance.</returns>
         public static MapData? SpawnMap(SerializableMap map)
         {
-            Room? room = Room.List.FirstOrDefault(r => r.Name == map.Room);
-            if (room == null && map.Room != RoomName.Unnamed)
+            Room? room = null;
+            if (Enum.TryParse<RoomName>(map.Room, true, out var name))
+            {
+                room = Room.List.FirstOrDefault(r => r.Name == name);
+            }
+            else
+            {
+                foreach (Room room1 in Room.List)
+                {
+                    if (!room1.GameObject.name.Equals(map.Room, StringComparison.InvariantCultureIgnoreCase))
+                        continue;
+
+                    room = room1;
+                    break;
+                }
+            }
+
+            if (room == null)
             {
                 LogManager.Warn($"Could not find room {map.Room} for map {map.FileName}!");
                 return null;
@@ -670,7 +710,6 @@ namespace ThaumielMapEditor.API.Helpers
             }
 
             MapsById.Add(data.Id, data);
-
             return data;
         }
 
@@ -987,6 +1026,62 @@ namespace ThaumielMapEditor.API.Helpers
         }
 
         /// <summary>
+        /// Creates an empty schematic at the specified position.
+        /// </summary>
+        /// <param name="fileName">The file name of the schematic.</param>
+        /// <param name="position">The world position at which to place the schematic.</param>
+        /// <returns>The created schematic.</returns>
+        public static SchematicData CreateSchematic(string fileName, Vector3 position) =>
+            CreateSchematic(fileName, position, Quaternion.identity, Vector3.one);
+
+        /// <summary>
+        /// Creates an empty schematic at the specified position and rotation.
+        /// </summary>
+        /// <param name="fileName">The file name of the schematic.</param>
+        /// <param name="position">The world position at which to place the schematic.</param>
+        /// <param name="rotation">The rotation to apply to the schematic.</param>
+        /// <returns>The created schematic.</returns>
+        public static SchematicData CreateSchematic(string fileName, Vector3 position, Quaternion rotation) =>
+            CreateSchematic(fileName, position, rotation, Vector3.one);
+
+        /// <summary>
+        /// Creates an empty schematic at the specified position, rotation, and scale.
+        /// </summary>
+        /// <param name="fileName">The file name of the schematic.</param>
+        /// <param name="position">The world position at which to place the schematic.</param>
+        /// <param name="rotation">The rotation to apply to the schematic.</param>
+        /// <param name="scale">The scale to apply to the schematic.</param>
+        /// <returns>The created schematic.</returns>
+        public static SchematicData CreateSchematic(string fileName, Vector3 position, Quaternion rotation, Vector3 scale)
+        {
+            if (scale == default)
+                scale = Vector3.one;
+
+            SchematicData schematic = new()
+            {
+                FileName = fileName,
+                Id = GetId(),
+                RootObjectId = -1,
+                Primitive = LabPrimitive.Create()
+            };
+
+            schematic.Primitive.Type = PrimitiveType.Cube;
+            schematic.Primitive.Flags = PrimitiveFlags.None;
+            schematic.Position = position;
+            schematic.Rotation = rotation;
+            schematic.Scale = scale;
+            schematic.Room = Room.GetRoomAtPosition(position);
+            schematic.Executor = new BlockExecutor(schematic);
+
+            SchematicHandler.OnSchematicSpawned(new(schematic));
+            SchematicSpawned?.Invoke(schematic);
+            SchematicsById[schematic.Id] = schematic;
+
+            LogManager.Info($"Schematic '{fileName}' created.");
+            return schematic;
+        }
+
+        /// <summary>
         /// Indicates whether the given <see cref="ObjectType"/> meaningfully uses scale.
         /// Types that return <see langword="false"/> ignore the scale argument in <c>SpawnSingleObject</c>.
         /// </summary>
@@ -1096,8 +1191,8 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="movementSmoothing">The movement smoothing for clientside objects.</param>
         /// <param name="tools">Optional tools to attach.</param>
         /// <returns>A <see cref="SchematicData"/> containing the single spawned object, or <see langword="null"/> when validation fails.</returns>
-        public static SchematicData? SpawnSingleObject(ObjectType type, Vector3 position, Vector3 rotationEuler, Vector3? scale = null, Dictionary<string, object>? values = null, bool serverSide = false, string? name = null, bool isStatic = false, byte movementSmoothing = 0, List<SerializableTool>? tools = null)
-            => SpawnSingleObject(type, position, Quaternion.Euler(rotationEuler), scale, values, serverSide, name, isStatic, movementSmoothing, tools);
+        public static SchematicData? SpawnSingleObject(ObjectType type, Vector3 position, Vector3 rotationEuler, Vector3? scale = null, Dictionary<string, object>? values = null, bool serverSide = false, string? name = null, bool isStatic = false, byte movementSmoothing = 0, List<SerializableTool>? tools = null) =>
+            SpawnSingleObject(type, position, Quaternion.Euler(rotationEuler), scale, values, serverSide, name, isStatic, movementSmoothing, tools);
 
         private static void ApplySingleObjectDefaults(ObjectType type, Dictionary<string, object> values)
         {
@@ -1181,6 +1276,7 @@ namespace ThaumielMapEditor.API.Helpers
                 case ObjectType.Clutter:
                     if (!HasValueKey(values, "ClutterType"))
                         values["ClutterType"] = ClutterType.SimpleBoxes;
+
                     break;
             }
 
@@ -1524,7 +1620,7 @@ namespace ThaumielMapEditor.API.Helpers
             {
                 try
                 {
-                    if (!Enum.TryParse<ToolType>(tool.ToolName, true, out ToolType type))
+                    if (!Enum.TryParse(tool.ToolName, true, out ToolType type))
                     {
                         LogManager.Warn($"Unknown tool type '{tool.ToolName}' on object '{serializable.Name}'.");
                         continue;
@@ -1665,9 +1761,19 @@ namespace ThaumielMapEditor.API.Helpers
             SerializableMap map = new()
             {
                 FileName = data.FileName,
-                Room = data.Room!.Name,
                 Id = Guid.NewGuid()
             };
+
+            if (data.Room == null)
+            {
+                map.Room = "Outside";
+            }
+            else if (data.Room.Name == RoomName.Unnamed)
+            {
+                map.Room = data.Room.GameObject.name;
+            }
+            else
+                map.Room = data.Room.Name.ToString();
 
             foreach (MapSchematicData msdata in data.Schematics)
             {
@@ -1700,6 +1806,5 @@ namespace ThaumielMapEditor.API.Helpers
             catch { }
             return map;
         }
-
     }
 }

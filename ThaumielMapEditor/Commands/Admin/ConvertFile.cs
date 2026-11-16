@@ -7,7 +7,6 @@
 
 using System;
 using CommandSystem;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Binary;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Interfaces;

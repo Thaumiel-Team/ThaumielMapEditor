@@ -7,6 +7,7 @@
 
 using System.Collections.Generic;
 using ThaumielMapEditor.API.Enums;
+using ThaumielMapEditor.API.Extensions;
 
 namespace ThaumielMapEditor.API.Serialization
 {
@@ -78,5 +79,53 @@ namespace ThaumielMapEditor.API.Serialization
         } = [];
 
         public string AnimatorName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets a value from <see cref="Values"/> and converts it to the specified type.
+        /// </summary>
+        /// <typeparam name="T">The type to convert the value to.</typeparam>
+        /// <param name="key">The key to look up.</param>
+        /// <returns>The converted value.</returns>
+        public T GetValue<T>(string key) => Values.GetConvertValue<T>(key);
+
+        /// <summary>
+        /// Tries to get a value from <see cref="Values"/> and convert it to the specified type.
+        /// </summary>
+        /// <typeparam name="T">The type to convert the value to.</typeparam>
+        /// <param name="key">The key to look up.</param>
+        /// <param name="value">The converted value.</param>
+        /// <returns><see langword="true"/> if the value was found and converted.</returns>
+        public bool TryGetValue<T>(string key, out T value) => Values.TryConvertValue(key, out value);
+
+        /// <summary>
+        /// Gets a value from <see cref="Values"/> or returns the given default.
+        /// </summary>
+        /// <typeparam name="T">The type to convert the value to.</typeparam>
+        /// <param name="key">The key to look up.</param>
+        /// <param name="defaultValue">The value to return when the key is missing.</param>
+        /// <returns>The converted value or the default.</returns>
+        public T GetValueOrDefault<T>(string key, T defaultValue = default!) =>
+            Values.TryConvertValue(key, out T value) ? value : defaultValue;
+
+        /// <summary>
+        /// Determines whether <see cref="Values"/> contains the given key.
+        /// </summary>
+        /// <param name="key">The key to look up.</param>
+        /// <returns><see langword="true"/> if the key exists.</returns>
+        public bool HasValue(string key) => Values.ContainsKey(key);
+
+        /// <summary>
+        /// Stores a value in <see cref="Values"/>.
+        /// </summary>
+        /// <param name="key">The key to store the value under.</param>
+        /// <param name="value">The value to store.</param>
+        public void SetValue(string key, object value) => Values[key] = value;
+
+        /// <summary>
+        /// Removes a value from <see cref="Values"/>.
+        /// </summary>
+        /// <param name="key">The key to remove.</param>
+        /// <returns><see langword="true"/> if the value was removed.</returns>
+        public bool RemoveValue(string key) => Values.Remove(key);
     }
 }

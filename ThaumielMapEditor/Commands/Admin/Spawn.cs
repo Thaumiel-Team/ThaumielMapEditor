@@ -10,7 +10,6 @@ using System.Globalization;
 using System.Text;
 using CommandSystem;
 using LabApi.Features.Wrappers;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;

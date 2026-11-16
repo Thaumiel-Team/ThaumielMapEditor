@@ -130,11 +130,261 @@ namespace ThaumielMapEditor.API.Blocks
         public bool IsDirty => SyncFlags != SyncFlags.None;
 
         /// <summary>
+        /// Gets a value indicating whether this object can currently accept sync changes.
+        /// </summary>
+        protected virtual bool CanSync => true;
+
+        /// <summary>
+        /// Tracks whether this object is already queued inside the <see cref="SyncManager"/>.
+        /// </summary>
+        public bool PendingSync { get; internal set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this object is currently spawned in its schematic.
+        /// </summary>
+        public bool IsSpawned => Schematic?.Contains(this) ?? false;
+
+        /// <summary>
+        /// Gets a value indicating whether this object is parented directly to the schematic root.
+        /// </summary>
+        public bool IsRootObject => Schematic != null && ParentId == Schematic.RootObjectId;
+
+        /// <summary>
+        /// Gets the number of objects parented directly to this object.
+        /// </summary>
+        public int ChildCount
+        {
+            get
+            {
+                int count = 0;
+
+                foreach (ObjectBase _ in GetChildren())
+                    count++;
+
+                return count;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this object has any direct children.
+        /// </summary>
+        public bool HasChildren => ChildCount > 0;
+
+        /// <summary>
+        /// Gets a value indicating whether this object has no direct children.
+        /// </summary>
+        public bool IsLeaf => !HasChildren;
+
+        /// <summary>
+        /// Gets the path from the topmost ancestor to this object.
+        /// </summary>
+        public string HierarchyPath
+        {
+            get
+            {
+                List<string> names = [];
+
+                foreach (ObjectBase ancestor in GetAncestors())
+                    names.Add(ancestor.Name);
+
+                names.Reverse();
+                names.Add(Name);
+
+                return string.Join("/", names);
+            }
+        }
+
+        /// <summary>
+        /// Gets the depth of this object in its schematic hierarchy.
+        /// </summary>
+        public int Depth
+        {
+            get
+            {
+                int depth = 0;
+
+                foreach (ObjectBase ancestor in GetAncestors())
+                    depth++;
+
+                return depth;
+            }
+        }
+
+        /// <summary>
+        /// Gets the parent of this object.
+        /// </summary>
+        /// <returns>The parent object, or <see langword="null"/> if this object is parented to the schematic root.</returns>
+        public ObjectBase? GetParent() => Schematic?.GetParent(this);
+
+        /// <summary>
+        /// Gets every object parented directly to this object.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the child objects.</returns>
+        public IEnumerable<ObjectBase> GetChildren() => Schematic?.GetChildren(this) ?? [];
+
+        /// <summary>
+        /// Gets every object of type <typeparamref name="T"/> parented directly to this object.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching child objects.</returns>
+        public IEnumerable<T> GetChildren<T>() where T : ObjectBase
+        {
+            foreach (ObjectBase child in GetChildren())
+            {
+                if (child is T typed)
+                    yield return typed;
+            }
+        }
+
+        /// <summary>
+        /// Tries to get the parent of this object.
+        /// </summary>
+        /// <param name="parent">The parent object, or <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if this object has a parent.</returns>
+        public bool TryGetParent(out ObjectBase? parent)
+        {
+            parent = GetParent();
+            return parent != null;
+        }
+
+        /// <summary>
+        /// Gets the index of this object among its siblings.
+        /// </summary>
+        /// <returns>The zero based index, or minus one when the object is not spawned.</returns>
+        public int GetSiblingIndex()
+        {
+            if (Schematic == null)
+                return -1;
+
+            int index = 0;
+
+            foreach (ObjectBase sibling in Schematic.GetChildren(ParentId))
+            {
+                if (ReferenceEquals(sibling, this))
+                    return index;
+
+                index++;
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// Gets every other object that shares this object's parent.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the sibling objects.</returns>
+        public IEnumerable<ObjectBase> GetSiblings()
+        {
+            if (Schematic == null)
+                yield break;
+
+            foreach (ObjectBase obj in Schematic.GetChildren(ParentId))
+            {
+                if (!ReferenceEquals(obj, this))
+                    yield return obj;
+            }
+        }
+
+        /// <summary>
+        /// Gets every other object of type <typeparamref name="T"/> that shares this object's parent.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching sibling objects.</returns>
+        public IEnumerable<T> GetSiblings<T>() where T : ObjectBase
+        {
+            foreach (ObjectBase sibling in GetSiblings())
+            {
+                if (sibling is T typed)
+                    yield return typed;
+            }
+        }
+
+        /// <summary>
+        /// Gets the first object above this object.
+        /// </summary>
+        /// <returns>The topmost object, or this object when it has no parent.</returns>
+        public ObjectBase GetRoot()
+        {
+            ObjectBase root = this;
+
+            foreach (ObjectBase ancestor in GetAncestors())
+                root = ancestor;
+
+            return root;
+        }
+
+        /// <summary>
+        /// Gets every object above this object in the hierarchy.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the ancestor objects.</returns>
+        public IEnumerable<ObjectBase> GetAncestors() =>
+            Schematic?.GetAncestors(this) ?? [];
+
+        /// <summary>
+        /// Gets every ancestor of type <typeparamref name="T"/> above this object.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching ancestor objects.</returns>
+        public IEnumerable<T> GetAncestors<T>() where T : ObjectBase
+        {
+            foreach (ObjectBase ancestor in GetAncestors())
+            {
+                if (ancestor is T typed)
+                    yield return typed;
+            }
+        }
+
+        /// <summary>
+        /// Gets every object below this object in the hierarchy.
+        /// </summary>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the descendant objects.</returns>
+        public IEnumerable<ObjectBase> GetDescendants() =>
+            Schematic?.GetDescendants(this) ?? [];
+
+        /// <summary>
+        /// Gets every descendant of type <typeparamref name="T"/> below this object.
+        /// </summary>
+        /// <typeparam name="T">The object type to return.</typeparam>
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the matching descendants.</returns>
+        public IEnumerable<T> GetDescendants<T>() where T : ObjectBase =>
+            Schematic?.GetDescendants<T>(this) ?? [];
+
+        /// <summary>
+        /// Determines whether this object is below the given object in the hierarchy.
+        /// </summary>
+        /// <param name="ancestor">The possible ancestor.</param>
+        /// <returns><see langword="true"/> if this object is a descendant.</returns>
+        public bool IsDescendantOf(ObjectBase ancestor)
+        {
+            if (ancestor == null)
+                return false;
+
+            foreach (ObjectBase parent in GetAncestors())
+            {
+                if (ReferenceEquals(parent, ancestor))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether this object is above the given object in the hierarchy.
+        /// </summary>
+        /// <param name="descendant">The possible descendant.</param>
+        /// <returns><see langword="true"/> if this object is an ancestor.</returns>
+        public bool IsAncestorOf(ObjectBase descendant) =>
+            descendant != null && descendant.IsDescendantOf(this);
+
+        /// <summary>
         /// Marks the given properties as dirty and schedules this object for syncing.
         /// </summary>
         /// <param name="flags">The properties that changed.</param>
         protected void MarkSyncNeeded(SyncFlags flags)
         {
+            if (!CanSync)
+                return;
+
             SyncFlags |= flags;
             RegisterForSync();
         }
@@ -147,6 +397,8 @@ namespace ThaumielMapEditor.API.Blocks
         }
 
         internal void ClearDirtyFlags() => SyncFlags = SyncFlags.None;
+
+        internal void ClearDirtyFlags(SyncFlags synced) => SyncFlags &= ~synced;
 
         /// <summary>
         /// Copies every shared value from <paramref name="source"/> without running property side effects.
@@ -207,5 +459,58 @@ namespace ThaumielMapEditor.API.Blocks
         /// <param name="key">The key to look up.</param>
         public T GetValue<T>(string key) =>
             (Serialization ?? throw new InvalidOperationException($"'{Name}' has no serialized source.")).Values.GetConvertValue<T>(key);
+
+        /// <summary>
+        /// Tries to get a value from <see cref="SerializableObject.Values"/> and convert it to the specified type.
+        /// </summary>
+        /// <typeparam name="T">The type to convert the value to.</typeparam>
+        /// <param name="key">The key to look up.</param>
+        /// <param name="value">The converted value.</param>
+        /// <returns><see langword="true"/> if the value was found and converted.</returns>
+        public bool TryGetValue<T>(string key, out T value) => Values.TryConvertValue(key, out value);
+
+        /// <summary>
+        /// Gets a value from <see cref="SerializableObject.Values"/> or returns the given default.
+        /// </summary>
+        /// <typeparam name="T">The type to convert the value to.</typeparam>
+        /// <param name="key">The key to look up.</param>
+        /// <param name="defaultValue">The value to return when the key is missing.</param>
+        public T GetValueOrDefault<T>(string key, T defaultValue = default!) =>
+            Values.TryConvertValue(key, out T value) ? value : defaultValue;
+
+        /// <summary>
+        /// Determines whether this object has a serialized value with the given key.
+        /// </summary>
+        /// <param name="key">The key to look up.</param>
+        /// <returns><see langword="true"/> if the key exists.</returns>
+        public bool HasValue(string key) => Values.ContainsKey(key);
+
+        /// <summary>
+        /// Stores a value in this object's <see cref="Serialization"/>.
+        /// </summary>
+        /// <param name="key">The key to store the value under.</param>
+        /// <param name="value">The value to store.</param>
+        /// <returns><see langword="true"/> if the value was stored.</returns>
+        public bool SetValue(string key, object value)
+        {
+            if (Serialization == null)
+                return false;
+
+            Serialization.Values[key] = value;
+            return true;
+        }
+
+        /// <summary>
+        /// Removes a value from this object's <see cref="Serialization"/>.
+        /// </summary>
+        /// <param name="key">The key to remove.</param>
+        /// <returns><see langword="true"/> if the value was removed.</returns>
+        public bool RemoveValue(string key) => Serialization?.Values.Remove(key) ?? false;
+
+        /// <summary>
+        /// Destroys this object from its schematic.
+        /// </summary>
+        /// <returns><see langword="true"/> if the object was destroyed.</returns>
+        public bool Destroy() => Schematic?.DestroyObject(this) ?? false;
     }
 }

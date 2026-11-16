@@ -10,7 +10,6 @@ using System.IO;
 using System.Threading.Tasks;
 using CommandSystem;
 using LabApi.Loader.Features.Paths;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Binary;
 using ThaumielMapEditor.API.Conversion;
 using ThaumielMapEditor.API.Helpers;

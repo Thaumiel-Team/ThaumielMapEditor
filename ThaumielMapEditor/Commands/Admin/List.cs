@@ -9,7 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using CommandSystem;
-using ThaumielMapEditor.API.Attributes;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Interfaces;
 using ThaumielMapEditor.API.Serialization;

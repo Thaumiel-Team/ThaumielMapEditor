@@ -7,7 +7,6 @@
 
 using System;
 using CommandSystem;
-using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Helpers.Networking;
 
 namespace ThaumielMapEditor.Commands.Console

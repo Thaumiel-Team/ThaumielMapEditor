@@ -494,7 +494,6 @@ namespace ThaumielMapEditor.API.Helpers
                 }
 
                 value.Add(mesh);
-                LogManager.Debug($"Created collider for primitive {primitive.Name} with type {primitive.PrimitiveType} at {collider.transform.position}.");
             }
             else
             {

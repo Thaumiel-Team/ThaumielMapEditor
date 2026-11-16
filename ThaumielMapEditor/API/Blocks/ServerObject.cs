@@ -5,6 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using AdminToys;
 using LabApi.Features.Wrappers;
 using MapGeneration.Distributors;
 using Mirror;
@@ -48,10 +49,66 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         public IEnumerable<ToolBase> Tools { get; internal set; } = [];
 
+        private GameObject? gameObject;
+        private NetworkIdentity? networkIdentity;
+        private AdminToyBase? toy;
+        private StructurePositionSync? positionSync;
+        private bool componentsResolved;
+
         /// <summary>
         /// Gets or sets the associated game object instance.
         /// </summary>
-        public virtual GameObject? Object { get; internal set; }
+        public virtual GameObject? Object
+        {
+            get => gameObject;
+            internal set
+            {
+                if (gameObject == value)
+                    return;
+
+                gameObject = value;
+                networkIdentity = null;
+                toy = null;
+                positionSync = null;
+                componentsResolved = false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="Mirror.NetworkIdentity"/> of <see cref="Object"/>.
+        /// </summary>
+        public NetworkIdentity? NetworkIdentity
+        {
+            get
+            {
+                ResolveComponents();
+                return networkIdentity;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="AdminToyBase"/> of <see cref="Object"/>.
+        /// </summary>
+        public AdminToyBase? Toy
+        {
+            get
+            {
+                ResolveComponents();
+                return toy;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="StructurePositionSync"/> of <see cref="Object"/>.
+        /// </summary>
+        public StructurePositionSync? PositionSync
+        {
+            get
+            {
+                ResolveComponents();
+                return positionSync;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this object should be parented to the transform of the <see cref="SerializableObject.ParentId"/> after it has been spawned.
@@ -63,9 +120,19 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         public virtual uint SpawnResult => NetId;
 
-        private AdminToy? adminToy;
+        /// <inheritdoc/>
+        protected override bool CanSync => gameObject != null;
 
-        private StructurePositionSync? positionSync;
+        private void ResolveComponents()
+        {
+            if (componentsResolved || gameObject == null)
+                return;
+
+            componentsResolved = true;
+            gameObject.TryGetComponent(out networkIdentity);
+            gameObject.TryGetComponent(out toy);
+            gameObject.TryGetComponent(out positionSync);
+        }
 
         /// <summary>
         /// Gets or sets the position of the object.
@@ -82,10 +149,9 @@ namespace ThaumielMapEditor.API.Blocks
                 if (Object != null)
                 {
                     Object.transform.position = value;
+                    PositionSync?.Network_position = base.Position;
                     MarkSyncNeeded(SyncFlags.Position);
                 }
-
-                positionSync?.Network_position = base.Position;
             }
         }
 
@@ -124,10 +190,9 @@ namespace ThaumielMapEditor.API.Blocks
                 if (Object != null)
                 {
                     Object.transform.rotation = value;
+                    PositionSync?.Network_rotationY = (sbyte)Mathf.RoundToInt(base.Rotation.eulerAngles.y / 5.625f);
                     MarkSyncNeeded(SyncFlags.Rotation);
                 }
-
-                positionSync?.Network_rotationY = (sbyte)Mathf.RoundToInt(base.Rotation.eulerAngles.y / 5.625f);
             }
         }
 
@@ -144,14 +209,9 @@ namespace ThaumielMapEditor.API.Blocks
 
                 base.MovementSmoothing = value;
 
-                if (Object == null)
+                if (Toy == null)
                     return;
 
-                adminToy ??= Object.GetComponent<AdminToy>();
-                if (adminToy == null)
-                    return;
-
-                adminToy.MovementSmoothing = value;
                 MarkSyncNeeded(SyncFlags.MovementSmoothing);
             }
         }
@@ -160,12 +220,69 @@ namespace ThaumielMapEditor.API.Blocks
         protected override void RegisterForSync() => SyncManager.RegisterForSync(this);
 
         /// <summary>
+        /// Gets the first tool of type <typeparamref name="T"/> attached to this object.
+        /// </summary>
+        /// <typeparam name="T">The tool type to find.</typeparam>
+        /// <returns>The tool, or <see langword="null"/> if none is attached.</returns>
+        public ToolBase? GetTool<T>() where T : ToolBase
+        {
+            foreach (ToolBase tool in Tools)
+            {
+                if (tool is not T)
+                    continue;
+
+                return tool;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets every tool of type <typeparamref name="T"/> attached to this object.
+        /// </summary>
+        /// <typeparam name="T">The tool type to find.</typeparam>
+        /// <returns>The matching tools.</returns>
+        public IEnumerable<T> GetTools<T>() where T : ToolBase
+        {
+            foreach (ToolBase tool in Tools)
+            {
+                if (tool is T typed)
+                    yield return typed;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this object has a tool of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The tool type to check.</typeparam>
+        /// <returns><see langword="true"/> if the tool is attached.</returns>
+        public bool HasTool<T>() where T : ToolBase => GetTool<T>() != null;
+
+        /// <summary>
+        /// Tries to get the first tool of type <typeparamref name="T"/> attached to this object.
+        /// </summary>
+        /// <typeparam name="T">The tool type to find.</typeparam>
+        /// <param name="tool">The found tool, or <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the tool was found.</returns>
+        public bool TryGetTool<T>(out T? tool) where T : ToolBase
+        {
+            if (GetTool<T>() is T typed)
+            {
+                tool = typed;
+                return true;
+            }
+
+            tool = null;
+            return false;
+        }
+
+        /// <summary>
         /// Applies the specified schematic's transformation to the current object's world position, rotation, and scale.
         /// </summary>
         /// <param name="schematic">The schematic data to apply.</param>
         public void SetWorldTransform(SchematicData schematic)
         {
-            Position = schematic.Primitive?.Transform.TransformPoint(Position) ?? schematic.Position + (schematic.Rotation * Vector3.Scale(Position, schematic.Scale));
+            Position = schematic.WorldPosition(Position);
             if (schematic.Rotation.eulerAngles != default)
                 Rotation = schematic.Rotation * Rotation;
 
@@ -211,8 +328,6 @@ namespace ThaumielMapEditor.API.Blocks
 
             if (respawn)
                 NetworkServer.UnSpawn(Object);
-
-            positionSync ??= Object.GetComponent<StructurePositionSync>();
 
             SetWorldTransform(schematic);
 
@@ -278,6 +393,24 @@ namespace ThaumielMapEditor.API.Blocks
                 return;
 
             NetworkServer.ShowForConnection(network, player.Connection);
+        }
+
+        /// <summary>
+        /// Shows this object for every ready player.
+        /// </summary>
+        public void ShowForAllPlayers()
+        {
+            foreach (Player player in Player.ReadyList)
+                ShowForPlayer(player);
+        }
+
+        /// <summary>
+        /// Hides this object for every ready player.
+        /// </summary>
+        public void HideForAllPlayers()
+        {
+            foreach (Player player in Player.ReadyList)
+                HideForPlayer(player);
         }
     }
 }

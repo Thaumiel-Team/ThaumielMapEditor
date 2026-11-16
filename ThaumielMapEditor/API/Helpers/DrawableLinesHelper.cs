@@ -151,10 +151,8 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="obj">The <see cref="ClientObject"/> to be drawn.</param>
         /// <param name="duration">How long the lines are visible. Null draws persistently until stopped.</param>
         /// <param name="color">The line color. Null uses <see cref="DrawableLines.ServerDefaultColor"/>.</param>
-        public static void Draw(this ClientObject obj, float? duration = null, Color? color = null)
-        {
+        public static void Draw(this ClientObject obj, float? duration = null, Color? color = null) =>
             obj.Draw((Player?)null, duration, color);
-        }
 
         /// <summary>
         /// Draws the specified <see cref="ClientObject"/> to the players specified in <paramref name="players"/>.
@@ -286,7 +284,8 @@ namespace ThaumielMapEditor.API.Helpers
         private static Vector3 ClampSize(Vector3 size) => new(
             Mathf.Clamp(size.x, 0f, MaxDrawExtent * 2f),
             Mathf.Clamp(size.y, 0f, MaxDrawExtent * 2f),
-            Mathf.Clamp(size.z, 0f, MaxDrawExtent * 2f));
+            Mathf.Clamp(size.z, 0f, MaxDrawExtent * 2f)
+        );
 
         private static void StopPersistentDraw(object key, Player? player)
         {
@@ -686,10 +685,8 @@ namespace ThaumielMapEditor.API.Helpers
         /// </summary>
         /// <param name="player">The <see cref="Player"/> that will see the line.</param>
         /// <param name="positions">The line points. At least two are required.</param>
-        public static void SendLineToPlayer(this Player player, params Vector3[] positions)
-        {
+        public static void SendLineToPlayer(this Player player, params Vector3[] positions) =>
             player.SendLineToPlayer(null, null, positions);
-        }
 
         /// <summary>
         /// Sends a drawable line to a specific <see cref="Player"/> without requiring <see cref="DrawableLines.IsDebugModeEnabled"/>.
@@ -697,10 +694,8 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="player">The <see cref="Player"/> that will see the line.</param>
         /// <param name="duration">How long the line is visible. Null uses <see cref="DrawableLines.ServerDefaultDuration"/>.</param>
         /// <param name="positions">The line points. At least two are required.</param>
-        public static void SendLineToPlayer(this Player player, float? duration, params Vector3[] positions)
-        {
+        public static void SendLineToPlayer(this Player player, float? duration, params Vector3[] positions) =>
             player.SendLineToPlayer(duration, null, positions);
-        }
 
         /// <summary>
         /// Sends a drawable line to a specific <see cref="Player"/> without requiring <see cref="DrawableLines.IsDebugModeEnabled"/>.
@@ -708,10 +703,8 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="player">The <see cref="Player"/> that will see the line.</param>
         /// <param name="color">The line color. Null uses <see cref="DrawableLines.ServerDefaultColor"/>.</param>
         /// <param name="positions">The line points. At least two are required.</param>
-        public static void SendLineToPlayer(this Player player, Color? color, params Vector3[] positions)
-        {
+        public static void SendLineToPlayer(this Player player, Color? color, params Vector3[] positions) =>
             player.SendLineToPlayer(null, color, positions);
-        }
 
         /// <summary>
         /// Sends a drawable line to the specified <see cref="Player"/>s without requiring <see cref="DrawableLines.IsDebugModeEnabled"/>.
@@ -783,10 +776,8 @@ namespace ThaumielMapEditor.API.Helpers
         /// </summary>
         /// <param name="player">The <see cref="Player"/> that will see the bounds.</param>
         /// <param name="bounds">The bounds to draw.</param>
-        public static void SendBoundsToPlayer(this Player player, Bounds bounds)
-        {
+        public static void SendBoundsToPlayer(this Player player, Bounds bounds) =>
             player.SendBoundsToPlayer(bounds, null, null);
-        }
 
         /// <summary>
         /// Sends a wireframe sphere to a specific <see cref="Player"/> without requiring <see cref="DrawableLines.IsDebugModeEnabled"/>.
@@ -838,10 +829,8 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="player">The <see cref="Player"/> that will see the sphere.</param>
         /// <param name="origin">The center of the sphere.</param>
         /// <param name="radius">The radius of the sphere.</param>
-        public static void SendSphereToPlayer(this Player player, Vector3 origin, float radius)
-        {
+        public static void SendSphereToPlayer(this Player player, Vector3 origin, float radius) =>
             player.SendSphereToPlayer(origin, radius, null, null);
-        }
 
         /// <summary>
         /// Sends a wireframe sphere matching a <see cref="SphereCollider"/> to a specific <see cref="Player"/>
@@ -895,10 +884,8 @@ namespace ThaumielMapEditor.API.Helpers
         /// </summary>
         /// <param name="player">The <see cref="Player"/> that will see the sphere.</param>
         /// <param name="collider">The collider to draw.</param>
-        public static void SendSphereToPlayer(this Player player, SphereCollider collider)
-        {
+        public static void SendSphereToPlayer(this Player player, SphereCollider collider) =>
             player.SendSphereToPlayer(collider, null, null);
-        }
 
         /// <summary>
         /// Sends a wireframe sphere to the specified <see cref="Player"/>s without requiring <see cref="DrawableLines.IsDebugModeEnabled"/>.
@@ -1104,10 +1091,8 @@ namespace ThaumielMapEditor.API.Helpers
         /// </summary>
         /// <param name="player">The <see cref="Player"/> that will see the capsule.</param>
         /// <param name="collider">The collider to draw.</param>
-        public static void SendCapsuleToPlayer(this Player player, CapsuleCollider collider)
-        {
+        public static void SendCapsuleToPlayer(this Player player, CapsuleCollider collider) =>
             player.SendCapsuleToPlayer(collider, null, null);
-        }
 
         /// <summary>
         /// Sends a wireframe capsule to the specified <see cref="Player"/>s without requiring <see cref="DrawableLines.IsDebugModeEnabled"/>.

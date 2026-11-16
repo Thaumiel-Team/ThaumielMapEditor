@@ -30,5 +30,4 @@ namespace ThaumielMapEditor.API.Conversion
         [JsonPropertyName("Blocks")]
         public List<PMERBlock> Blocks { get; set; } = [];
     }
-
 }

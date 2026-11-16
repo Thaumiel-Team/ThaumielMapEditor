@@ -5,12 +5,12 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using AdminToys;
 using LabApi.Features.Wrappers;
 using MEC;
 using Mirror;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Helpers;
 
@@ -19,17 +19,17 @@ namespace ThaumielMapEditor.API.Blocks
     [GitBookPage("Blocks/SyncManager")]
     public static class SyncManager
     {
-        private static readonly HashSet<ClientObject> PendingClientSyncs = [];
-        private static readonly HashSet<ServerObject> PendingServerSyncs = [];
-        private static readonly object ClientLock = new();
-        private static readonly object ServerLock = new();
-
-        private static volatile bool IsClientSyncScheduled = false;
-        private static volatile bool IsServerSyncScheduled = false;
-
-        private const int MaxFlushIterations = 16;
-        private const int MaxSyncRetries = 3;
+        private static readonly Queue<ClientObject> PendingClientSyncs = new();
+        private static readonly Queue<ServerObject> PendingServerSyncs = new();
         private static readonly Dictionary<ServerObject, int> ServerRetryCounts = [];
+        private static readonly List<ClientObject> ClientBatch = new(256);
+        private static readonly List<ServerObject> ServerBatch = new(32);
+
+        private static Player[] playerBuffer = new Player[32];
+
+        private static bool _scheduled;
+        private static bool _processingClient;
+        private static bool _processingServer;
 
         extension(SyncFlags flags)
         {
@@ -44,12 +44,12 @@ namespace ThaumielMapEditor.API.Blocks
             if (obj == null)
                 return;
 
-            lock (ClientLock)
-            {
-                PendingClientSyncs.Add(obj);
-            }
+            if (obj.PendingSync)
+                return;
 
-            ScheduleClientSync();
+            obj.PendingSync = true;
+            PendingClientSyncs.Enqueue(obj);
+            ScheduleSync();
         }
 
         /// <summary>
@@ -60,30 +60,30 @@ namespace ThaumielMapEditor.API.Blocks
             if (obj == null)
                 return;
 
-            lock (ServerLock)
+            if (obj.PendingSync)
+                return;
+
+            obj.PendingSync = true;
+            PendingServerSyncs.Enqueue(obj);
+            ScheduleSync();
+        }
+
+        private static void ScheduleSync()
+        {
+            if (_scheduled)
+                return;
+
+            _scheduled = true;
+
+            try
             {
-                PendingServerSyncs.Add(obj);
+                Timing.RunCoroutine(EndOfFrameSyncCoroutine(), "TME_BatchSync");
             }
-
-            ScheduleServerSync();
-        }
-
-        private static void ScheduleClientSync()
-        {
-            if (IsClientSyncScheduled)
-                return;
-
-            IsClientSyncScheduled = true;
-            Timing.RunCoroutine(EndOfFrameSyncCoroutine(), "TME_BatchSync_Client");
-        }
-
-        private static void ScheduleServerSync()
-        {
-            if (IsServerSyncScheduled)
-                return;
-
-            IsServerSyncScheduled = true;
-            Timing.RunCoroutine(EndOfFrameSyncCoroutine(), "TME_BatchSync_Server");
+            catch
+            {
+                _scheduled = false;
+                throw;
+            }
         }
 
         /// <summary>
@@ -93,11 +93,8 @@ namespace ThaumielMapEditor.API.Blocks
         {
             ProcessPendingClientSyncs();
 
-            lock (ClientLock)
-            {
-                if (PendingClientSyncs.Count > 0)
-                    ScheduleClientSync();
-            }
+            if (PendingClientSyncs.Count > 0)
+                ScheduleSync();
         }
 
         /// <summary>
@@ -107,11 +104,8 @@ namespace ThaumielMapEditor.API.Blocks
         {
             ProcessPendingServerSyncs();
 
-            lock (ServerLock)
-            {
-                if (PendingServerSyncs.Count > 0)
-                    ScheduleServerSync();
-            }
+            if (PendingServerSyncs.Count > 0)
+                ScheduleSync();
         }
 
         /// <summary>
@@ -119,13 +113,11 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         public static void ClearClientPending()
         {
-            lock (ClientLock)
+            while (PendingClientSyncs.Count > 0)
             {
-                PendingClientSyncs.Clear();
-                IsClientSyncScheduled = false;
+                ClientObject? obj = PendingClientSyncs.Dequeue();
+                obj?.PendingSync = false;
             }
-
-            Timing.KillCoroutines("TME_BatchSync_Client");
         }
 
         /// <summary>
@@ -133,18 +125,13 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         public static void ClearServerPending()
         {
-            lock (ServerLock)
+            while (PendingServerSyncs.Count > 0)
             {
-                PendingServerSyncs.Clear();
-                IsServerSyncScheduled = false;
+                ServerObject? obj = PendingServerSyncs.Dequeue();
+                obj?.PendingSync = false;
             }
 
-            lock (ServerRetryCounts)
-            {
-                ServerRetryCounts.Clear();
-            }
-
-            Timing.KillCoroutines("TME_BatchSync_Server");
+            ServerRetryCounts.Clear();
         }
 
         internal static void RemoveFromPending(ClientObject obj)
@@ -152,10 +139,7 @@ namespace ThaumielMapEditor.API.Blocks
             if (obj == null)
                 return;
 
-            lock (ClientLock)
-            {
-                PendingClientSyncs.Remove(obj);
-            }
+            obj.PendingSync = false;
         }
 
         internal static void RemoveFromPending(ServerObject obj)
@@ -163,17 +147,9 @@ namespace ThaumielMapEditor.API.Blocks
             if (obj == null)
                 return;
 
-            lock (ServerLock)
-            {
-                PendingServerSyncs.Remove(obj);
-            }
-
-            lock (ServerRetryCounts)
-            {
-                ServerRetryCounts.Remove(obj);
-            }
+            obj.PendingSync = false;
+            ServerRetryCounts.Remove(obj);
         }
-
 
         private static IEnumerator<float> EndOfFrameSyncCoroutine()
         {
@@ -181,185 +157,233 @@ namespace ThaumielMapEditor.API.Blocks
 
             try
             {
-                int iteration = 0;
-                bool hasPending;
-                do
-                {
-                    ProcessPendingClientSyncs();
-                    ProcessPendingServerSyncs();
-                    iteration++;
-                    lock (ClientLock)
-                    lock (ServerLock)
-                    {
-                        hasPending = PendingClientSyncs.Count > 0 || PendingServerSyncs.Count > 0;
-                    }
-                }
-                while (iteration < MaxFlushIterations && hasPending);
+                ProcessPendingClientSyncs();
+                ProcessPendingServerSyncs();
             }
             finally
             {
-                IsClientSyncScheduled = false;
-                IsServerSyncScheduled = false;
+                _scheduled = false;
             }
 
-            lock (ClientLock)
-            {
-                if (PendingClientSyncs.Count > 0)
-                    ScheduleClientSync();
-            }
-
-            lock (ServerLock)
-            {
-                if (PendingServerSyncs.Count > 0)
-                    ScheduleServerSync();
-            }
+            if (PendingClientSyncs.Count > 0 || PendingServerSyncs.Count > 0)
+                ScheduleSync();
         }
 
         private static void ProcessPendingClientSyncs()
         {
-            List<ClientObject> snapshot;
-            lock (ClientLock)
+            if (_processingClient || PendingClientSyncs.Count == 0)
+                return;
+
+            List<ClientObject> batch = ClientBatch;
+            batch.Clear();
+
+            while (PendingClientSyncs.Count > 0)
             {
-                if (PendingClientSyncs.Count == 0)
-                    return;
-
-                snapshot = [.. PendingClientSyncs];
-                PendingClientSyncs.Clear();
-            }
-
-            Dictionary<Player, List<ClientObject>> playerBatches = [];
-            HashSet<ClientObject> needsRetry = [];
-
-            foreach (ClientObject obj in snapshot)
-            {
-                if (obj == null || !obj.Spawned)
+                ClientObject? obj = PendingClientSyncs.Dequeue();
+                if (obj == null)
                     continue;
 
-                Player[] targets = obj.SpawnedPlayers.ToArray();
-                foreach (Player player in targets)
-                {
-                    if (player == null || player.IsHost || player.IsDestroyed)
-                        continue;
-
-                    if (player.Connection == null || !player.Connection.isReady)
-                    {
-                        needsRetry.Add(obj);
-                        continue;
-                    }
-
-                    if (!playerBatches.TryGetValue(player, out var list))
-                    {
-                        list = new List<ClientObject>(16);
-                        playerBatches[player] = list;
-                    }
-
-                    list.Add(obj);
-                }
+                obj.PendingSync = false;
+                batch.Add(obj);
             }
 
-            List<ClientObject> failed = [];
-            foreach (KeyValuePair<Player, List<ClientObject>> kvp in playerBatches)
+            if (batch.Count == 0)
+                return;
+
+            _processingClient = true;
+
+            try
             {
-                foreach (ClientObject obj in kvp.Value)
+                int synced = 0;
+
+                foreach (ClientObject obj in batch)
                 {
+                    if (obj == null)
+                        continue;
+
+                    SyncFlags flags = obj.SyncFlags;
+
+                    if (flags == SyncFlags.None)
+                        continue;
+
+                    if (!obj.Spawned)
+                    {
+                        obj.ClearDirtyFlags(flags);
+                        continue;
+                    }
+
                     try
                     {
-                        obj.SyncForPlayer(kvp.Key);
+                        int count = CopySpawnedPlayers(obj);
+
+                        if (!obj.TrySendBatchedDelta(flags, playerBuffer, count, out bool needsRetry))
+                        {
+                            obj.ClearDirtyFlags(flags);
+                            continue;
+                        }
+
+                        if (needsRetry)
+                        {
+                            RegisterForSync(obj);
+                            continue;
+                        }
+
+                        obj.ClearDirtyFlags(flags);
+                        synced++;
                     }
                     catch (Exception ex)
                     {
-                        LogManager.Error($"Failed to sync object {obj.NetId} to {kvp.Key.DisplayName}: {ex.Message}");
-                        if (!failed.Contains(obj))
-                            failed.Add(obj);
+                        LogManager.Error($"Failed to sync object {obj.NetId}: {ex.Message}");
+                        RegisterForSync(obj);
                     }
                 }
-            }
 
-            foreach (ClientObject obj in snapshot)
+                LogManager.Debug($"Batch sync completed for {synced} of {batch.Count} ClientObjects.");
+            }
+            finally
             {
-                if (!failed.Contains(obj) && !needsRetry.Contains(obj))
-                    obj.ClearDirtyFlags();
+                _processingClient = false;
             }
 
-            if (failed.Count > 0 || needsRetry.Count > 0)
-            {
-                lock (ClientLock)
-                {
-                    foreach (ClientObject obj in failed)
-                        PendingClientSyncs.Add(obj);
-
-                    foreach (ClientObject obj in needsRetry)
-                        PendingClientSyncs.Add(obj);
-                }
-            }
-
-            int objectCount = snapshot.Count;
-            LogManager.Debug($"Batch sync completed: {objectCount} ClientObjects synced for {playerBatches.Count} players.");
+            if (PendingClientSyncs.Count > 0)
+                ScheduleSync();
         }
 
         private static void ProcessPendingServerSyncs()
         {
-            List<ServerObject> snapshot;
-            lock (ServerLock)
-            {
-                if (PendingServerSyncs.Count == 0)
-                    return;
+            if (_processingServer || PendingServerSyncs.Count == 0)
+                return;
 
-                snapshot = [.. PendingServerSyncs];
-                PendingServerSyncs.Clear();
+            List<ServerObject> batch = ServerBatch;
+            batch.Clear();
+
+            while (PendingServerSyncs.Count > 0)
+            {
+                ServerObject? obj = PendingServerSyncs.Dequeue();
+                if (obj == null)
+                    continue;
+
+                obj.PendingSync = false;
+                batch.Add(obj);
             }
 
-            foreach (ServerObject obj in snapshot)
+            if (batch.Count == 0)
+                return;
+
+            _processingServer = true;
+
+            try
             {
-                if (obj == null || obj.Object == null)
-                    continue;
+                int synced = 0;
 
-                if (!obj.Object.TryGetComponent<NetworkIdentity>(out _))
+                foreach (ServerObject obj in batch)
                 {
-                    obj.ClearDirtyFlags();
-                    continue;
-                }
+                    if (obj == null)
+                        continue;
 
-                try
-                {
-                    NetworkServer.UnSpawn(obj.Object);
-                    NetworkServer.Spawn(obj.Object);
-                    obj.ClearDirtyFlags();
-                    lock (ServerRetryCounts)
+                    if (obj.Object == null || obj.NetworkIdentity == null)
                     {
+                        obj.ClearDirtyFlags();
                         ServerRetryCounts.Remove(obj);
+                        continue;
                     }
-                }
-                catch (Exception ex)
-                {
-                    LogManager.Error($"Failed to sync object {obj.Name} - {obj.NetId}: {ex.Message}");
-                    bool retry = true;
-                    lock (ServerRetryCounts)
+
+                    SyncFlags flags = obj.SyncFlags;
+
+                    if (flags == SyncFlags.None)
+                        continue;
+
+                    try
                     {
-                        ServerRetryCounts.TryGetValue(obj, out int count);
-                        count++;
-                        if (count >= MaxSyncRetries)
+                        if (TryApplyLiveServerDelta(obj, flags))
+                        {
+                            obj.ClearDirtyFlags(flags);
+                            ServerRetryCounts.Remove(obj);
+                            synced++;
+                            continue;
+                        }
+
+                        NetworkServer.UnSpawn(obj.Object);
+                        NetworkServer.Spawn(obj.Object);
+                        obj.ClearDirtyFlags(flags);
+                        ServerRetryCounts.Remove(obj);
+                        synced++;
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Error($"Failed to sync object {obj.Name} - {obj.NetId}: {ex.Message}");
+
+                        ServerRetryCounts.TryGetValue(obj, out int previous);
+                        int count = previous + 1;
+
+                        if (count >= 3)
                         {
                             ServerRetryCounts.Remove(obj);
-                            retry = false;
                             LogManager.Warn($"Dropping server sync for '{obj.Name}' after {count} failures.");
                         }
                         else
-                            ServerRetryCounts[obj] = count;
-                    }
-
-                    if (retry)
-                    {
-                        lock (ServerLock)
                         {
-                            PendingServerSyncs.Add(obj);
+                            ServerRetryCounts[obj] = count;
+                            RegisterForSync(obj);
                         }
                     }
                 }
+
+                LogManager.Debug($"Batch sync completed for {synced} of {batch.Count} ServerObjects.");
+            }
+            finally
+            {
+                _processingServer = false;
             }
 
-            int objectCount = snapshot.Count;
-            LogManager.Debug($"Batch sync completed: {objectCount} ServerObjects synced.");
+            if (PendingServerSyncs.Count > 0)
+                ScheduleSync();
+        }
+
+        private static bool TryApplyLiveServerDelta(ServerObject obj, SyncFlags flags)
+        {
+            AdminToyBase? toy = obj.Toy;
+
+            if (toy != null)
+            {
+                if (flags.HasFlagFast(SyncFlags.MovementSmoothing))
+                    toy.NetworkMovementSmoothing = obj.MovementSmoothing != 0 ? (byte)(256 - obj.MovementSmoothing) : (byte)0;
+
+                bool hasTransform = flags.HasFlagFast(SyncFlags.Position) || flags.HasFlagFast(SyncFlags.Rotation) || flags.HasFlagFast(SyncFlags.Scale);
+
+                if (!hasTransform)
+                    return true;
+
+                if (toy.IsStatic)
+                    return false;
+
+                if (flags.HasFlagFast(SyncFlags.Position))
+                    toy.NetworkPosition = toy.CachedTransform.localPosition;
+
+                if (flags.HasFlagFast(SyncFlags.Rotation))
+                    toy.NetworkRotation = toy.CachedTransform.localRotation;
+
+                if (flags.HasFlagFast(SyncFlags.Scale))
+                    toy.NetworkScale = toy.CachedTransform.localScale;
+
+                return true;
+            }
+
+            return obj.PositionSync != null && (flags & ~SyncFlags.Position) == SyncFlags.None;
+        }
+
+        private static int CopySpawnedPlayers(ClientObject obj)
+        {
+            int count = obj.SpawnedPlayers.Count;
+
+            if (count == 0)
+                return 0;
+
+            if (playerBuffer.Length < count)
+                Array.Resize(ref playerBuffer, Math.Max(count, playerBuffer.Length * 2));
+
+            obj.SpawnedPlayers.CopyTo(playerBuffer);
+            return count;
         }
     }
 }
