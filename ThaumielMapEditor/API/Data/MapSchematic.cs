@@ -29,7 +29,6 @@ namespace ThaumielMapEditor.API.Data
         /// <summary>
         /// Gets a value indicating whether the schematic of this entry is currently spawned.
         /// </summary>
-        /// 
         public bool IsSpawned => GetSchematic() != null;
 
         /// <summary>

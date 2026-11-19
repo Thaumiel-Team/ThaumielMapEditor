@@ -1216,6 +1216,7 @@ namespace ThaumielMapEditor.API.Data
             Executor = null;
             AnimationController.Remove(this);
             ColliderHelper.SchematicColliders.Remove(this);
+            Loader.SchematicsById.Remove(Id);
         }
     }
 }
