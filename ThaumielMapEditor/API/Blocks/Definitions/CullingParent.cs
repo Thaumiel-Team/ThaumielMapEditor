@@ -228,6 +228,9 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 if (player.Connection == null || !player.Connection.isReady)
                     return;
 
+                if (!IsSpawnAllowedFor(player))
+                    return;
+
                 if (PrefabHelper.CullingParent?.netIdentity == null)
                 {
                     LogManager.Warn($"Skipping client culling parent '{Name}': culling parent prefab not registered.");

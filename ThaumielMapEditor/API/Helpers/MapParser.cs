@@ -60,8 +60,7 @@ namespace ThaumielMapEditor.API.Helpers
                 return false;
             }
 
-            Loader.SpawnMap(map);
-            return true;
+            return Loader.SpawnMap(map) != null;
         }
 
         /// <summary>
@@ -78,8 +77,7 @@ namespace ThaumielMapEditor.API.Helpers
                 return false;
             }
 
-            Loader.DestroyMap(map);
-            return true;
+            return Loader.DestroyMap(map);
         }
 
         /// <summary>

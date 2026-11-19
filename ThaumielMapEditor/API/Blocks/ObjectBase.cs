@@ -11,6 +11,8 @@ using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Serialization;
+using ThaumielMapEditor.Events.EventArgs.Handlers;
+using ThaumielMapEditor.Events.EventArgs.Objects;
 
 namespace ThaumielMapEditor.API.Blocks
 {
@@ -496,6 +498,13 @@ namespace ThaumielMapEditor.API.Blocks
             if (Serialization == null)
                 return false;
 
+            Serialization.Values.TryGetValue(key, out object? oldValue);
+
+            ObjectValueChangedEventArgs ev = new(this, key, oldValue, value, false);
+            ObjectHandler.OnObjectValueChanged(ev);
+            if (!ev.IsAllowed)
+                return false;
+
             Serialization.Values[key] = value;
             return true;
         }
@@ -505,7 +514,18 @@ namespace ThaumielMapEditor.API.Blocks
         /// </summary>
         /// <param name="key">The key to remove.</param>
         /// <returns><see langword="true"/> if the value was removed.</returns>
-        public bool RemoveValue(string key) => Serialization?.Values.Remove(key) ?? false;
+        public bool RemoveValue(string key)
+        {
+            if (Serialization == null || !Serialization.Values.TryGetValue(key, out object? oldValue))
+                return false;
+
+            ObjectValueChangedEventArgs ev = new(this, key, oldValue, null, true);
+            ObjectHandler.OnObjectValueChanged(ev);
+            if (!ev.IsAllowed)
+                return false;
+
+            return Serialization.Values.Remove(key);
+        }
 
         /// <summary>
         /// Destroys this object from its schematic.

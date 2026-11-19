@@ -12,11 +12,19 @@ namespace ThaumielMapEditor.Events.EventArgs.Handlers
 {
     public class SchematicHandler
     {
+        public static event LabEventHandler<SchematicSpawningEventArgs>? SchematicSpawning;
+
         public static event LabEventHandler<SchematicSpawnedEventArgs>? SchematicSpawned;
+
+        public static event LabEventHandler<SchematicDestroyingEventArgs>? SchematicDestroying;
 
         public static event LabEventHandler<SchematicDestroyedEventArgs>? SchematicDestroyed;
 
+        internal static void OnSchematicSpawning(SchematicSpawningEventArgs ev) => SchematicSpawning.InvokeEvent(ev);
+
         internal static void OnSchematicSpawned(SchematicSpawnedEventArgs ev) => SchematicSpawned.InvokeEvent(ev);
+
+        internal static void OnSchematicDestroying(SchematicDestroyingEventArgs ev) => SchematicDestroying.InvokeEvent(ev);
 
         internal static void OnSchematicDestroyed(SchematicDestroyedEventArgs ev) => SchematicDestroyed.InvokeEvent(ev);
     }

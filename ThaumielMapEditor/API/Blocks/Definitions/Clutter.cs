@@ -250,6 +250,9 @@ namespace ThaumielMapEditor.API.Blocks.Definitions
                 if (player.Connection == null || !player.Connection.isReady)
                     return;
 
+                if (!IsSpawnAllowedFor(player))
+                    return;
+
                 if (!Enum.IsDefined(typeof(ClutterType), Type))
                 {
                     LogManager.Warn($"Skipping client clutter '{Name}': unknown ClutterType '{Type}'.");

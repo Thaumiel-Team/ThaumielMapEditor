@@ -16,7 +16,6 @@ using ThaumielMapEditor.API.Animation;
 using ThaumielMapEditor.API.Components.Tools;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Components;
-using ThaumielMapEditor.Events.EventArgs.Handlers;
 using UnityEngine;
 using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Serialization;
@@ -1190,10 +1189,10 @@ namespace ThaumielMapEditor.API.Data
         /// <summary>
         /// Destroys this <see cref="SchematicData"/> instance.
         /// </summary>
-        public void Destroy()
-        {
-            SchematicHandler.OnSchematicDestroyed(new(this));
+        public void Destroy() => Loader.DestroySchematic(this);
 
+        internal void DestroyInternal()
+        {
             foreach (KeyValuePair<LODZone, SchematicData> kvp in Loader.SchematicLODZones.Where(s => s.Value == this).ToArray())
             {
                 if (kvp.Key == null)

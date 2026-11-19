@@ -332,6 +332,7 @@ namespace ThaumielMapEditor.API.Blocks
             SetWorldTransform(schematic);
 
             OnObjectUpdated?.Invoke(this, respawn);
+            ObjectHandler.OnServerObjectUpdated(new(this, respawn));
 
             if (respawn && Object != null)
             {

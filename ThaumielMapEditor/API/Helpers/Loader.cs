@@ -28,6 +28,9 @@ using ThaumielMapEditor.API.Enums;
 using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Serialization;
 using ThaumielMapEditor.Events.EventArgs.Handlers;
+using ThaumielMapEditor.Events.EventArgs.Map;
+using ThaumielMapEditor.Events.EventArgs.Objects;
+using ThaumielMapEditor.Events.EventArgs.Schematic;
 using UnityEngine;
 using Utils.NonAllocLINQ;
 using YamlDotNet.Core;
@@ -46,11 +49,13 @@ namespace ThaumielMapEditor.API.Helpers
         /// <summary>
         /// Fired when a <see cref="SchematicData"/> is spawned.
         /// </summary>
+        [Obsolete("Use SchematicHandler.SchematicSpawned instead of this.")]
         public static event Action<SchematicData>? SchematicSpawned;
 
         /// <summary>
         /// Fired when a <see cref="SchematicData"/> is destroyed.
         /// </summary>
+        [Obsolete("Use SchematicHandler.SchematicDestroyed instead of this.")]
         public static event Action<SchematicData>? SchematicDestroyed;
 
         /// <summary>
@@ -189,12 +194,23 @@ namespace ThaumielMapEditor.API.Helpers
         /// Destroys the specified <see cref="SchematicData"/>
         /// </summary>
         /// <param name="data">The schematic to be destroyed</param>
-        public static void DestroySchematic(SchematicData data)
+        /// <returns><see langword="true"/> if the schematic was destroyed.</returns>
+        public static bool DestroySchematic(SchematicData data)
         {
-            SchematicDestroyed?.Invoke(data);
-            SchematicsById.Remove(data.Id);
+            if (data == null)
+                return false;
 
-            data.Destroy();
+            SchematicDestroyingEventArgs destroying = new(data);
+            SchematicHandler.OnSchematicDestroying(destroying);
+            if (!destroying.IsAllowed)
+                return false;
+
+            SchematicsById.Remove(data.Id);
+            data.DestroyInternal();
+
+            SchematicDestroyed?.Invoke(data);
+            SchematicHandler.OnSchematicDestroyed(new(data));
+            return true;
         }
 
         private static bool IsYamlFile(string path)
@@ -661,6 +677,11 @@ namespace ThaumielMapEditor.API.Helpers
         /// <returns>The spawned map instance.</returns>
         public static MapData? SpawnMap(SerializableMap map)
         {
+            MapSpawningEventArgs spawning = new(map);
+            MapHandler.OnMapSpawning(spawning);
+            if (!spawning.IsAllowed)
+                return null;
+
             Room? room = null;
             if (Enum.TryParse<RoomName>(map.Room, true, out var name))
             {
@@ -711,6 +732,7 @@ namespace ThaumielMapEditor.API.Helpers
             }
 
             MapsById.Add(data.Id, data);
+            MapHandler.OnMapSpawned(new(data));
             return data;
         }
 
@@ -718,18 +740,31 @@ namespace ThaumielMapEditor.API.Helpers
         /// Destroys a map.
         /// </summary>
         /// <param name="map">The <see cref="MapData"/> to be destroyed.</param>
-        public static void DestroyMap(MapData map)
+        /// <returns><see langword="true"/> if the map was destroyed.</returns>
+        public static bool DestroyMap(MapData map)
         {
+            if (map == null)
+                return false;
+
+            MapDestroyingEventArgs destroying = new(map);
+            MapHandler.OnMapDestroying(destroying);
+            if (!destroying.IsAllowed)
+                return false;
+
             foreach (MapSchematicData schematic in map.Schematics.ToArray())
             {
                 if (!TryGetSchematicById(schematic.SchematicId, out var schematicData))
                     continue;
 
-                DestroySchematic(schematicData);
+                if (!DestroySchematic(schematicData))
+                    continue;
+
                 map.Schematics.Remove(schematic);
             }
 
             MapsById.Remove(map.Id);
+            MapHandler.OnMapDestroyed(new(map));
+            return true;
         }
 
         /// <summary>
@@ -1350,6 +1385,11 @@ namespace ThaumielMapEditor.API.Helpers
 
         private static void SpawnSchematic(SerializableSchematic schematic, SchematicData schematicData, Vector3 position, Quaternion rotation, Vector3 scale, Action? onComplete = null)
         {
+            SchematicSpawningEventArgs spawning = new(schematic, schematicData);
+            SchematicHandler.OnSchematicSpawning(spawning);
+            if (!spawning.IsAllowed)
+                return;
+
             if (!PrefabHelper.RanRegister)
             {
                 LogManager.Warn($"Prefabs are not registered yet!");
@@ -1728,6 +1768,11 @@ namespace ThaumielMapEditor.API.Helpers
                     LogManager.Warn($"Object type '{serializable.ObjectType}' on object '{serializable.Name}' has no server implementation, skipping.");
                     return parentNetId;
                 }
+
+                SpawningServerObjectEventArgs spawning = new(schematicData, serializable);
+                ObjectHandler.OnServerObjectSpawning(spawning);
+                if (!spawning.IsAllowed)
+                    return parentNetId;
 
                 ServerObject? server = definition.ServerObject(data);
                 if (server == null)

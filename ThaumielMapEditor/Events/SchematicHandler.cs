@@ -5,8 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using ThaumielMapEditor.API.Data;
-using ThaumielMapEditor.API.Helpers;
+using ThaumielMapEditor.Events.EventArgs.Schematic;
 
 namespace ThaumielMapEditor.Events
 {
@@ -17,17 +16,17 @@ namespace ThaumielMapEditor.Events
     {
         public static void Register()
         {
-            Loader.SchematicSpawned += OnSchematicSpawned;
+            EventArgs.Handlers.SchematicHandler.SchematicSpawned += OnSchematicSpawned;
         }
 
         public static void Unregister()
         {
-            Loader.SchematicSpawned -= OnSchematicSpawned;
+            EventArgs.Handlers.SchematicHandler.SchematicSpawned -= OnSchematicSpawned;
         }
 
-        private static void OnSchematicSpawned(SchematicData schematic)
+        private static void OnSchematicSpawned(SchematicSpawnedEventArgs ev)
         {
-            schematic.AnimationController.Play("Idle");
+            ev.Schematic.AnimationController.Play("Idle");
         }
     }
 }

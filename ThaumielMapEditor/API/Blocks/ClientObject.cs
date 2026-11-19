@@ -16,6 +16,7 @@ using ThaumielMapEditor.API.Extensions;
 using ThaumielMapEditor.API.Helpers;
 using ThaumielMapEditor.API.Data;
 using ThaumielMapEditor.Events.EventArgs.Handlers;
+using ThaumielMapEditor.Events.EventArgs.Objects;
 using UnityEngine;
 
 namespace ThaumielMapEditor.API.Blocks
@@ -71,9 +72,11 @@ namespace ThaumielMapEditor.API.Blocks
                 if (base.Position == value)
                     return;
 
+                Vector3 previous = base.Position;
                 base.Position = value;
                 MarkSyncNeeded(SyncFlags.Position);
                 PositionUpdated?.Invoke(value, this);
+                ObjectHandler.OnClientObjectPositionUpdated(new(this, previous, value));
             }
         }
 
@@ -88,9 +91,11 @@ namespace ThaumielMapEditor.API.Blocks
                 if (base.Scale == value)
                     return;
 
+                Vector3 previous = base.Scale;
                 base.Scale = value;
                 MarkSyncNeeded(SyncFlags.Scale);
                 ScaleUpdated?.Invoke(value, this);
+                ObjectHandler.OnClientObjectScaleUpdated(new(this, previous, value));
             }
         }
 
@@ -105,9 +110,11 @@ namespace ThaumielMapEditor.API.Blocks
                 if (base.Rotation == value)
                     return;
 
+                Quaternion previous = base.Rotation;
                 base.Rotation = value;
                 MarkSyncNeeded(SyncFlags.Rotation);
                 RotationUpdated?.Invoke(value, this);
+                ObjectHandler.OnClientObjectRotationUpdated(new(this, previous, value));
             }
         }
 
@@ -201,6 +208,18 @@ namespace ThaumielMapEditor.API.Blocks
         public virtual bool ShouldSpawnFor(Player player, LODZone[] zones) => true;
 
         /// <summary>
+        /// Raises the client object spawning event for the specified player.
+        /// </summary>
+        /// <param name="player">The player that would receive the object.</param>
+        /// <returns><see langword="true"/> if the spawn is allowed.</returns>
+        protected bool IsSpawnAllowedFor(Player player)
+        {
+            SpawningClientObjectEventArgs ev = new(this, player);
+            ObjectHandler.OnClientObjectSpawning(ev);
+            return ev.IsAllowed;
+        }
+
+        /// <summary>
         /// Spawns this object for the specified player.
         /// </summary>
         /// <param name="player">The player to spawn the object for.</param>
@@ -213,6 +232,9 @@ namespace ThaumielMapEditor.API.Blocks
                 return;
 
             if (player.Connection == null || !player.Connection.isReady)
+                return;
+
+            if (!IsSpawnAllowedFor(player))
                 return;
 
             using NetworkWriterPooled payloadWriter = NetworkWriterPool.Get();
