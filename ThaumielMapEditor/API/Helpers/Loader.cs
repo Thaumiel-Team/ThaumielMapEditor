@@ -443,7 +443,7 @@ namespace ThaumielMapEditor.API.Helpers
         }
 
         // Hopefuly this will stop clients from crashing when spawning large schematics.
-        private static async Task SpawnObjectsBatchedAsync(SerializableSchematic schematic, SchematicData schematicData, uint rootNetId)
+        private static async Task SpawnObjectsBatchedAsync(SerializableSchematic schematic, SchematicData schematicData, uint rootNetId, Action? onComplete = null)
         {
             try
             {
@@ -635,6 +635,7 @@ namespace ThaumielMapEditor.API.Helpers
                             finally
                             {
                                 completionTcs.TrySetResult(true);
+                                onComplete?.Invoke();
                             }
                         });
                     }
@@ -783,14 +784,15 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="directory">The full path to the directory containing the schematic.</param>
         /// <param name="schematicName">The file name of the schematic (without extension).</param>
         /// <param name="position">The world position at which to place the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic, or <see langword="null"/> if the schematic could not be loaded.</returns>
-        public static SchematicData? SpawnSchematicFromDirectory(string directory, string schematicName, Vector3 position)
+        public static SchematicData? SpawnSchematicFromDirectory(string directory, string schematicName, Vector3 position, Action? onComplete = null)
         {
             SerializableSchematic? schematic = TryLoadSchematicFromDirectory(directory, schematicName);
             if (schematic == null)
                 return null;
 
-            return SpawnSchematic(schematic, position);
+            return SpawnSchematic(schematic, position, onComplete);
         }
 
         /// <summary>
@@ -800,14 +802,15 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="schematicName">The file name of the schematic (without extension).</param>
         /// <param name="position">The world position at which to place the schematic.</param>
         /// <param name="rotation">The rotation to apply to the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic, or <see langword="null"/> if the schematic could not be loaded.</returns>
-        public static SchematicData? SpawnSchematicFromDirectory(string directory, string schematicName, Vector3 position, Quaternion rotation)
+        public static SchematicData? SpawnSchematicFromDirectory(string directory, string schematicName, Vector3 position, Quaternion rotation, Action? onComplete = null)
         {
             SerializableSchematic? schematic = TryLoadSchematicFromDirectory(directory, schematicName);
             if (schematic == null)
                 return null;
 
-            return SpawnSchematic(schematic, position, rotation);
+            return SpawnSchematic(schematic, position, rotation, onComplete);
         }
 
         /// <summary>
@@ -818,14 +821,15 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="position">The world position at which to place the schematic.</param>
         /// <param name="rotation">The rotation to apply to the schematic.</param>
         /// <param name="scale">The scale to apply to the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic, or <see langword="null"/> if the schematic could not be loaded.</returns>
-        public static SchematicData? SpawnSchematicFromDirectory(string directory, string schematicName, Vector3 position, Quaternion rotation, Vector3 scale)
+        public static SchematicData? SpawnSchematicFromDirectory(string directory, string schematicName, Vector3 position, Quaternion rotation, Vector3 scale, Action? onComplete = null)
         {
             SerializableSchematic? schematic = TryLoadSchematicFromDirectory(directory, schematicName);
             if (schematic == null)
                 return null;
 
-            return SpawnSchematic(schematic, position, rotation, scale);
+            return SpawnSchematic(schematic, position, rotation, scale, onComplete);
         }
 
         /// <summary>
@@ -833,14 +837,15 @@ namespace ThaumielMapEditor.API.Helpers
         /// </summary>
         /// <param name="path">The full file path to the schematic file.</param>
         /// <param name="position">The world position at which to place the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic, or <see langword="null"/> if the file could not be loaded.</returns>
-        public static SchematicData? SpawnSchematicFromPath(string path, Vector3 position)
+        public static SchematicData? SpawnSchematicFromPath(string path, Vector3 position, Action? onComplete = null)
         {
             SerializableSchematic? schematic = TryLoadSchematicFromPath(path);
             if (schematic == null)
                 return null;
 
-            return SpawnSchematic(schematic, position);
+            return SpawnSchematic(schematic, position, onComplete);
         }
 
         /// <summary>
@@ -849,14 +854,15 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="path">The full file path to the schematic file.</param>
         /// <param name="position">The world position at which to place the schematic.</param>
         /// <param name="rotation">The rotation to apply to the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic, or <see langword="null"/> if the file could not be loaded.</returns>
-        public static SchematicData? SpawnSchematicFromPath(string path, Vector3 position, Quaternion rotation)
+        public static SchematicData? SpawnSchematicFromPath(string path, Vector3 position, Quaternion rotation, Action? onComplete = null)
         {
             SerializableSchematic? schematic = TryLoadSchematicFromPath(path);
             if (schematic == null)
                 return null;
 
-            return SpawnSchematic(schematic, position, rotation);
+            return SpawnSchematic(schematic, position, rotation, onComplete);
         }
 
         /// <summary>
@@ -866,14 +872,15 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="position">The world position at which to place the schematic.</param>
         /// <param name="rotation">The rotation to apply to the schematic.</param>
         /// <param name="scale">The scale to apply to the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic, or <see langword="null"/> if the file could not be loaded.</returns>
-        public static SchematicData? SpawnSchematicFromPath(string path, Vector3 position, Quaternion rotation, Vector3 scale)
+        public static SchematicData? SpawnSchematicFromPath(string path, Vector3 position, Quaternion rotation, Vector3 scale, Action? onComplete = null)
         {
             SerializableSchematic? schematic = TryLoadSchematicFromPath(path);
             if (schematic == null)
                 return null;
 
-            return SpawnSchematic(schematic, position, rotation, scale);
+            return SpawnSchematic(schematic, position, rotation, scale, onComplete);
         }
 
         /// <summary>
@@ -905,8 +912,9 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="position">The world position at which to place the schematic.</param>
         /// <param name="rotation">The rotation to apply to the schematic.</param>
         /// <param name="scale">The scale to apply to the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic.</returns>
-        public static SchematicData SpawnSchematic(SerializableSchematic schematic, Vector3 position, Quaternion rotation, Vector3 scale)
+        public static SchematicData SpawnSchematic(SerializableSchematic schematic, Vector3 position, Quaternion rotation, Vector3 scale, Action? onComplete = null)
         {
             SchematicData schematicData = new()
             {
@@ -914,7 +922,7 @@ namespace ThaumielMapEditor.API.Helpers
                 Id = GetId(),
             };
 
-            SpawnSchematic(schematic, schematicData, position, rotation, scale);
+            SpawnSchematic(schematic, schematicData, position, rotation, scale, onComplete);
             return schematicData;
         }
 
@@ -924,8 +932,9 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="schematic">The serialized schematic to spawn.</param>
         /// <param name="position">The world position at which to place the schematic.</param>
         /// <param name="rotation">The rotation to apply to the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic.</returns>
-        public static SchematicData SpawnSchematic(SerializableSchematic schematic, Vector3 position, Quaternion rotation)
+        public static SchematicData SpawnSchematic(SerializableSchematic schematic, Vector3 position, Quaternion rotation, Action? onComplete = null)
         {
             SchematicData schematicData = new()
             {
@@ -933,7 +942,7 @@ namespace ThaumielMapEditor.API.Helpers
                 Id = GetId(),
             };
 
-            SpawnSchematic(schematic, schematicData, position, rotation, default);
+            SpawnSchematic(schematic, schematicData, position, rotation, default, onComplete);
             return schematicData;
         }
 
@@ -942,8 +951,9 @@ namespace ThaumielMapEditor.API.Helpers
         /// </summary>
         /// <param name="schematic">The serialized schematic to spawn.</param>
         /// <param name="position">The world position at which to place the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic.</returns>
-        public static SchematicData SpawnSchematic(SerializableSchematic schematic, Vector3 position)
+        public static SchematicData SpawnSchematic(SerializableSchematic schematic, Vector3 position, Action? onComplete = null)
         {
             SchematicData schematicData = new()
             {
@@ -951,7 +961,7 @@ namespace ThaumielMapEditor.API.Helpers
                 Id = GetId(),
             };
 
-            SpawnSchematic(schematic, schematicData, position, default, default);
+            SpawnSchematic(schematic, schematicData, position, default, default, onComplete);
             return schematicData;
         }
 
@@ -960,8 +970,9 @@ namespace ThaumielMapEditor.API.Helpers
         /// </summary>
         /// <param name="schematicname">The file name of the schematic to spawn. Must match a schematic in <see cref="LoadedSchematics"/>.</param>
         /// <param name="position">The world position at which to place the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic.</returns>
-        public static SchematicData? SpawnSchematic(string schematicname, Vector3 position)
+        public static SchematicData? SpawnSchematic(string schematicname, Vector3 position, Action? onComplete = null)
         {
             SerializableSchematic? schematic = GetSchematicByName(schematicname);
             if (schematic == null)
@@ -973,7 +984,7 @@ namespace ThaumielMapEditor.API.Helpers
                 Id = GetId(),
             };
 
-            SpawnSchematic(schematic, schematicData, position, default, default);
+            SpawnSchematic(schematic, schematicData, position, default, default, onComplete);
             return schematicData;
         }
 
@@ -983,8 +994,9 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="schematicname">The file name of the schematic to spawn. Must match a schematic in <see cref="LoadedSchematics"/>.</param>
         /// <param name="position">The world position at which to place the schematic.</param>
         /// <param name="rotation">The rotation to apply to the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic.</returns>
-        public static SchematicData? SpawnSchematic(string schematicname, Vector3 position, Quaternion rotation)
+        public static SchematicData? SpawnSchematic(string schematicname, Vector3 position, Quaternion rotation, Action? onComplete = null)
         {
             SerializableSchematic? schematic = GetSchematicByName(schematicname);
             if (schematic == null)
@@ -997,7 +1009,7 @@ namespace ThaumielMapEditor.API.Helpers
             };
 
 
-            SpawnSchematic(schematic, schematicData, position, rotation, default);
+            SpawnSchematic(schematic, schematicData, position, rotation, default, onComplete);
             return schematicData;
         }
 
@@ -1008,8 +1020,9 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="position">The world position at which to place the schematic.</param>
         /// <param name="rotation">The rotation to apply to the schematic.</param>
         /// <param name="scale">The scale to apply to the schematic.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> instance representing the spawned schematic.</returns>
-        public static SchematicData? SpawnSchematic(string schematicname, Vector3 position, Quaternion rotation, Vector3 scale)
+        public static SchematicData? SpawnSchematic(string schematicname, Vector3 position, Quaternion rotation, Vector3 scale, Action? onComplete = null)
         {
             SerializableSchematic? schematic = GetSchematicByName(schematicname);
             if (schematic == null)
@@ -1021,7 +1034,7 @@ namespace ThaumielMapEditor.API.Helpers
                 Id = GetId(),
             };
 
-            SpawnSchematic(schematic, schematicData, position, rotation, scale);
+            SpawnSchematic(schematic, schematicData, position, rotation, scale, onComplete);
             return schematicData;
         }
 
@@ -1116,8 +1129,9 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="isStatic">Whether the spawned object is static.</param>
         /// <param name="movementSmoothing">The movement smoothing for clientside objects.</param>
         /// <param name="tools">Optional tools to attach to the object.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> containing the single spawned object, or <see langword="null"/> when validation fails.</returns>
-        public static SchematicData? SpawnSingleObject(ObjectType type, Vector3 position, Quaternion rotation, Vector3? scale = null, Dictionary<string, object>? values = null, bool serverSide = false, string? name = null, bool isStatic = false, byte movementSmoothing = 0, List<SerializableTool>? tools = null)
+        public static SchematicData? SpawnSingleObject(ObjectType type, Vector3 position, Quaternion rotation, Vector3? scale = null, Dictionary<string, object>? values = null, bool serverSide = false, string? name = null, bool isStatic = false, byte movementSmoothing = 0, List<SerializableTool>? tools = null, Action? onComplete = null)
         {
             if (type is ObjectType.None or ObjectType.Schematic)
             {
@@ -1174,7 +1188,7 @@ namespace ThaumielMapEditor.API.Helpers
             else
                 schematic.Objects.Add(obj);
 
-            return SpawnSchematic(schematic, position, rotation);
+            return SpawnSchematic(schematic, position, rotation, onComplete);
         }
 
         /// <summary>
@@ -1190,9 +1204,10 @@ namespace ThaumielMapEditor.API.Helpers
         /// <param name="isStatic">Whether the spawned object is static.</param>
         /// <param name="movementSmoothing">The movement smoothing for clientside objects.</param>
         /// <param name="tools">Optional tools to attach.</param>
+        /// <param name="onComplete">Invoked when the schematic is fully spawned.</param>
         /// <returns>A <see cref="SchematicData"/> containing the single spawned object, or <see langword="null"/> when validation fails.</returns>
-        public static SchematicData? SpawnSingleObject(ObjectType type, Vector3 position, Vector3 rotationEuler, Vector3? scale = null, Dictionary<string, object>? values = null, bool serverSide = false, string? name = null, bool isStatic = false, byte movementSmoothing = 0, List<SerializableTool>? tools = null) =>
-            SpawnSingleObject(type, position, Quaternion.Euler(rotationEuler), scale, values, serverSide, name, isStatic, movementSmoothing, tools);
+        public static SchematicData? SpawnSingleObject(ObjectType type, Vector3 position, Vector3 rotationEuler, Vector3? scale = null, Dictionary<string, object>? values = null, bool serverSide = false, string? name = null, bool isStatic = false, byte movementSmoothing = 0, List<SerializableTool>? tools = null, Action? onComplete = null) =>
+            SpawnSingleObject(type, position, Quaternion.Euler(rotationEuler), scale, values, serverSide, name, isStatic, movementSmoothing, tools, onComplete);
 
         private static void ApplySingleObjectDefaults(ObjectType type, Dictionary<string, object> values)
         {
@@ -1333,7 +1348,7 @@ namespace ThaumielMapEditor.API.Helpers
             return false;
         }
 
-        private static void SpawnSchematic(SerializableSchematic schematic, SchematicData schematicData, Vector3 position, Quaternion rotation, Vector3 scale)
+        private static void SpawnSchematic(SerializableSchematic schematic, SchematicData schematicData, Vector3 position, Quaternion rotation, Vector3 scale, Action? onComplete = null)
         {
             if (!PrefabHelper.RanRegister)
             {
@@ -1374,7 +1389,7 @@ namespace ThaumielMapEditor.API.Helpers
             LODHelper.GenerateLODZones(schematicData, schematic);
             GetGameObjectTransforms(schematic, schematicData);
 
-            _ = SpawnObjectsBatchedAsync(schematic, schematicData, schematicData.Primitive.Base.netId);
+            _ = SpawnObjectsBatchedAsync(schematic, schematicData, schematicData.Primitive.Base.netId, onComplete);
         }
 
         private static void GetGameObjectTransforms(SerializableSchematic schematic, SchematicData schematicData)
