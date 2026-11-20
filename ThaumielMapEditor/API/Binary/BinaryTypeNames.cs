@@ -19,14 +19,35 @@ namespace ThaumielMapEditor.API.Binary
     {
         private static readonly ConcurrentDictionary<Type, string> NameCache = new();
         private static readonly ConcurrentDictionary<string, Type> Registered = new(StringComparer.Ordinal);
-        private static readonly ConcurrentDictionary<string, Type?> ResolveCache = new(StringComparer.Ordinal);
+        private static readonly ConcurrentDictionary<string, Type> ResolveCache = new(StringComparer.Ordinal);
+        private static readonly ConcurrentDictionary<string, byte> MissCache = new(StringComparer.Ordinal);
+        private static readonly object IndexLock = new();
         private static Dictionary<string, List<Type>>? _index;
+        private static int _indexedAssemblyCount = -1;
+
+        static BinaryTypeNames()
+        {
+            Registered["Object"] = typeof(object);
+            NameCache[typeof(object)] = "Object";
+        }
 
         public static void Register(Type type, string alias)
         {
             Registered[alias] = type;
             NameCache[type] = alias;
             ResolveCache.Clear();
+            MissCache.Clear();
+        }
+
+        public static void Refresh()
+        {
+            lock (IndexLock)
+            {
+                _index = null;
+                _indexedAssemblyCount = -1;
+                ResolveCache.Clear();
+                MissCache.Clear();
+            }
         }
 
         public static string GetName(Type type) =>
@@ -43,7 +64,7 @@ namespace ThaumielMapEditor.API.Binary
                 int tick = n.IndexOf('`');
                 if (tick >= 0)
                     n = n.Substring(0, tick);
-                    
+
                 return n + "<" + string.Join(",", t.GetGenericArguments().Select(GetName)) + ">";
             }
 
@@ -52,20 +73,50 @@ namespace ThaumielMapEditor.API.Binary
 
         public static Type? Resolve(string name)
         {
-            return ResolveCache.GetOrAdd(name, n =>
+            if (ResolveCache.TryGetValue(name, out Type? cached))
+                return cached;
+
+            if (MissCache.ContainsKey(name))
             {
-                if (n.Contains(", ") || n.Contains('.'))
+                if (!TryRefreshIndexForNewAssemblies())
+                    return null;
+            }
+
+            Type? resolved = ResolveCore(name);
+            if (resolved is not null)
+            {
+                ResolveCache.TryAdd(name, resolved);
+                return resolved;
+            }
+
+            if (TryRefreshIndexForNewAssemblies())
+            {
+                resolved = ResolveCore(name);
+                if (resolved is not null)
                 {
-                    Type? legacy = Type.GetType(n, throwOnError: false);
-                    if (legacy is not null)
-                        return legacy;
-
-                    n = StripLegacy(n);
+                    ResolveCache.TryAdd(name, resolved);
+                    return resolved;
                 }
+            }
 
-                int pos = 0;
-                return Parse(n, ref pos);
-            });
+            MissCache.TryAdd(name, 0);
+            return resolved;
+        }
+
+        private static Type? ResolveCore(string name)
+        {
+            string n = name;
+            if (n.Contains(", ") || n.Contains('.'))
+            {
+                Type? legacy = Type.GetType(n, throwOnError: false);
+                if (legacy is not null)
+                    return legacy;
+
+                n = StripLegacy(n);
+            }
+
+            int pos = 0;
+            return Parse(n, ref pos);
         }
 
         private static string StripLegacy(string s)
@@ -74,8 +125,7 @@ namespace ThaumielMapEditor.API.Binary
             if (comma >= 0 && !s.Contains('<'))
                 s = s.Substring(0, comma);
 
-            int dot = Math.Max(s.LastIndexOf('.'), s.LastIndexOf('+'));
-            return dot >= 0 ? s.Substring(dot + 1) : s;
+            return s.Trim();
         }
 
         private static Type? Parse(string s, ref int pos)
@@ -136,7 +186,11 @@ namespace ThaumielMapEditor.API.Binary
             Dictionary<string, List<Type>> index = GetIndex();
 
             if (!index.TryGetValue(key, out var list))
-                return null;
+            {
+                int dot = Math.Max(key.LastIndexOf('.'), key.LastIndexOf('+'));
+                if (dot < 0 || !index.TryGetValue(key.Substring(dot + 1), out list))
+                    return null;
+            }
 
             if (list.Count > 1)
                 LogManager.Warn($"Ambiguous binary type name '{key}'. Use BinaryTypeNames.Register.");
@@ -150,9 +204,36 @@ namespace ThaumielMapEditor.API.Binary
             if (index != null)
                 return index;
 
-            Dictionary<string, List<Type>> built = BuildIndex();
-            Dictionary<string, List<Type>>? existing = Interlocked.CompareExchange(ref _index, built, null);
-            return existing ?? built;
+            lock (IndexLock)
+            {
+                if (_index is null)
+                {
+                    _index = BuildIndex();
+                    _indexedAssemblyCount = AppDomain.CurrentDomain.GetAssemblies().Length;
+                }
+
+                return _index;
+            }
+        }
+
+        private static bool TryRefreshIndexForNewAssemblies()
+        {
+            int count = AppDomain.CurrentDomain.GetAssemblies().Length;
+            if (count == Volatile.Read(ref _indexedAssemblyCount))
+                return false;
+
+            lock (IndexLock)
+            {
+                count = AppDomain.CurrentDomain.GetAssemblies().Length;
+                if (count == _indexedAssemblyCount)
+                    return false;
+
+                _index = BuildIndex();
+                _indexedAssemblyCount = count;
+                ResolveCache.Clear();
+                MissCache.Clear();
+                return true;
+            }
         }
 
         private static Dictionary<string, List<Type>> BuildIndex()
@@ -182,14 +263,21 @@ namespace ThaumielMapEditor.API.Binary
 
                 foreach (Type t in types)
                 {
-                    if (!map.TryGetValue(t.Name, out var l))
-                        map[t.Name] = l = [];
-                        
-                    l.Add(t);
+                    Add(map, t.Name, t);
+                    if (!string.IsNullOrEmpty(t.FullName) && !string.Equals(t.FullName, t.Name, StringComparison.Ordinal))
+                        Add(map, t.FullName!, t);
                 }
             }
             
             return map;
+        }
+
+        private static void Add(Dictionary<string, List<Type>> map, string key, Type type)
+        {
+            if (!map.TryGetValue(key, out var list))
+                map[key] = list = [];
+
+            list.Add(type);
         }
     }
 }

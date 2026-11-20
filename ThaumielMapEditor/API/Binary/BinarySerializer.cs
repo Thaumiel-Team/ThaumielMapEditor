@@ -42,6 +42,8 @@ namespace ThaumielMapEditor.API.Binary
             public Func<object, object?>? Getter { get; init; }
 
             public Action<object, object?>? Setter { get; init; }
+
+            public int Index { get; set; } = -1;
         }
 
         private sealed class KeyValuePairAccessor
@@ -57,9 +59,15 @@ namespace ThaumielMapEditor.API.Binary
 
             public required Dictionary<string, MemberAccessor> ByName { get; init; }
 
+            public required Dictionary<string, int> IndexByName { get; init; }
+
             public ConstructorInfo? Ctor { get; init; }
 
             public MemberAccessor?[] CtorMembers { get; init; } = [];
+
+            public int[] CtorIndices { get; init; } = [];
+
+            public ParameterInfo[] CtorParameters { get; init; } = [];
 
             public Func<object>? Create { get; init; }
 
@@ -90,6 +98,8 @@ namespace ThaumielMapEditor.API.Binary
 
         private static readonly ConcurrentDictionary<Type, TypePlan> PlanCache = new();
 
+        private static readonly ConcurrentDictionary<Type, byte> UnsupportedPlanCache = new();
+
         private static readonly ConcurrentDictionary<string, Type> RuntimeTypeCache = new();
 
         private static readonly ConcurrentDictionary<Type, Func<object>> FactoryCache = new();
@@ -103,6 +113,20 @@ namespace ThaumielMapEditor.API.Binary
         private static readonly ConcurrentDictionary<Type, EnumerableShape> EnumerableShapeCache = new();
 
         private static readonly ConcurrentDictionary<Type, KeyValuePairAccessor> KeyValuePairAccessorCache = new();
+
+        public static void Refresh()
+        {
+            PlanCache.Clear();
+            UnsupportedPlanCache.Clear();
+            RuntimeTypeCache.Clear();
+            FactoryCache.Clear();
+            ListTypeCache.Clear();
+            DictionaryTypeCache.Clear();
+            DictionaryShapeCache.Clear();
+            EnumerableShapeCache.Clear();
+            KeyValuePairAccessorCache.Clear();
+            BinaryTypeNames.Refresh();
+        }
 
         public static byte[] Serialize<T>(T? value)
         {
@@ -445,16 +469,42 @@ namespace ThaumielMapEditor.API.Binary
                 return;
             }
 
+            if (actual == typeof(Vector3))
+            {
+                WriteVector3(writer, (Vector3)value);
+                return;
+            }
+
+            if (value is IDictionary<string, object?> stringObjectDictionary)
+            {
+                writer.Write((byte)22);
+                writer.Write(stringObjectDictionary.Count);
+                foreach (KeyValuePair<string, object?> pair in stringObjectDictionary)
+                {
+                    WriteValue(writer, pair.Key, typeof(string));
+                    WriteValue(writer, pair.Value, typeof(object));
+                }
+
+                return;
+            }
+
             if (TryGetDictionaryTypes(actual, out Type? keyType, out Type? valueType))
             {
                 writer.Write((byte)22);
-                List<DictionaryEntry> list = [];
-                foreach (DictionaryEntry item in (IDictionary)value)
+                if (value is IDictionary dictionary)
                 {
-                    list.Add(item);
+                    writer.Write(dictionary.Count);
+                    foreach (DictionaryEntry entry in dictionary)
+                    {
+                        WriteValue(writer, entry.Key, keyType!);
+                        WriteValue(writer, entry.Value, valueType!);
+                    }
+
+                    return;
                 }
 
-                if (list.Count == 0 && value is IEnumerable enumerable)
+                List<DictionaryEntry> list = [];
+                if (value is IEnumerable enumerable)
                 {
                     foreach (object item2 in enumerable)
                     {
@@ -733,6 +783,9 @@ namespace ThaumielMapEditor.API.Binary
                     if (type == typeof(Quaternion))
                         return ReadEulerQuaternion(reader);
 
+                    if (type == typeof(Vector3))
+                        return ReadVector3(reader);
+
                     return ReadObject(reader, type);
 
                 default:
@@ -885,6 +938,23 @@ namespace ThaumielMapEditor.API.Binary
             int num = reader.ReadInt32();
             if (!CheckCount(num))
                 return null;
+
+            if (target == typeof(Dictionary<string, object>) || target == typeof(IDictionary<string, object>) || target == typeof(IReadOnlyDictionary<string, object>))
+            {
+                Dictionary<string, object?> result = new(num);
+                for (int i = 0; i < num; i++)
+                {
+                    if (ReadValue(reader, typeof(string)) is not string key)
+                    {
+                        LogManager.Warn("Null dictionary key.");
+                        return null;
+                    }
+
+                    result[key] = ReadValue(reader, typeof(object));
+                }
+
+                return result;
+            }
 
             (Type, Type) tuple = (TryGetDictionaryTypes(target, out Type? keyType, out Type? valueType) && keyType is not null && valueType is not null) ? (keyType, valueType) : ((!TryGetDictionaryTypes(declaredType, out Type? keyType2, out Type? valueType2) || keyType2 is null || valueType2 is null) ? (typeof(object), typeof(object)) : (keyType2, valueType2));
             Type type = (target.IsInterface || target.IsAbstract) ? GetDictionaryType(tuple.Item1, tuple.Item2) : target;
@@ -1092,6 +1162,21 @@ namespace ThaumielMapEditor.API.Binary
             }
         }
 
+        private static void WriteVector3(BinaryWriter writer, Vector3 value)
+        {
+            writer.Write((byte)BinKind.Object);
+            writer.Write(3);
+            writer.Write("x");
+            writer.Write((byte)BinKind.Float);
+            writer.Write(value.x);
+            writer.Write("y");
+            writer.Write((byte)BinKind.Float);
+            writer.Write(value.y);
+            writer.Write("z");
+            writer.Write((byte)BinKind.Float);
+            writer.Write(value.z);
+        }
+
         private static void WriteObjectPayload(BinaryWriter writer, object value, Type actual, TypePlan plan)
         {
             writer.Write(plan.Members.Length);
@@ -1113,6 +1198,37 @@ namespace ThaumielMapEditor.API.Binary
 
                 WriteValue(writer, value2, memberAccessor.MemberType);
             }
+        }
+
+        private static Vector3 ReadVector3(BinaryReader reader)
+        {
+            int count = reader.ReadInt32();
+            if (!CheckCount(count))
+                return Vector3.zero;
+
+            float x = 0f;
+            float y = 0f;
+            float z = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                string name = reader.ReadString();
+                if (string.Equals(name, "x", StringComparison.OrdinalIgnoreCase))
+                {
+                    x = ReadFloatValue(reader);
+                }
+                else if (string.Equals(name, "y", StringComparison.OrdinalIgnoreCase))
+                {
+                    y = ReadFloatValue(reader);
+                }
+                else if (string.Equals(name, "z", StringComparison.OrdinalIgnoreCase))
+                {
+                    z = ReadFloatValue(reader);
+                }
+                else
+                    SkipValue(reader);
+            }
+
+            return new Vector3(x, y, z);
         }
 
         private static Quaternion ReadEulerQuaternion(BinaryReader reader)
@@ -1178,32 +1294,34 @@ namespace ThaumielMapEditor.API.Binary
             int num = reader.ReadInt32();
             if (!CheckCount(num))
                 return null;
-            
-            Dictionary<string, object> dictionary = new(num, StringComparer.OrdinalIgnoreCase);
+
+            MemberAccessor[] members = plan.Members;
+            object?[] values = new object?[members.Length];
+            bool[] present = new bool[members.Length];
             for (int i = 0; i < num; i++)
             {
                 string key = reader.ReadString();
-                if (plan.ByName.TryGetValue(key, out MemberAccessor value))
+                if (plan.IndexByName.TryGetValue(key, out int index))
                 {
-                    object? value2 = ReadValue(reader, value.MemberType);
-                    dictionary[value.Name] = value2!;
+                    values[index] = ReadValue(reader, members[index].MemberType);
+                    present[index] = true;
                 }
                 else
                     SkipValue(reader);
             }
-            
-            MemberAccessor[] members = plan.Members;
-            foreach (MemberAccessor memberAccessor in members)
+
+            for (int i = 0; i < members.Length; i++)
             {
-                if (memberAccessor.Required && !dictionary.ContainsKey(memberAccessor.Name))
+                if (members[i].Required && !present[i])
                 {
-                    LogManager.Warn($"Missing required '{target.FullName}.{memberAccessor.Name}.");
+                    LogManager.Warn($"Missing required '{target.FullName}.{members[i].Name}.");
                     return null;
                 }
             }
 
             object? obj;
-            if (plan.Ctor is null || plan.Ctor.GetParameters().Length == 0)
+            ParameterInfo[] parameters = plan.CtorParameters;
+            if (plan.Ctor is null || parameters.Length == 0)
             {
                 try
                 {
@@ -1215,28 +1333,23 @@ namespace ThaumielMapEditor.API.Binary
                     return null;
                 }
 
-                foreach (KeyValuePair<string, object> item in dictionary)
+                for (int i = 0; i < members.Length; i++)
                 {
-                    MemberAccessor memberAccessor2 = plan.ByName[item.Key];
-                    if (memberAccessor2.CanWrite && memberAccessor2.Setter != null)
-                        memberAccessor2.Setter(obj!, Coerce(item.Value, memberAccessor2.MemberType));
+                    MemberAccessor member = members[i];
+                    if (present[i] && member.CanWrite && member.Setter != null)
+                        member.Setter(obj!, Coerce(values[i], member.MemberType));
                 }
 
                 return obj;
             }
 
-            ParameterInfo[] parameters = plan.Ctor.GetParameters();
             object?[] array = new object[parameters.Length];
-            HashSet<string> hashSet = new(StringComparer.OrdinalIgnoreCase);
             for (int k = 0; k < parameters.Length; k++)
             {
-                MemberAccessor? memberAccessor3 = plan.CtorMembers[k];
-                if (memberAccessor3 != null)
-                    hashSet.Add(memberAccessor3.Name);
-                    
-                if (memberAccessor3 != null && dictionary.TryGetValue(memberAccessor3.Name, out var value3))
+                int index = k < plan.CtorIndices.Length ? plan.CtorIndices[k] : -1;
+                if (index >= 0 && present[index])
                 {
-                    array[k] = Coerce(value3, parameters[k].ParameterType);
+                    array[k] = Coerce(values[index], parameters[k].ParameterType);
                 }
                 else if (parameters[k].HasDefaultValue)
                 {
@@ -1260,11 +1373,11 @@ namespace ThaumielMapEditor.API.Binary
                 return null;
             }
 
-            foreach (KeyValuePair<string, object> item2 in dictionary)
+            for (int i = 0; i < members.Length; i++)
             {
-                MemberAccessor memberAccessor4 = plan.ByName[item2.Key];
-                if ((!hashSet.Contains(item2.Key) || !IsCtorOnly(memberAccessor4)) && memberAccessor4.CanWrite && memberAccessor4.Setter != null)
-                    memberAccessor4.Setter(obj, Coerce(item2.Value, memberAccessor4.MemberType));
+                MemberAccessor member = members[i];
+                if (present[i] && member.CanWrite && member.Setter != null)
+                    member.Setter(obj!, Coerce(values[i], member.MemberType));
             }
 
             return obj;
@@ -1326,8 +1439,9 @@ namespace ThaumielMapEditor.API.Binary
                     for (int i = 0; i < num; i++)
                     {
                         string key = reader.ReadString();
-                        if (plan.ByName.TryGetValue(key, out MemberAccessor value))
+                        if (plan.IndexByName.TryGetValue(key, out int index))
                         {
+                            MemberAccessor value = plan.Members[index];
                             object? value2 = ReadValue(reader, value.MemberType);
                             if (value.CanWrite && value.Setter != null)
                                 value.Setter(instance, Coerce(value2, value.MemberType));
@@ -1522,9 +1636,16 @@ namespace ThaumielMapEditor.API.Binary
             if (PlanCache.TryGetValue(type, out TypePlan value))
                 return value;
 
+            if (UnsupportedPlanCache.ContainsKey(type))
+                return null;
+
             TypePlan? typePlan = BuildPlan(type);
             if (typePlan != null)
+            {
                 PlanCache.TryAdd(type, typePlan);
+            }
+            else
+                UnsupportedPlanCache.TryAdd(type, 0);
 
             return typePlan;
         }
@@ -1736,21 +1857,38 @@ namespace ThaumielMapEditor.API.Binary
                 constructorInfo = null;
 
             Dictionary<string, MemberAccessor> dictionary = new(StringComparer.OrdinalIgnoreCase);
-            foreach (MemberAccessor item in list)
+            Dictionary<string, int> indices = new(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < list.Count; i++)
             {
+                MemberAccessor item = list[i];
+                item.Index = i;
                 if (!dictionary.ContainsKey(item.Name))
                     dictionary.Add(item.Name, item);
+
+                if (!indices.ContainsKey(item.Name))
+                    indices.Add(item.Name, i);
 
                 if (item.Prop is not null)
                 {
                     if (!dictionary.ContainsKey(item.Prop.Name))
                         dictionary.Add(item.Prop.Name, item);
+
+                    if (!indices.ContainsKey(item.Prop.Name))
+                        indices.Add(item.Prop.Name, i);
                 }
-                else if (item.Field is not null && !dictionary.ContainsKey(item.Field.Name))
+                else if (item.Field is not null)
                 {
-                    dictionary.Add(item.Field.Name, item);
+                    if (!dictionary.ContainsKey(item.Field.Name))
+                        dictionary.Add(item.Field.Name, item);
+
+                    if (!indices.ContainsKey(item.Field.Name))
+                        indices.Add(item.Field.Name, i);
                 }
             }
+
+            int[] ctorIndices = new int[array.Length];
+            for (int i = 0; i < array.Length; i++)
+                ctorIndices[i] = array[i]?.Index ?? -1;
 
             Func<object>? create = (constructorInfo is null || constructorInfo.GetParameters().Length == 0) ? CompileFactory(type, constructorInfo) : null;
             Func<object?[], object>? createWithArgs = (constructorInfo is not null && constructorInfo.GetParameters().Length != 0) ? CompileFactory(constructorInfo) : null;
@@ -1758,8 +1896,11 @@ namespace ThaumielMapEditor.API.Binary
             {
                 Members = list.ToArray(),
                 ByName = dictionary,
+                IndexByName = indices,
                 Ctor = constructorInfo,
                 CtorMembers = array,
+                CtorIndices = ctorIndices,
+                CtorParameters = constructorInfo?.GetParameters() ?? [],
                 Create = create,
                 CreateWithArgs = createWithArgs
             };
