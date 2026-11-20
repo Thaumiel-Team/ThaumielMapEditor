@@ -111,8 +111,23 @@ namespace ThaumielMapEditor.API.Data
         /// </summary>
         public Room? Room { get; internal set; }
 
-        public AnimationController AnimationController => AnimationController.Get(this);
+        /// <summary>
+        /// Gets the <see cref="AnimationController"/> for this schematic.
+        /// </summary>
+        public AnimationController AnimationController
+        {
+            get
+            {
+                field ??= AnimationController.Get(this);
+                return field;
+            }
+        }
 
+        /// <summary>
+        /// A Dictionary containing the transforms for client side objects.
+        /// Key = The <see cref="ObjectBase.ObjectId"/>.
+        /// Value = The <see cref="Transform"/>.
+        /// </summary>
         public Dictionary<int, Transform> ServerSideTransforms = [];
 
         /// <summary>
@@ -155,14 +170,28 @@ namespace ThaumielMapEditor.API.Data
         /// </summary>
         /// <typeparam name="T">The type of <see cref="ClientObject"/> to filter.</typeparam>
         /// <returns>An <see cref="IEnumerable{T}"/> containing all <see cref="ClientObject"/>s that match type <typeparamref name="T"/>.</returns>
-        public IEnumerable<T> GetClientObject<T>() where T : ClientObject => SpawnedClientObjects.OfType<T>();
+        public IEnumerable<T> GetClientObject<T>() where T : ClientObject
+        {
+            foreach (ClientObject client in SpawnedClientObjects)
+            {
+                if (client is T type)
+                    yield return type;
+            }
+        }
 
         /// <summary>
         /// Retrieves all spawned <see cref="ServerObject"/>s of the specified type.
         /// </summary>
         /// <typeparam name="T">The type of <see cref="ServerObject"/> to filter.</typeparam>
         /// <returns>An <see cref="IEnumerable{T}"/> containing all <see cref="ServerObject"/>s that match type <typeparamref name="T"/>.</returns>
-        public IEnumerable<T> GetServerObject<T>() where T : ServerObject => SpawnedServerObjects.OfType<T>();
+        public IEnumerable<T> GetServerObject<T>() where T : ServerObject
+        {
+            foreach (ServerObject server in SpawnedServerObjects)
+            {
+                if (server is T type)
+                    yield return type;
+            }
+        }
 
         /// <summary>
         /// Retrieves every spawned <see cref="ServerObject"/> of this schematic.
@@ -1215,7 +1244,6 @@ namespace ThaumielMapEditor.API.Data
             Executor = null;
             AnimationController.Remove(this);
             ColliderHelper.SchematicColliders.Remove(this);
-            Loader.SchematicsById.Remove(Id);
         }
     }
 }
